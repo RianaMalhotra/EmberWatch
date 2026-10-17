@@ -34,3 +34,18 @@ def get_min_detection_confidence():
     if not 0 <= value <= 100:
         raise ValueError(f"MIN_DETECTION_CONFIDENCE must be between 0 and 100, got {value}")
     return value
+
+
+# Browser origins allowed to call the API (CORS). The default is the local Vite
+# dev server. For a deployment, set CORS_ORIGINS to the site's address, e.g.
+# ``CORS_ORIGINS=https://ash-detectives.example.com`` (comma-separate several).
+DEFAULT_CORS_ORIGINS = ["http://localhost:5173"]
+
+
+def get_cors_origins():
+    """Return the allowed origins from CORS_ORIGINS, or the local default."""
+    raw = os.environ.get("CORS_ORIGINS")
+    if raw is None:
+        return list(DEFAULT_CORS_ORIGINS)
+    origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    return origins or list(DEFAULT_CORS_ORIGINS)

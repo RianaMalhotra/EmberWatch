@@ -1,7 +1,16 @@
 
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
-import { MapContainer, TileLayer, Circle, Popup } from "react-leaflet";
+import { fetchDetections } from "./services/detectionApi";
+import {
+  classificationLabel,
+  detectionStyle,
+  detectionSummary,
+  formatConfidence,
+  formatCoordinates,
+  formatDetectionTime,
+} from "./utils/detectionFormat";
+import { MapContainer, TileLayer, Circle, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 const riskColors = {
@@ -15,6 +24,37 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [detectionError, setDetectionError] = useState(null);
+
+  // #18: detections load separately from risk areas, so if one request fails
+  // the other still shows (see #4, reliable handling of failures).
+  useEffect(() => {
+    let active = true;
+
+    async function loadDetections() {
+      try {
+        const result = await fetchDetections();
+
+        if (!active) return;
+
+        setDetectionResult(result);
+        setDetectionError(null);
+      } catch (err) {
+        if (!active) return;
+
+        // Show an error, never invented detections.
+        setDetectionResult(null);
+        setDetectionError(err.message || "Unable to load wildfire detections.");
+      }
+    }
+
+    loadDetections();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -65,6 +105,16 @@ function App() {
         <p>Demo data — not live wildfire risk</p>
       )}
 
+      {detectionError && (
+        <p role="alert" style={{ color: "red" }}>
+          Detections unavailable: {detectionError}
+        </p>
+      )}
+
+      {detectionResult && (
+        <p>{detectionSummary(detectionResult)}</p>
+      )}
+
       <MapContainer
         center={[45.4, -77.5]}
         zoom={7}
@@ -105,6 +155,39 @@ function App() {
                 )}
               </Popup>
             </Circle>
+          );
+        })}
+
+        {detectionResult?.detections.map((detection) => {
+          const { radius, ...pathOptions } = detectionStyle(detection);
+
+          return (
+            <CircleMarker
+              key={`detection-${detection.id}`}
+              center={[detection.latitude, detection.longitude]}
+              radius={radius}
+              pathOptions={pathOptions}
+            >
+              <Popup>
+                <strong>{classificationLabel(detection)}</strong>
+
+                <p>
+                  Location:{" "}
+                  {formatCoordinates(detection.latitude, detection.longitude)}
+                  <br />
+                  Detected: {formatDetectionTime(detection.timestamp)}
+                  <br />
+                  Confidence: {formatConfidence(detection.confidence)}
+                </p>
+
+                {!detection.meets_threshold && (
+                  <p>
+                    Below the {detectionResult.threshold}% confidence
+                    threshold. Treat with caution.
+                  </p>
+                )}
+              </Popup>
+            </CircleMarker>
           );
         })}
       </MapContainer>

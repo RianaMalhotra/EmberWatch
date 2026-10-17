@@ -1,16 +1,22 @@
 """Filter detections by confidence using the configurable threshold (#19)."""
 
+import math
+
 from config import get_min_detection_confidence
 
 
 def passes_threshold(detection, min_confidence):
     """Return True if a detection's confidence meets the threshold.
 
-    Detections with a missing or non-numeric confidence do not pass:
+    Detections with a missing, non-numeric or non-finite confidence do not pass:
     an unknown confidence is not treated as high (see issue #27).
     """
     confidence = detection.get("confidence") if isinstance(detection, dict) else None
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+        return False
+    # NaN and infinity are not real confidence values (infinity would otherwise
+    # pass every threshold).
+    if not math.isfinite(confidence):
         return False
     return confidence >= min_confidence
 
