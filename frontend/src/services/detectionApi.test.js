@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
+import { resolveApiBaseUrl } from "./apiConfig.js";
 import { fetchDetections } from "./detectionApi.js";
 import {
   classificationLabel,
@@ -8,6 +9,8 @@ import {
   formatConfidence,
   formatCoordinates,
   formatDetectionTime,
+  isDisplayableDetection,
+  sanitizeDetections,
 } from "../utils/detectionFormat.js";
 
 // #18: the map shows location, timestamp and confidence for each detection
@@ -81,4 +84,54 @@ test("#18 summary mentions detections that could not be shown", () => {
   const text = detectionSummary(sample);
   assert.match(text, /2 detections shown: 1 potential wildfire, 1 low confidence \(threshold 20%\)/);
   assert.match(text, /1 could not be shown/);
+});
+
+// --- NaN / infinity (reviewer feedback) ---
+test("#18 only finite, in-range detections are displayable", () => {
+  const ok = sample.detections[0];
+  assert.equal(isDisplayableDetection(ok), true);
+  for (const bad of [
+    { ...ok, latitude: NaN },
+    { ...ok, longitude: Infinity },
+    { ...ok, confidence: NaN },
+    { ...ok, confidence: Infinity },
+    { ...ok, confidence: 150 },
+    { ...ok, latitude: 91 },
+    { ...ok, latitude: null },
+    { ...ok, confidence: "80" },
+    null,
+  ]) {
+    assert.equal(isDisplayableDetection(bad), false);
+  }
+});
+
+test("#18 drops invalid detections and counts them as unavailable", () => {
+  const result = sanitizeDetections({
+    ...sample,
+    detections: [...sample.detections, { id: 4, latitude: NaN, longitude: -120, timestamp: "2025-07-01T18:30:00Z", confidence: 50, classification: "potential_wildfire" }],
+  });
+  assert.equal(result.detections.length, 2);
+  assert.deepEqual(result.counts, { total: 3, shown: 2, potential_wildfire: 1, low_confidence: 1, unavailable: 2 });
+  assert.match(detectionSummary(result), /2 could not be shown/);
+});
+
+test("#18 leaves a clean response untouched", () => {
+  assert.equal(sanitizeDetections(sample), sample);
+});
+
+test("#18 fetchDetections never returns a detection Leaflet could not draw", async () => {
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ ...sample, detections: [...sample.detections, { ...sample.detections[0], id: 9, confidence: Infinity }] }),
+  });
+  const result = await fetchDetections();
+  assert.deepEqual(result.detections.map((d) => d.id), [1, 2]);
+});
+
+test("API base URL defaults to local Flask and can be overridden", () => {
+  assert.equal(resolveApiBaseUrl(undefined), "http://127.0.0.1:5000");
+  assert.equal(resolveApiBaseUrl(""), "http://127.0.0.1:5000");
+  assert.equal(resolveApiBaseUrl("   "), "http://127.0.0.1:5000");
+  assert.equal(resolveApiBaseUrl("https://api.example.com"), "https://api.example.com");
+  assert.equal(resolveApiBaseUrl(" https://api.example.com/// "), "https://api.example.com");
 });

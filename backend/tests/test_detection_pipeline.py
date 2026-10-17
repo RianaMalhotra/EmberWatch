@@ -224,3 +224,47 @@ def test_detections_endpoint_rejects_bad_threshold_config(client, monkeypatch):
     response = client.get("/api/detections")
     assert response.status_code == 500
     assert response.get_json()["status"] == "error"
+
+
+# --- NaN / infinity (reviewer feedback) ---
+
+NAN, INF = float("nan"), float("inf")
+
+
+@pytest.mark.parametrize("overrides, reason", [
+    ({"latitude": NAN}, "Invalid coordinates"),
+    ({"longitude": NAN}, "Invalid coordinates"),
+    ({"latitude": INF}, "Invalid coordinates"),
+    ({"longitude": -INF}, "Invalid coordinates"),
+    ({"confidence": NAN}, "Invalid confidence"),
+    ({"confidence": INF}, "Invalid confidence"),
+    ({"confidence": -INF}, "Invalid confidence"),
+])
+def test_non_finite_values_are_rejected(overrides, reason):
+    record, found = classify_detection(make_row(**overrides), min_confidence=20)
+    assert record is None
+    assert found == reason
+
+
+@pytest.mark.parametrize("bad_frp", [NAN, INF, -INF, "12", True])
+def test_non_finite_frp_becomes_none(bad_frp):
+    record, _ = classify_detection(make_row(frp=bad_frp), min_confidence=20)
+    assert record["frp"] is None
+
+
+def test_endpoint_never_sends_nan_or_infinity(client, monkeypatch):
+    rows = [
+        DB_ROW,
+        (9, 50.1, -120.3, datetime(2025, 7, 1, tzinfo=timezone.utc), NAN, "high", None, None, None),
+        (10, INF, -120.3, datetime(2025, 7, 1, tzinfo=timezone.utc), 50.0, "high", None, None, None),
+        (11, 50.1, -120.3, datetime(2025, 7, 1, tzinfo=timezone.utc), 50.0, "high", None, None, NAN),
+    ]
+    monkeypatch.setattr(app_module, "get_connection", lambda: FakeConnection(rows))
+    response = client.get("/api/detections")
+    assert response.status_code == 200
+    # Plain NaN / Infinity are not valid JSON, so they must never appear in the body.
+    assert b"NaN" not in response.data and b"Infinity" not in response.data
+    body = response.get_json()
+    assert [d["id"] for d in body["detections"]] == [7, 11]
+    assert body["detections"][1]["frp"] is None
+    assert [g["id"] for g in body["gaps"]] == [9, 10]

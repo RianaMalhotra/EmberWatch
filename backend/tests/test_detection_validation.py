@@ -37,3 +37,18 @@ def test_invalid_coordinates():
 
     assert valid is False
     assert error == "Invalid coordinates"
+
+import pytest
+
+
+@pytest.mark.parametrize("lat, lon", [
+    (float("nan"), -78.3), (45.4, float("nan")),
+    (float("inf"), -78.3), (45.4, float("-inf")),
+])
+def test_non_finite_coordinates_are_invalid(lat, lon):
+    data = {"latitude": lat, "longitude": lon, "timestamp": "2026-10-10T12:00:00Z"}
+
+    valid, error = validate_detection(data)
+
+    assert valid is False
+    assert error == "Invalid coordinates"

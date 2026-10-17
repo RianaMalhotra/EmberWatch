@@ -19,6 +19,7 @@ Rules (from the #10 acceptance criteria):
   hardcoded number here.
 """
 
+import math
 from datetime import datetime, timezone
 
 from config import get_min_detection_confidence
@@ -61,6 +62,13 @@ def _timestamp_text(value):
     return value if isinstance(value, str) else None
 
 
+def _finite_or_none(value):
+    """Return a finite number, else None (NaN/inf would also break the JSON response)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return None
+    return value
+
+
 def classify_detection(row, min_confidence=None):
     """Classify one raw detection row.
 
@@ -86,7 +94,8 @@ def classify_detection(row, min_confidence=None):
     # An unknown confidence is never treated as high (same rule as #19/#27).
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
         return None, "Missing confidence"
-    if not 0 <= confidence <= 100:
+    # NaN and infinity are rejected here, not just by the range check below.
+    if not math.isfinite(confidence) or not 0 <= confidence <= 100:
         return None, "Invalid confidence"
 
     meets = passes_threshold({"confidence": confidence}, min_confidence)
@@ -102,7 +111,7 @@ def classify_detection(row, min_confidence=None):
         "satellite": row.get("satellite"),
         "instrument": row.get("instrument"),
         # FRP may be NULL in the source data; it stays None, never a made-up 0.
-        "frp": row.get("frp"),
+        "frp": _finite_or_none(row.get("frp")),
     }, None
 
 

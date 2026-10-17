@@ -1,13 +1,14 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+from config import get_cors_origins
 from db import check_database, get_connection
 from services.detection_pipeline import get_classified_detections
 from services.risk_scoring import count_nearby_detections, score_area
 
 app = Flask(__name__)
 CORS(app, resources={
-    r"/api/*": {"origins": "http://localhost:5173"}
+    r"/api/*": {"origins": get_cors_origins()}
 })
 
 

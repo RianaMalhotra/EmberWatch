@@ -57,3 +57,42 @@ export function detectionSummary(result) {
   }
   return text;
 }
+
+// A detection can only be drawn if its location and confidence are real, finite
+// numbers. Leaflet throws on a NaN position, which would blank the whole map.
+export function isDisplayableDetection(detection) {
+  return (
+    detection !== null &&
+    typeof detection === "object" &&
+    Number.isFinite(detection.latitude) &&
+    Number.isFinite(detection.longitude) &&
+    Math.abs(detection.latitude) <= 90 &&
+    Math.abs(detection.longitude) <= 180 &&
+    Number.isFinite(detection.confidence) &&
+    detection.confidence >= 0 &&
+    detection.confidence <= 100
+  );
+}
+
+// Second line of defence after the backend's validation: drop anything that is
+// not displayable and count it as unavailable instead of showing it.
+export function sanitizeDetections(result) {
+  const detections = result.detections.filter(isDisplayableDetection);
+  const dropped = result.detections.length - detections.length;
+  if (dropped === 0) return result;
+
+  const counts = result.counts || {};
+  const likely = detections.filter((d) => d.classification !== LOW_CONFIDENCE).length;
+  return {
+    ...result,
+    detections,
+    counts: {
+      ...counts,
+      total: counts.total ?? result.detections.length,
+      shown: detections.length,
+      potential_wildfire: likely,
+      low_confidence: detections.length - likely,
+      unavailable: (counts.unavailable ?? 0) + dropped,
+    },
+  };
+}

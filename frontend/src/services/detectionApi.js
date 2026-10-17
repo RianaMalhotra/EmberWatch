@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://127.0.0.1:5000";
+import { API_BASE_URL } from "./apiConfig.js";
+import { sanitizeDetections } from "../utils/detectionFormat.js";
 
 // #18: loads classified detections (#17) from Flask. Same style as riskApi.js.
 export async function fetchDetections(limit = 200) {
@@ -18,5 +19,5 @@ export async function fetchDetections(limit = 200) {
     throw new Error("Invalid detection data received");
   }
 
-  return result;
+  return sanitizeDetections(result);
 }

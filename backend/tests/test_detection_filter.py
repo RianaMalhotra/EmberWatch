@@ -45,3 +45,8 @@ def test_filter_uses_configured_threshold(monkeypatch):
     monkeypatch.setenv("MIN_DETECTION_CONFIDENCE", "80")
     accepted, rejected = filter_detections([{"confidence": 85}, {"confidence": 75}])
     assert len(accepted) == 1 and len(rejected) == 1
+
+
+@pytest.mark.parametrize("confidence", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_confidence_never_passes(confidence):
+    assert passes_threshold({"confidence": confidence}, 0) is False
