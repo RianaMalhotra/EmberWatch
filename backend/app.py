@@ -118,7 +118,7 @@ def get_risk_areas():
 
         return jsonify({
             "status": "error",
-            "message": str(error),
+            "message": "Unable to retrieve wildfire risk data",
         }), 503
     
 if __name__ == "__main__":
