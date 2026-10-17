@@ -202,6 +202,34 @@ SAVE_ASSESSMENT_SQL = """
     returning id
 """
 
+LATEST_AREA_ENVIRONMENT_SQL = """
+SELECT
+    a.id,
+    a.name,
+    a.latitude,
+    a.longitude,
+    eo.temperature_c,
+    eo.relative_humidity_pct,
+    eo.wind_speed_kmh,
+    eo.precipitation_mm,
+    eo.vegetation_index,
+    eo.observed_at
+FROM public.areas AS a
+LEFT JOIN LATERAL (
+    SELECT
+        temperature_c,
+        relative_humidity_pct,
+        wind_speed_kmh,
+        precipitation_mm,
+        vegetation_index,
+        observed_at
+    FROM public.environmental_observations AS eo
+    WHERE eo.area_id = a.id
+    ORDER BY eo.observed_at DESC
+    LIMIT 1
+) AS eo ON true
+ORDER BY a.id;
+"""
 
 def count_nearby_detections(conn, latitude, longitude, radius_km=HISTORY_RADIUS_KM, min_confidence=None):
     """Count past FIRMS detections near a point (uses the #19 threshold)."""
@@ -226,3 +254,23 @@ def save_assessment(conn, area_id, result):
         new_id = cur.fetchone()[0]
     conn.commit()
     return new_id
+
+def get_area_environmental_data(conn):
+    """Return each monitored area with its latest environmental observation."""
+    rows = conn.execute(LATEST_AREA_ENVIRONMENT_SQL).fetchall()
+
+    return [
+        {
+            "id": row[0],
+            "name": row[1],
+            "latitude": row[2],
+            "longitude": row[3],
+            "temperature_c": row[4],
+            "relative_humidity_pct": row[5],
+            "wind_speed_kmh": row[6],
+            "precipitation_mm": row[7],
+            "vegetation_index": row[8],
+            "observed_at": row[9],
+        }
+        for row in rows
+    ]

@@ -1,0 +1,1249 @@
+[33mcommit fb9e605a2242406ca4c3a32abebead88c82a5a16[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/23-display-risk-detail-on-selection[m[33m)[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sat Oct 17 13:29:02 2026 -0400
+
+    Added a database query for the areas and a function that retrieves the areas in risk_scoring.py
+
+[33mcommit c60df8329dc13ab38fe20c9d3b174ee2fbcc6710[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:45:37 2026 -0400
+
+    Update README.md
+
+[33mcommit 372a6033c32d8356cc908625a09cd320151999ad[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:44:45 2026 -0400
+
+    docs: restore full original README and append current implementation updates
+
+[33mcommit 8029d6442259945572f981a8d56a99e07eb7d633[m
+Merge: 4a5b62c 8df43aa
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:43:27 2026 -0400
+
+    Merge pull request #42 from RianaMalhotra/docs/readme-accurate-project-status
+    
+    docs: reflect implemented features and honest prototype limitations
+
+[33mcommit 8df43aa34d6d7053ed77c1669328f33a5a678751[m[33m ([m[1;31morigin/docs/readme-accurate-project-status[m[33m)[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:42:43 2026 -0400
+
+    docs: reflect implemented features and honest prototype limitations
+
+[33mcommit 4a5b62c5f6240013ad942079c608e9178bed0129[m
+Merge: cd34df1 14d5b33
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:42:04 2026 -0400
+
+    Merge pull request #41 from RianaMalhotra/test/sprint2-issues-20-22
+    
+    Add regression tests for heatmap #22 and missing detection data #20
+
+[33mcommit 14d5b33a6453262e634092d6f1be1f424e328885[m[33m ([m[1;31morigin/test/sprint2-issues-20-22[m[33m)[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:41:21 2026 -0400
+
+    test: add missing detection input cases for issue 20
+
+[33mcommit 1dd6b7c16d42707251c4f2d91c096d0fecf0b55e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:41:15 2026 -0400
+
+    test: cover risk heatmap API data and failure cases for issue 22
+
+[33mcommit cd34df1ddbd4d820ef55cc8927ef5ad73d7b4640[m
+Merge: cf24950 d482f3c
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Thu Oct 15 03:38:21 2026 +0600
+
+    Merge pull request #40 from RianaMalhotra/chore/sprint1-integration-verification
+    
+    Sprint 1: add API integration checks and verification guide
+
+[33mcommit cf24950905994c1efd8bbdf578eab4c4c9fbd36d[m
+Merge: 903f576 2e4c21d
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:37:17 2026 -0400
+
+    Merge pull request #39 from RianaMalhotra/faria/fix-env-example
+    
+    Fix pooler host in .env.example (aws-1, not aws-0); PowerShell-friend…
+
+[33mcommit d482f3caadecf33bc91830019921b1b8532149fa[m[33m ([m[1;31morigin/chore/sprint1-integration-verification[m[33m)[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:37:09 2026 -0400
+
+    docs: add reproducible Sprint 1 integration and database smoke checks
+
+[33mcommit 2d9832eeef10519724b285b15746e1740ee02764[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:37:00 2026 -0400
+
+    test: cover frontend risk API contract and database health
+
+[33mcommit 2e4c21d09a4a7506489928d8d5c05ec16f56956a[m[33m ([m[1;31morigin/faria/fix-env-example[m[33m)[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Thu Oct 15 03:33:37 2026 +0600
+
+    Fix pooler host in .env.example (aws-1, not aws-0); PowerShell-friendly hint in check_db.py
+
+[33mcommit 903f57693db6460669367c61f825268ba1e196d0[m
+Merge: 7bb16b9 51b7e5f
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:31:30 2026 -0400
+
+    Merge pull request #38 from RianaMalhotra/faria/db-check-script
+    
+    Add backend/check_db.py to diagnose Supabase connection problems
+
+[33mcommit 51b7e5f37f918850d2fc0fa8a8895f5078da5caf[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Thu Oct 15 03:27:19 2026 +0600
+
+    Add backend/check_db.py to diagnose Supabase connection problems
+
+[33mcommit 7bb16b90083f0ca1999ee387670b0b0532a3372e[m
+Merge: 71abb6a d7c9a98
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:13:37 2026 -0400
+
+    Merge pull request #37 from RianaMalhotra/faria/risk-scoring-21
+    
+    Add risk-scoring model and /api/risk-score (#21)
+
+[33mcommit 71abb6a3a23dc61680563c5cbb568be2ad5f57c2[m
+Merge: 9a66193 789b67d
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Oct 14 17:13:22 2026 -0400
+
+    Merge pull request #36 from RianaMalhotra/faria/supabase-setup
+    
+    Add FIRMS cleaning, threshold backtest (part of #19), Supabase setup
+
+[33mcommit d7c9a982313bf9a10b1fdc75025bc16cb4fd085d[m[33m ([m[1;31morigin/faria/risk-scoring-21[m[33m)[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Wed Oct 14 06:46:18 2026 +0600
+
+    Move #21 files into the correct folders
+
+[33mcommit 0ee75775353d1e8e91c11f18f11c2535fe217e99[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Wed Oct 14 06:44:27 2026 +0600
+
+    Add weighted-index risk-scoring model and /api/risk-score (#21)
+
+[33mcommit 789b67d29c0e55e5165c38ea10dc93d76a09d514[m[33m ([m[1;31morigin/faria/supabase-setup[m[33m)[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Wed Oct 14 06:16:39 2026 +0600
+
+    Set confidence threshold to 20 from 2023-2025 backtest; closes #19
+    
+    Backtest now labels detections by persistence (re-detected within 2 km / 72 h) and picks the threshold by Youden's J with a 90% recall floor. MODIS Canada results: 2023 = 20, 2024 = 20, 2025 = 15. Adds results in ml/results/ and write-up in docs/threshold-backtest.md.
+
+[33mcommit 782b4cae270d7035eb78217abe5d6b0d458ffe08[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Wed Oct 14 04:37:30 2026 +0600
+
+    Add FIRMS cleaning, threshold backtest (part of #19), Supabase setup
+
+[33mcommit 9a66193b2adb262e4c51ae61c1a8ff5937628aa2[m
+Author: Faria Samanta Akbar <cinderella2005.22@gmail.com>
+Date:   Wed Oct 14 04:29:33 2026 +0600
+
+    Revert "Add files via upload"
+    
+    This reverts commit 6519e4c5a62ec95f9fc819556f6b6d43d249bbd6.
+
+[33mcommit 6519e4c5a62ec95f9fc819556f6b6d43d249bbd6[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Oct 14 04:27:47 2026 +0600
+
+    Add files via upload
+    
+    Adds FIRMS data cleaning script and the threshold backtest script (#19, part 1). The threshold is configurable; the current value (30) is provisional until the backtest is run on real FIRMS archive data.
+    Supabase database (PostgreSQL + PostGIS): schema in supabase/migrations/, connection in backend/db.py, /api/health/db check
+    Setup guide: docs/database.md (each person needs their own backend/.env)
+    Tests for all of the above
+
+[33mcommit 120c844809c9adf0a754e3d68808e143e0718d52[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Oct 12 03:22:36 2026 -0400
+
+    Update README.md
+
+[33mcommit 9bb557877db61c0fcf2bedd3ec9874fb86e7806d[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Oct 12 03:19:14 2026 -0400
+
+    docs: update README with application setup and implementation progress
+
+[33mcommit 5a5368808e2a002c2410e57c09e696aab38e9764[m
+Merge: 4d2d450 d8222e7
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Oct 12 02:50:17 2026 -0400
+
+    Merge pull request #35 from RianaMalhotra/feature/frontend-backend-integration
+    
+    feat: connect React wildfire map to Flask risk API
+
+[33mcommit d8222e7b3a4fd98faec94f7f0d65397df92c0b95[m[33m ([m[1;31morigin/feature/frontend-backend-integration[m[33m)[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sun Oct 11 20:20:00 2026 -0400
+
+    feat: connect React wildfire map to Flask risk API
+
+[33mcommit 4d2d4508bc09e5ecd21b368c1ddc747f487ede6d[m
+Merge: f772bc6 9de4d8f
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Oct 11 20:11:39 2026 -0400
+
+    Merge pull request #34 from RianaMalhotra/chore/backend-api-setup
+    
+    chore: initialize Flask backend API and health endpoint
+
+[33mcommit 9de4d8fcce2dde53aac61c99174af422b22dea08[m[33m ([m[1;31morigin/chore/backend-api-setup[m[33m)[m
+Merge: e339fa7 f772bc6
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sun Oct 11 20:04:23 2026 -0400
+
+    Merge main into backend API setup branch
+
+[33mcommit e339fa7e6831cf01f83b89ae47e41b1cb0dfa5cf[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sun Oct 11 20:02:33 2026 -0400
+
+    chore: add gitignore for Python and frontend dependencies
+
+[33mcommit f772bc6772c79464894536ae5ada77aabb9586bf[m
+Merge: a50c4f8 c2f2de7
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Oct 11 19:54:12 2026 -0400
+
+    Merge pull request #33 from RianaMalhotra/feature/missing-input-data-20
+    
+    feat: Handle incomplete and unavailable detection inputs (#20)
+
+[33mcommit a50c4f80fa3322b8bde33dd1b06ac00073237132[m
+Merge: 306a4fb c2239c1
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Oct 11 18:31:52 2026 -0400
+
+    Merge pull request #32 from RianaMalhotra/feature/risk-heatmap-22
+    
+    feat: Implement initial wildfire risk map visualization (#22)
+
+[33mcommit 306a4fb639246b30210b23545087c173999cef00[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sat Oct 10 21:45:20 2026 -0400
+
+    Riana Malhotra_PRA5_Architecture_Design_Individual
+
+[33mcommit 4a2f3b347f708f003af99868157d4b6098c02601[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sat Oct 10 19:38:22 2026 -0400
+
+    chore: initialize Flask backend API and health endpoint
+
+[33mcommit c2f2de7e39802c6493bbe4b38f48e5e4c84fbb88[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sat Oct 10 19:24:33 2026 -0400
+
+    chore: add gitignore and remove Python cache files
+
+[33mcommit ca45cb666942539e47b983718ff1be8a834bdc52[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sat Oct 10 19:21:42 2026 -0400
+
+    feat: add detection input validation and unit tests for #20
+
+[33mcommit c2239c17becca990d71a5c69c21df645a21f46e3[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Sat Oct 10 19:10:12 2026 -0400
+
+    feat: initialize React frontend and add wildfire risk map prototype
+
+[33mcommit d3fd41118effedd8f75af180014a8bdba02f4c6f[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:58:04 2026 -0400
+
+    Update README.md
+
+[33mcommit 7926bdd09a934d9cbff860b0542de65cf26546aa[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sat Oct 10 05:57:47 2026 +0600
+
+    Rename Sprint-Report.pdf to sprint-report.pdf
+
+[33mcommit 7f499ba208c4072948196816f11695518cd1987b[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:57:41 2026 -0400
+
+    Mermaid diagram
+
+[33mcommit b7ca1346a271d646974109ca78bf2cf0f178ccc4[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sat Oct 10 05:57:26 2026 +0600
+
+    Delete docs/sprint-report.pdf
+
+[33mcommit 6e610182cf10be2c5b5d11baf6936ddcd5da588f[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:55:01 2026 -0400
+
+    Update README.md
+
+[33mcommit 29d0177ed45bd6e7cebfe8268e23b68bf8c28e13[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sat Oct 10 05:54:33 2026 +0600
+
+    Added the Updated Sprint-Report file
+
+[33mcommit 0814f8f0417b9fec82a11ebc8474624e5c460988[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:53:26 2026 -0400
+
+    Update README.md
+
+[33mcommit fc937132336a6b2aa1f9ceaf6de8ff6bb3285752[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:51:37 2026 -0400
+
+    Added workflow chart
+
+[33mcommit b3fb2f1877f18c42abcc0c963b38e4f87f563ef6[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:48:39 2026 -0400
+
+    Resolved repetition
+
+[33mcommit a40a5a641f65bfaf89f721395866c26aa9566ddc[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 19:47:09 2026 -0400
+
+    Update README.md
+
+[33mcommit fdc715e8d6d0266b997811db718b93fee3576351[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sat Oct 10 05:43:30 2026 +0600
+
+    Update section header for Project Management Tools
+
+[33mcommit f6339b73c9f51882eede618d4cb60887dc0a5df1[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sat Oct 10 05:42:44 2026 +0600
+
+    Add Project Management Tools section to README
+    
+    Added a section for Project Management Tools with details on tools used for project tracking and communication.
+
+[33mcommit 8c0c985378d89d0a6e45681cdc91ee0efd3b10ba[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sat Oct 10 05:34:03 2026 +0600
+
+    Add files via upload
+    
+    Adding Contributing.md and Code of Conduct.md file
+
+[33mcommit 349b89dc7dc28a3254c55ec00100730d575dc71e[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Fri Oct 9 13:40:37 2026 -0400
+
+    Created Code of Conduct for team alignment
+    
+    Updated the Code of Conduct template to reflect team terminology and responsibilities.
+
+[33mcommit a1ab043670984c161abfcf87e7079528b46970fd[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:35:43 2026 -0400
+
+    Create folder structure
+
+[33mcommit f56f9c47da7f5389260eaeaff46db42d464d25a4[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:35:04 2026 -0400
+
+    Create folder structure data-processing/
+
+[33mcommit 9d090dd699585d892f214a96b747a3c557aa3503[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:34:34 2026 -0400
+
+    Create ml folder structure
+
+[33mcommit ce060f80409a32b5f0eac3f3622ceace9783f839[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:33:16 2026 -0400
+
+    Create backend folder structure
+
+[33mcommit 5178fe26049bbfd3655af1296f55b1cd7c991f2f[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:32:23 2026 -0400
+
+    Create .gitkeep
+
+[33mcommit f536442184473e66dda020184d59887196208217[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:30:59 2026 -0400
+
+    Delete frontend/d.md
+
+[33mcommit bd645e80f22f4dc58ea16e7c7b5ab3d8faf931a7[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:30:43 2026 -0400
+
+    Create frontend folder
+
+[33mcommit 451697f3f698a03e2e719b4b29a9f98b85993495[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:28:41 2026 -0400
+
+    Update README.md
+
+[33mcommit 614d8cf047fcfabfc582980a118f3275872c9ce6[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 13:28:15 2026 -0400
+
+    Rename Sprint-Report.pdf to sprint-report.pdf
+
+[33mcommit c3fb5e1dfdcc5d8ed725c99389e2727fe32f04a0[m
+Author: karenmahrous <karen.mahrous@mail.utoronto.ca>
+Date:   Fri Oct 9 13:24:04 2026 -0400
+
+    Add files via upload
+
+[33mcommit 1ea93e01cebbb81b4b24caafe725fde67080edd7[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Oct 9 09:52:46 2026 -0400
+
+    expand README with sprint planning and project management details
+
+[33mcommit cbf43f2ebfefc9f30bfd4bed00076a301ad9b6f3[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Oct 5 20:36:18 2026 -0400
+
+    update README testing and CI description
+
+[33mcommit cfeaf9a26c37a1fbe48e75e13139046d3c40f007[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Oct 5 20:33:41 2026 -0400
+
+    upate README with project overview and management tools
+
+[33mcommit 4b36fd84031bbcde4bf445f311ec9de134e92947[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Thu Oct 1 23:53:38 2026 -0400
+
+    Resolve feature prioritization question
+
+[33mcommit 7d176cd04a9ac29153f992bb426a3ca3e1b04ba4[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Thu Oct 1 23:44:30 2026 -0400
+
+    fixed formatting, refined
+
+[33mcommit 2df40c37c24cdd8786b701cdd4a3f095ea07b5df[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Thu Oct 1 21:58:45 2026 -0400
+
+    add project README with overview and development workflow
+
+[33mcommit 815d20f467c62045abebfac3a64d7ecd0f549feb[m
+Merge: 74a8fbe 0354033
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Thu Oct 1 20:39:25 2026 -0400
+
+    Merge pull request #16 from RianaMalhotra/add-remaining-selected-requirements
+    
+    Add wildfire detection and map performance requirements
+
+[33mcommit 035403379e3a3ce6055d5ef612e2400ee74c0422[m[33m ([m[1;31morigin/add-remaining-selected-requirements[m[33m)[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Thu Oct 1 20:38:08 2026 -0400
+
+    Add wildfire detection and map performance requirements
+
+[33mcommit 74a8fbe5cfa5e3bfc11f4f2494f08abafcfdad63[m
+Merge: 6549548 7b5c2ba
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Thu Oct 1 20:29:02 2026 -0400
+
+    Merge pull request #15 from RianaMalhotra/add-remaining-requirements
+    
+    Add remaining selected requirements
+
+[33mcommit 7b5c2ba78a567ab6bf89dce5e13897f333369fd6[m[33m ([m[1;31morigin/add-remaining-requirements[m[33m)[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Thu Oct 1 20:27:46 2026 -0400
+
+    Add remaining selected requirements
+
+[33mcommit 654954871c32308523dd8899dfe41e0096637395[m
+Merge: 2b35ecc 7a6c8a2
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Fri Oct 2 06:07:54 2026 +0600
+
+    Merge pull request #14 from RianaMalhotra/consolidate-requirements
+    
+    Consolidate selected requirements
+
+[33mcommit 7a6c8a233b4b1b5e4fb852aa976bbbd09bb46f57[m[33m ([m[1;31morigin/consolidate-requirements[m[33m)[m
+Author: Riana Malhotra <malhotrariana@gmail.com>
+Date:   Thu Oct 1 19:26:50 2026 -0400
+
+    Consolidate selected requirements
+
+[33mcommit 2b35ecc1b152d9bdee77a5c6e1ba9b9d1b5eae59[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 30 23:59:12 2026 +0600
+
+    Enhance public reporting and mobile accessibility in requirements
+    
+    Updated requirements to include mobile-friendly features and a public fire reporting system. Clarified assumptions regarding user access and reporting functionality.
+
+[33mcommit 2abea52d07dbb2201980cf37735434111ba6bec2[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Sep 28 19:36:43 2026 -0400
+
+    Update requirements.md
+
+[33mcommit 2f4e909378561650ada4f3381848f0520ba72951[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Sep 28 19:32:22 2026 -0400
+
+    Add stakeholder evidence and clarify project requirements
+
+[33mcommit 4df1605fe8091ca15cb8902cd6207a5b91b1784f[m
+Merge: 579e648 6150dec
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Mon Sep 28 19:10:59 2026 -0400
+
+    Merge pull request #7 from FariaSamanta/main
+    
+    to update own fork after everyone finished their contribution
+
+[33mcommit 6150deca552ce9caf677c8fbc444b2ce6cdfa0ea[m
+Merge: 81757a4 579e648
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Mon Sep 28 21:20:53 2026 +0600
+
+    Merge branch 'main' into main
+
+[33mcommit 579e64893c670a2fb5c9f53701502fc1329e3946[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Sep 27 13:48:19 2026 -0400
+
+    Revise section headers and formatting in requirements.md
+    
+    Updated section headers and improved formatting for clarity.
+
+[33mcommit d91fbff5f7b72058e1874f783fd84b67eb872b46[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Sep 27 13:39:19 2026 -0400
+
+    Created docs folder to hold requirements.md as per assignment instructions.
+
+[33mcommit 0cd60e8bf478c582eff6c7dd27ed649f05d8035c[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sun Sep 27 21:53:24 2026 +0600
+
+    Revise user categories and requirements in documentation
+    
+    Updated primary and secondary user descriptions for clarity and detail.
+
+[33mcommit 13e0bd8b34cf0d3bdceb26c168f2e03b5700a037[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sun Sep 27 21:51:39 2026 +0600
+
+    Added Stakeholders extra
+
+[33mcommit 770746e52043ac7227dea5f8058450d90dcb5dea[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Sun Sep 27 21:49:16 2026 +0600
+
+    Update requirements document with detailed project scope
+    
+    Expanded project requirements to include problem statement, stakeholder needs, system boundaries, and initial success criteria.
+
+[33mcommit 9dbd7bc6b8d343207fb09836c239a7f9d1f0ba95[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Sep 25 17:23:15 2026 -0400
+
+    Update requirements.md added backend and data infrastrucure for features
+
+[33mcommit d19f5c9a10417ecfe46b00568b0b14c185b79ac0[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Fri Sep 25 17:21:37 2026 -0400
+
+    added more stakeholders
+
+[33mcommit 0af27a577a1c40b88ea47bcdb4b34dbf7892bbd3[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Fri Sep 25 16:25:10 2026 -0400
+
+    Fix formatting issues in requirements.md
+
+[33mcommit bf619ca698eff1c60f42adeecffb966e2cf86cb7[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Fri Sep 25 16:24:23 2026 -0400
+
+    Expand requirements for wildfire monitoring platform
+    
+    Added detailed scope statement and planned features for the wildfire monitoring platform, including interactive map, detection, risk heatmap, dashboard, and early-warning simulation.
+
+[33mcommit 649d2de3221b194d8b6460dc03c39b01231a1733[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Thu Sep 24 23:31:56 2026 -0400
+
+    Edited the Project Goal section
+
+[33mcommit 522752a18a62628ad15817f9ed65db245a065cc7[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 23 13:22:51 2026 -0400
+
+    Update requirements.md
+
+[33mcommit d8cc945717fe2cc211c8488d0eab673b1451201e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 23 13:21:52 2026 -0400
+
+    Added Questions to Clarify pertaining the 4th bullet for requirements.md
+
+[33mcommit fc4a8cec721fb1869c5d061bc037fa6b3e7f3f0b[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 23 07:08:12 2026 -0400
+
+    Create requirements.md and added some possible Stakeholders
+
+[33mcommit 64afc39940f68fff5969b5c0a90fbb3399b9bec4[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Sun Sep 20 12:06:32 2026 -0400
+
+    added missing email
+
+[33mcommit c3a8098dd97cac6abacebb9eefe8c310321ab82e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 12:05:01 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 6b3d28859fa5b83aeed386b4541c74ef845c8eaf[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Sep 20 12:04:28 2026 -0400
+
+    Revise Ireen Cheralody's title and responsibilities
+    
+    Updated Ireen Cheralody's role to include AI/ML Developer and Full Stack Developer.
+
+[33mcommit ae61052ce2ec4abaa365cc90a66ac6e9856bc691[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 12:03:49 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit ccdd836bd784802e609cba5d03cb5697a50c359e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 12:03:15 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit a7510f73d73f8dd471d3f336bc774af1768d2fa8[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 12:03:00 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit ddc8094e82af540269059b8c2661edd852a296ad[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 12:02:43 2026 -0400
+
+    Added title and team name
+
+[33mcommit 905e95a96a3f7e2394d1afdc7f730f9d570abcf1[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 12:01:52 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 91be0ad072f16da75cc324a322decc801b3977e3[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Sun Sep 20 11:22:33 2026 -0400
+
+    Added first names to team roles section
+
+[33mcommit 78981d7fe2da794665816e5fc9befe3e20c68b25[m
+Merge: 371d59e 694f4f0
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Sun Sep 20 11:17:34 2026 -0400
+
+    merging changes
+
+[33mcommit 694f4f0d1f517e8c4de371e1e3c3e876d9dd5deb[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 20 09:46:27 2026 -0400
+
+    Update project architecture responsibilities and technical abilities
+
+[33mcommit 839f54dd2f05c0b2d268cf24da9197f6b1294e3b[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Sep 20 08:42:41 2026 -0400
+
+    Update Ireen Cheralody's email address
+    
+    Updated email address for Ireen Cheralody in the team workflow document.
+
+[33mcommit cb10c748d8d905e44fd00d89f2d89ae1d16364f4[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:46:57 2026 +0600
+
+    Fix typo in meeting minutes documentation
+    
+    Corrected a typo in the meeting minutes section.
+
+[33mcommit b5121ba50f7a01e61b60572946db1fa43de41139[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:46:08 2026 +0600
+
+    Revise meeting times and OneDrive document details
+    
+    Updated meeting times to use 'ET' instead of 'EST' and clarified document naming and storage in OneDrive.
+
+[33mcommit c8f389cfc8502f0554a8989bbccdc57e51878533[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 12:29:37 2026 -0400
+
+    Added my email
+
+[33mcommit 004934e77496b380358763103a89c2e97d186ede[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:27:04 2026 +0600
+
+    Revise team roles and Added new Subsection "Workflow updates"
+    
+    Updated task responsibilities and added workflow updates section.
+
+[33mcommit 2757a326311249197bd06feb7591e3179ae8138e[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:17:14 2026 +0600
+
+    Update team_workflow.md
+
+[33mcommit b550fa5969ad4b6db8adc3beabf1c392cfe52a1d[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:16:51 2026 +0600
+
+    Update team_workflow.md
+
+[33mcommit ed4befd99f4d77c4efc5445d0320c51e7831e698[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:16:30 2026 +0600
+
+    Update team roles and task table, Please include Member emails
+    
+    Added email addresses for team members and updated the task table to include Faria Samanta Akbar.
+
+[33mcommit cfdbaffa5aacf43f14d2cdb47202429c9cebf78f[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:47:56 2026 +0600
+
+    Revise team duties for clarity and conciseness
+    
+    Refactor duties section to streamline and consolidate responsibilities related to AI/ML components, backend services, and frontend development.
+
+[33mcommit 54462c69467686267e64ca8e0c2911151068a7fc[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:41:34 2026 +0600
+
+    Refactor Technical Ownership section for clarity
+    
+    Merged duplicate section on Technical Ownership and Cross-Functional Development into one location for clarity and consistency. Updated the document to reflect the collaborative nature of team roles and responsibilities.
+
+[33mcommit 47a83c98f8efe8055e03211f3ce5dabe6abe3c2b[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:40:04 2026 +0600
+
+    Add Faria Samanta Akbar to team members list
+
+[33mcommit e57e1fc7fba25c582dcb979f26690e26e67584be[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:32:11 2026 -0400
+
+    Updated team_workflow.md
+
+[33mcommit a5b211c8e6cefe5eb7d3e19496985a141eef8f3e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:31:29 2026 -0400
+
+    Add rows and columns to attribution table
+
+[33mcommit 5f7a7034bd142cb8e00082024d6f063092d09163[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:31:06 2026 -0400
+
+    added a clickable link to text
+
+[33mcommit be924c892acfc58e7bfc465a8acd8fef1daf14d1[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:29:33 2026 -0400
+
+    Updated team members list
+
+[33mcommit afaeb7fcdb6d62b6ded86b0213555482a9091cc4[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:34:51 2026 +0600
+
+    Added Faria Samanta Akbar Role and Work Description + Added a new sub section called "Technical Ownership and Cross-Functional Development"
+
+[33mcommit 0bb403595d6f3692148cd580a690422a08fc4d58[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Tue Sep 15 20:44:34 2026 -0400
+
+    Update software project experience with C++ and architecture details
+
+[33mcommit 6a0d498186d98d594c4c3dc8e4f9d09ac7976914[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 19:05:02 2026 -0400
+
+    changed format to match rubric requirements
+
+[33mcommit 3f969114f4dd89c0a5cbbd7368062a42a140cd2b[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 17:26:47 2026 -0400
+
+    added eexpected grade
+
+[33mcommit 5e336f2929d371c0799ea777a89cabecb03f952a[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 17:14:12 2026 -0400
+
+    Filled respective team member role and conflict resolution section
+
+[33mcommit 05368a773051159273679ddbb80678a29da36c16[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Tue Sep 15 16:34:04 2026 -0400
+
+    Update OneDrive link for meeting minutes
+    
+    Updated the OneDrive folder link for meeting minutes to a shortened URL.
+
+[33mcommit dc3b5f3655588a9190b61e7e9c7296e9866534b1[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Tue Sep 15 16:31:26 2026 -0400
+
+    Revise team roles and meeting documentation
+    
+    Updated member roles and responsibilities, improved clarity in meeting minutes documentation, and added a link to the shared OneDrive folder.
+
+[33mcommit f2a5d9173bde22aa59396490e9351a29c7a78677[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Tue Sep 15 16:24:48 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 1da6ad767d360e597148e7f288d2aed6f528dc00[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 16:22:09 2026 -0400
+
+    Added name for team members
+
+[33mcommit 1475cd6dfef7223fd6f704e56a1b561e418a0893[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Tue Sep 15 16:13:42 2026 -0400
+
+    Revise team member details in team_workflow.md
+    
+    Updated team member roles and responsibilities in the workflow document.
+
+[33mcommit 0b02fd7e175052e9a2484104e907313b7cf8432a[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Tue Sep 15 09:35:22 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit b1aab0205f812995a46ed66f2ea2040a878cb208[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:58:16 2026 -0400
+
+    Added info about onedrive folder
+
+[33mcommit 87a5131c3d05a49375502b83be9e302df449140a[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:55:38 2026 -0400
+
+    Added Preamble
+
+[33mcommit d4bd5dc2c8565cb252c225d50e23754249c1ded9[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:51:19 2026 -0400
+
+    Added a message on attribution table updates and conflict resolution
+    heading
+
+[33mcommit 4a7f1a3c83d16a1b187663e239523a9c78aac5b9[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:49:45 2026 -0400
+
+    Update with my name in attribution table
+
+[33mcommit 665c4625654a5d91d93b68583436e55c7d568ae9[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:49:30 2026 -0400
+
+    Update attribution table
+
+[33mcommit 7371cf5a31b53f3074c196bf5d33e88954a0464d[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:48:58 2026 -0400
+
+    Updated backlog grooming
+
+[33mcommit cc6dd82469d801cbf406a0015a418b8a37be5064[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:45:33 2026 -0400
+
+    Update synchronous meeting times
+
+[33mcommit db34248719a5cf6fc3c5a3311470d29bc047b3f5[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:41:07 2026 -0400
+
+    Updated times
+
+[33mcommit 3ed1eed0301d268a4e8c8fadcfb30f846ec88f76[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:40:47 2026 -0400
+
+    Added bullet points to Proposed Arrangments for meeting times
+
+[33mcommit 6640f25c553aef5a3503b0aa1d421b29479f336e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:34:51 2026 -0400
+
+    Added team coordination section
+    
+    Added Team Coordination section
+
+[33mcommit ae9d175260bde977dd79e42f68323c8cbe3e9802[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:25:07 2026 -0400
+
+    Edited role to full stack developer
+
+[33mcommit 9d5467c28bf5bc4b53b0b943a8b58cfb88b59531[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:23:16 2026 -0400
+
+    Changed from bold to heading for Team Name
+
+[33mcommit cdbe6a6792b6069b51e0528d12fabe6c0ae5f882[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:22:50 2026 -0400
+
+    Made updates to skills
+
+[33mcommit dea3aa15668de3978c55e7ee1b385262f5d58e2f[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:22:11 2026 -0400
+
+    Add role and responsibilities and created a format for this section
+    
+    Added my role and responsibilities and created a format for this section
+
+[33mcommit 81757a43bb845445e260ade98770c1c27db69b8b[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Sun Sep 20 08:42:41 2026 -0400
+
+    Update Ireen Cheralody's email address
+    
+    Updated email address for Ireen Cheralody in the team workflow document.
+
+[33mcommit 731d49dcd52193fc12153e0c7933f10ed46b26a2[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:46:57 2026 +0600
+
+    Fix typo in meeting minutes documentation
+    
+    Corrected a typo in the meeting minutes section.
+
+[33mcommit 8d2b4e88b6efbc33901b23fcf8fa75ead17cb007[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:46:08 2026 +0600
+
+    Revise meeting times and OneDrive document details
+    
+    Updated meeting times to use 'ET' instead of 'EST' and clarified document naming and storage in OneDrive.
+
+[33mcommit 98d6a79240397b779abd788cc917c068642558b4[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 12:29:37 2026 -0400
+
+    Added my email
+
+[33mcommit 79e87b48b88da3b9ae19a1570d34494d52073976[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:27:04 2026 +0600
+
+    Revise team roles and Added new Subsection "Workflow updates"
+    
+    Updated task responsibilities and added workflow updates section.
+
+[33mcommit 774fbf58969dce1c5731c4d4144d4e9bab798bba[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:17:14 2026 +0600
+
+    Update team_workflow.md
+
+[33mcommit 0a792adc9e1c119ee557a74bd94eea23d4d3bf28[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:16:51 2026 +0600
+
+    Update team_workflow.md
+
+[33mcommit 64cbc7f8b1ffc778e58be137f552747d2a1ffd0a[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 22:16:30 2026 +0600
+
+    Update team roles and task table, Please include Member emails
+    
+    Added email addresses for team members and updated the task table to include Faria Samanta Akbar.
+
+[33mcommit 0fc602d4f52d67d5f5eb56ed558112fd43b0a1e0[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:47:56 2026 +0600
+
+    Revise team duties for clarity and conciseness
+    
+    Refactor duties section to streamline and consolidate responsibilities related to AI/ML components, backend services, and frontend development.
+
+[33mcommit 0fdfd4f91dbd1469dfcef9d964887de60cc0c54e[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:41:34 2026 +0600
+
+    Refactor Technical Ownership section for clarity
+    
+    Merged duplicate section on Technical Ownership and Cross-Functional Development into one location for clarity and consistency. Updated the document to reflect the collaborative nature of team roles and responsibilities.
+
+[33mcommit bd6db5c00a4cc2be61aedf2b59d658263cdd6d1a[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:40:04 2026 +0600
+
+    Add Faria Samanta Akbar to team members list
+
+[33mcommit a001e16200bc96eeae052684ad4681662cec96b7[m
+Merge: 1e6c1b2 dbd5e43
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:38:32 2026 +0600
+
+    Merge pull request #1 from FariaSamanta/main
+    
+    Added Member Section for Faria Samanta Akbar and Added Subsection for "Technical Ownership and Cross-Functional Development"
+
+[33mcommit dbd5e43e616cf61744c6c85057cb99757c488d73[m
+Merge: 8f4033b 1e6c1b2
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:36:12 2026 +0600
+
+    Merge branch 'RianaMalhotra:main' into main
+
+[33mcommit 8f4033bd2a3d14b5a105fe20956052bfda1e8d50[m
+Author: FariaSamanta <140324402+FariaSamanta@users.noreply.github.com>
+Date:   Wed Sep 16 21:34:51 2026 +0600
+
+    Added Faria Samanta Akbar Role and Work Description + Added a new sub section called "Technical Ownership and Cross-Functional Development"
+
+[33mcommit 1e6c1b249368b314d7d176a6ffa28ecbfbd85a13[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:32:11 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 3272eacb92adfef3bce3849c6272d99fe24ca4e9[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:31:29 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 9d4610eadd0713775618360acfb05430ebf84684[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:31:06 2026 -0400
+
+    added a clickable link to text
+
+[33mcommit eee2e0b724aeffb918961302ab5e5585acaa1493[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Wed Sep 16 11:29:33 2026 -0400
+
+    Updated team members list
+
+[33mcommit ea3c647531035d4411f274f5b189d0b6429c86e9[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Tue Sep 15 20:44:34 2026 -0400
+
+    Update software project experience with C++ and architecture details
+
+[33mcommit 371d59e919c9ff68220c06cbf5b51d01738e1bd2[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 19:05:02 2026 -0400
+
+    changed format to match rubric requirements
+
+[33mcommit 0969ca23ab3964a17799eb4ec1fc8ee11aff6a4f[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 17:26:47 2026 -0400
+
+    added eexpected grade
+
+[33mcommit 869adef94490d8166881040d078f73a7409dd3b0[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 17:14:12 2026 -0400
+
+    Filled respective team member role and conflict resolution section
+
+[33mcommit 7716e51263f2ca585ca4c96744c2b15eb009ec42[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Tue Sep 15 16:34:04 2026 -0400
+
+    Update OneDrive link for meeting minutes
+    
+    Updated the OneDrive folder link for meeting minutes to a shortened URL.
+
+[33mcommit 5d227814a0dce73c09504bda01e2d44fa3acaf5e[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Tue Sep 15 16:31:26 2026 -0400
+
+    Revise team roles and meeting documentation
+    
+    Updated member roles and responsibilities, improved clarity in meeting minutes documentation, and added a link to the shared OneDrive folder.
+
+[33mcommit 7a6fbecbed1ddb5ecd466e0e9a98847f1b32d7cb[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Tue Sep 15 16:24:48 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit b5d9aaddbcdbbfb4607f5bf72035b4d3e51d2bab[m
+Author: Karen <karen.mahrous@mail.utoronto.ca>
+Date:   Tue Sep 15 16:22:09 2026 -0400
+
+    Added name for team members
+
+[33mcommit 9b86a4f217b0718bd24389315345d190beffb0e2[m
+Author: Ireen Cheralody <ireen.z.cheralody@gmail.com>
+Date:   Tue Sep 15 16:13:42 2026 -0400
+
+    Revise team member details in team_workflow.md
+    
+    Updated team member roles and responsibilities in the workflow document.
+
+[33mcommit cd13550215967660f94d838013e0e0d412c29071[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Tue Sep 15 09:35:22 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit e4ff201ac85a8d922e07d5fe2a5989eec217c704[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:58:16 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 404a1b4096f1cef1abe688ecd7353f1baee2b32f[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:55:38 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 7fac0c4512e8ca6cf67abaa90ff432d0116ce94e[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:51:19 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit d241e5e14e5a78d5a634cdbdfce334e159866ffd[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:49:45 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 891f87225d3fcdb900d41c34a2a2b1f36c4b689a[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:49:30 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 33de489f28b10426be334d7efd8551cfd8184855[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:48:58 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 7feefa5a2a16cd3d9b4639abfb1e05f2835f4028[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:45:33 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit ec0a7efad4b1207aeacd2e73cd8b8aa67652966d[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:41:07 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit da78435062f514daa46e43bf7c522e77b6368f8f[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:40:47 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 6d0b95337a5840968c9d83f0fd28298328355605[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:34:51 2026 -0400
+
+    Update team_workflow.md
+    
+    Added Team Coordination section
+
+[33mcommit c1edec54e53db789190e79a47e0e3bcee35d6872[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:25:07 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 1bdfdcc34bcaa256580521999c4e71de9d800560[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:23:16 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit 4df72b75d2067eed56a9f857e4865b4f720fa132[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:22:50 2026 -0400
+
+    Update team_workflow.md
+
+[33mcommit a9bf30bc7a7749f7c7695ea096d5d77a5702ceca[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 19:22:11 2026 -0400
+
+    Update team_workflow.md
+    
+    Added my role and responsibilities and created a format for this section
+
+[33mcommit b56dd97ec78916c17e0ddd001ef12598d978fc8b[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 09:58:22 2026 -0400
+
+    Create team_members.md
+
+[33mcommit cb3a4feacffa4d7fef8b0a8753191a578c015f2a[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 09:57:00 2026 -0400
+
+    Create team_workflow.md
+
+[33mcommit 24383a18ff3315c813d0fe730e7fec34e1da8bff[m
+Author: Riana Malhotra <113440635+RianaMalhotra@users.noreply.github.com>
+Date:   Sun Sep 13 09:56:28 2026 -0400
+
+    Initial commit
