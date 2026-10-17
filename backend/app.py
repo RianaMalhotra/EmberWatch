@@ -113,10 +113,12 @@ def get_risk_areas():
                 "data": results,
             }), 200
 
-    except Exception:
+    except Exception as error:
+        print("ERROR in /api/risk-areas:", repr(error))
+
         return jsonify({
             "status": "error",
-            "message": "Unable to retrieve wildfire risk data.",
+            "message": str(error),
         }), 503
     
 if __name__ == "__main__":
