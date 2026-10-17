@@ -15,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
+  const [selectedArea, setSelectedArea] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -88,20 +89,59 @@ function App() {
                 fillColor: color,
                 fillOpacity: 0.5,
               }}
+                eventHandlers={{
+                  click: () => setSelectedArea(area),
+              }}
             >
               <Popup>
                 <strong>
-                  Wildfire Risk: {area.risk_level}
+                  {area.name}
                 </strong>
 
                 <p>
-                  Latitude: {area.latitude}
+                  <strong>Wildfire Risk:</strong>{" "}
+                  {area.risk_level ?? "Unavailable"}
                   <br />
-                  Longitude: {area.longitude}
+                  <strong>Risk Score:</strong>{" "}
+                  {area.risk_score !== null
+                    ? `${area.risk_score.toFixed(1)} / 100`
+                    : "Unavailable"}
                 </p>
 
-                {dataSource === "mock" && (
-                  <p>Demo data — not live wildfire risk</p>
+                <p>
+                  <strong>Temperature:</strong>{" "}
+                  {area.environmental_factors.temperature_c ?? "Unavailable"} °C
+                  <br />
+
+                  <strong>Humidity:</strong>{" "}
+                  {area.environmental_factors.relative_humidity_pct ?? "Unavailable"} %
+                  <br />
+
+                  <strong>Wind:</strong>{" "}
+                  {area.environmental_factors.wind_speed_kmh ?? "Unavailable"} km/h
+                  <br />
+
+                  <strong>Precipitation:</strong>{" "}
+                  {area.environmental_factors.precipitation_mm ?? "Unavailable"} mm
+                  <br />
+
+                  <strong>Vegetation Index:</strong>{" "}
+                  {area.environmental_factors.vegetation_index ?? "Unavailable"}
+                  <br />
+
+                  <strong>Slope:</strong>{" "}
+                  {area.environmental_factors.slope_deg ?? "Unavailable"}°
+                  <br />
+
+                  <strong>Nearby Detections:</strong>{" "}
+                  {area.environmental_factors.nearby_detections ?? "Unavailable"}
+                </p>
+
+                {!area.is_complete && (
+                  <p>
+                    <strong>Unavailable data:</strong>{" "}
+                    {area.missing_inputs.join(", ")}
+                  </p>
                 )}
               </Popup>
             </Circle>
