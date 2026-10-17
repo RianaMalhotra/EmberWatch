@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
-import { MapContainer, TileLayer, Circle, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 const riskColors = {

@@ -1,43 +1,86 @@
-import assert from "node:assert/strict";
-import { afterEach, test } from "node:test";
-import { fetchRiskAreas } from "./riskApi.js";
 
-// #22: the Leaflet heatmap consumes the data returned by this API helper.
-// The server-side contract is also checked by backend/tests/test_sprint1_integration.py.
-const originalFetch = globalThis.fetch;
-afterEach(() => { globalThis.fetch = originalFetch; });
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { fetchRiskAreas } from "./riskApi";
 
-test("#22 fetches risk areas from Flask and preserves the demo source", async () => {
-  const areas = [
-    { id: 1, latitude: 45.42, longitude: -75.69, risk_level: "HIGH" },
-    { id: 2, latitude: 45.6, longitude: -78.4, risk_level: "MODERATE" },
-    { id: 3, latitude: 44.2, longitude: -79.1, risk_level: "LOW" },
-  ];
-  let requestedUrl;
-  globalThis.fetch = async (url) => {
-    requestedUrl = url;
-    return { ok: true, json: async () => ({ status: "success", source: "mock", data: areas }) };
-  };
-  const result = await fetchRiskAreas();
-  assert.equal(requestedUrl, "http://127.0.0.1:5000/api/risk-areas");
-  assert.deepEqual(result.data, areas);
-  assert.equal(result.source, "mock");
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-test("#22 rejects unsuccessful API responses instead of showing stale risk", async () => {
-  globalThis.fetch = async () => ({ ok: false, status: 503 });
-  await assert.rejects(fetchRiskAreas(), /503/);
-});
+describe("fetchRiskAreas", () => {
+  it("returns risk data when the API request succeeds", async () => {
+    const mockResponse = {
+      status: "success",
+      source: "supabase",
+      data: [
+        {
+          id: 1,
+          name: "Toronto Test Area",
+          latitude: 43.6532,
+          longitude: -79.3832,
+          risk_score: 75,
+          risk_level: "HIGH",
+          environmental_factors: {
+            temperature_c: 32,
+            relative_humidity_pct: 25,
+          },
+        },
+      ],
+    };
 
-test("#22 rejects malformed risk-area data", async () => {
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ status: "success", source: "mock", data: null }),
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(mockResponse),
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchRiskAreas();
+
+    expect(result).toEqual(mockResponse);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:5000/api/risk-areas",
+    );
   });
-  await assert.rejects(fetchRiskAreas(), /Invalid risk data/);
-});
 
-test("#22 propagates network failures", async () => {
-  globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
-  await assert.rejects(fetchRiskAreas(), /Failed to fetch/);
+  it("throws an error when the server returns an unsuccessful status", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+      }),
+    );
+
+    await expect(fetchRiskAreas()).rejects.toThrow(
+      "Failed to fetch risk data: 503",
+    );
+  });
+
+  it("throws an error when the response data is not an array", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          status: "success",
+          source: "supabase",
+          data: {},
+        }),
+      }),
+    );
+
+    await expect(fetchRiskAreas()).rejects.toThrow(
+      "Invalid risk data received",
+    );
+  });
+
+  it("throws an error when the network request fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("Network error")),
+    );
+
+    await expect(fetchRiskAreas()).rejects.toThrow("Network error");
+  });
 });
