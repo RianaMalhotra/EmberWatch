@@ -3,14 +3,14 @@ from flask_cors import CORS
 
 from config import get_cors_origins
 from db import check_database, get_connection
+
+from services.risk_scoring import count_nearby_detections, score_area, get_area_environmental_data
 from services.detection_pipeline import get_classified_detections
-from services.risk_scoring import count_nearby_detections, score_area
 
 app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {"origins": get_cors_origins()}
 })
-
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
@@ -81,32 +81,71 @@ def get_detections():
 
 @app.route("/api/risk-areas", methods=["GET"])
 def get_risk_areas():
-    risk_areas = [
-        {
-            "id": 1,
-            "latitude": 45.42,
-            "longitude": -75.69,
-            "risk_level": "HIGH"
-        },
-        {
-            "id": 2,
-            "latitude": 45.60,
-            "longitude": -78.40,
-            "risk_level": "MODERATE"
-        },
-        {
-            "id": 3,
-            "latitude": 44.20,
-            "longitude": -79.10,
-            "risk_level": "LOW"
-        }
-    ]
+    try:
+        with get_connection() as conn:
+            areas = get_area_environmental_data(conn)
 
-    return jsonify({
-        "status": "success",
-        "source": "mock",
-        "data": risk_areas
-    }), 200
+            results = []
+
+            for area in areas:
+                nearby_detections = count_nearby_detections(
+                    conn,
+                    area["latitude"],
+                    area["longitude"],
+                )
+
+                inputs = {
+                    "temperature_c": area["temperature_c"],
+                    "relative_humidity_pct": area["relative_humidity_pct"],
+                    "wind_speed_kmh": area["wind_speed_kmh"],
+                    "precipitation_mm": area["precipitation_mm"],
+                    "vegetation_index": area["vegetation_index"],
+                    "slope_deg": None,
+                    "nearby_detections": nearby_detections,
+                }
+
+                risk = score_area(inputs)
+
+                results.append({
+                    "id": area["id"],
+                    "name": area["name"],
+                    "latitude": area["latitude"],
+                    "longitude": area["longitude"],
+
+                    "risk_score": risk["risk_score"],
+                    "risk_level": risk["risk_level"],
+                    "is_complete": risk["is_complete"],
+                    "missing_inputs": risk["missing_inputs"],
+                    "coverage": risk["coverage"],
+                    "factor_scores": risk["factor_scores"],
+                    "model_version": risk["model_version"],
+
+                    "environmental_factors": {
+                        "temperature_c": area["temperature_c"],
+                        "relative_humidity_pct": area["relative_humidity_pct"],
+                        "wind_speed_kmh": area["wind_speed_kmh"],
+                        "precipitation_mm": area["precipitation_mm"],
+                        "vegetation_index": area["vegetation_index"],
+                        "slope_deg": None,
+                        "nearby_detections": nearby_detections,
+                    },
+
+                    "observed_at": area["observed_at"],
+                })
+
+            return jsonify({
+                "status": "success",
+                "source": "supabase",
+                "data": results,
+            }), 200
+
+    except Exception as error:
+        print("ERROR in /api/risk-areas:", repr(error))
+
+        return jsonify({
+            "status": "error",
+            "message": "Unable to retrieve wildfire risk data",
+        }), 503
     
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -1,7 +1,7 @@
 
 import pytest
 from app import app
-
+from contextlib import nullcontext
 
 @pytest.fixture
 def client():
@@ -22,18 +22,63 @@ def test_health_endpoint(client):
     assert data["message"] == "Wildfire Detection API is running"
 
 
-def test_risk_areas_endpoint(client):
+def test_risk_areas_endpoint(client, monkeypatch):
+    """The risk areas endpoint returns its expected API contract without a live DB."""
+    sample_area = {
+        "id": 1,
+        "name": "Toronto Test Area",
+        "latitude": 43.6532,
+        "longitude": -79.3832,
+        "temperature_c": 32.0,
+        "relative_humidity_pct": 25.0,
+        "wind_speed_kmh": 35.0,
+        "precipitation_mm": 0.0,
+        "vegetation_index": 0.25,
+        "observed_at": "2026-10-16T12:00:00",
+    }
+
+    sample_risk = {
+        "risk_score": 75.0,
+        "risk_level": "HIGH",
+        "is_complete": False,
+        "missing_inputs": ["slope_deg"],
+        "coverage": 0.8,
+        "factor_scores": {},
+        "model_version": "test",
+    }
+
+    # Avoid opening a real database connection.
+    monkeypatch.setattr(
+        "app.get_connection",
+        lambda: nullcontext(object()),
+    )
+    monkeypatch.setattr(
+        "app.get_area_environmental_data",
+        lambda conn: [sample_area],
+    )
+    monkeypatch.setattr(
+        "app.count_nearby_detections",
+        lambda conn, latitude, longitude: 2,
+    )
+    monkeypatch.setattr(
+        "app.score_area",
+        lambda inputs: sample_risk,
+    )
+
     response = client.get("/api/risk-areas")
 
     assert response.status_code == 200
-
     data = response.get_json()
-
     assert data["status"] == "success"
-    assert data["source"] == "mock"
-    assert len(data["data"]) == 3
+    assert data["source"] == "supabase"
+    assert len(data["data"]) == 1
 
-    for area in data["data"]:
-        assert "latitude" in area
-        assert "longitude" in area
-        assert "risk_level" in area
+    area = data["data"][0]
+    assert area["id"] == 1
+    assert area["latitude"] == 43.6532
+    assert area["longitude"] == -79.3832
+    assert area["risk_level"] == "HIGH"
+    assert area["risk_score"] == 75.0
+    assert area["environmental_factors"]["temperature_c"] == 32.0
+    assert area["environmental_factors"]["nearby_detections"] == 2
+    assert area["environmental_factors"]["slope_deg"] is None
