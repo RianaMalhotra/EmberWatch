@@ -37,9 +37,7 @@ describe("fetchRiskAreas", () => {
 
     expect(result).toEqual(mockResponse);
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:5000/api/risk-areas",
-    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/risk-areas");
   });
 
   it("throws an error when the server returns an unsuccessful status", async () => {

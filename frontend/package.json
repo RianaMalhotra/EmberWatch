@@ -9,7 +9,6 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest"
-    "preview": "vite preview"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

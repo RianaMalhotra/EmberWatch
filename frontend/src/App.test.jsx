@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -161,7 +160,7 @@ describe("Wildfire risk map", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("alert"),
+      await screen.findByText(/Risk data unavailable:/),
     ).toHaveTextContent("Server unavailable");
 
     await waitFor(() => {
