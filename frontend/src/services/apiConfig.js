@@ -14,4 +14,17 @@ export function resolveApiBaseUrl(configured) {
   return (value || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
 }
 
-export const API_BASE_URL = resolveApiBaseUrl(import.meta.env?.VITE_API_BASE_URL);
+// GitHub Codespaces forwards Vite and Flask on separate HTTPS subdomains.
+// Detect the browser's forwarded 5173 host and use its matching 5000 host.
+// An explicit VITE_API_BASE_URL always takes precedence.
+export function codespacesApiBaseUrl(hostname) {
+  if (typeof hostname !== "string" || !hostname.endsWith(".app.github.dev")) return "";
+  if (!hostname.endsWith("-5173.app.github.dev")) return "";
+  return `https://${hostname.replace(/-5173\\.app\\.github\\.dev$/, "-5000.app.github.dev")}`;
+}
+
+const configuredApiUrl = import.meta.env?.VITE_API_BASE_URL;
+const browserHostname = typeof window !== "undefined" ? window.location.hostname : "";
+export const API_BASE_URL = resolveApiBaseUrl(
+  configuredApiUrl || codespacesApiBaseUrl(browserHostname)
+);
