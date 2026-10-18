@@ -19,7 +19,7 @@ test("#22 fetches risk areas from Flask and preserves the demo source", async ()
     return { ok: true, json: async () => ({ status: "success", source: "mock", data: areas }) };
   };
   const result = await fetchRiskAreas();
-  assert.equal(requestedUrl, "http://127.0.0.1:5000/api/risk-areas");
+  assert.equal(requestedUrl, "/api/risk-areas");
   assert.deepEqual(result.data, areas);
   assert.equal(result.source, "mock");
 });
