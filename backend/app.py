@@ -1,14 +1,16 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+from config import get_cors_origins
 from db import check_database, get_connection
+
 from services.risk_scoring import count_nearby_detections, score_area, get_area_environmental_data
+from services.detection_pipeline import get_classified_detections
 
 app = Flask(__name__)
 CORS(app, resources={
-    r"/api/*": {"origins": "http://localhost:5173"}
+    r"/api/*": {"origins": get_cors_origins()}
 })
-
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
@@ -52,6 +54,30 @@ def risk_score():
             inputs["nearby_detections"] = None
 
     return jsonify({"status": "success", "data": score_area(inputs)}), 200
+
+@app.route("/api/detections", methods=["GET"])
+def get_detections():
+    """Classified wildfire detections for the map (#17, #18).
+
+    Query: ?limit=N (1-1000, default 200), newest detections first.
+    Each record has location, timestamp (UTC), confidence and a classification
+    (potential_wildfire / low_confidence). Rows with missing or invalid data
+    are listed under "gaps" instead of being shown with made-up values.
+    If the database can't be reached the answer is 503 with no data, so the
+    map shows an error rather than invented detections.
+    """
+    try:
+        with get_connection() as conn:
+            result = get_classified_detections(conn, request.args.get("limit"))
+    except ValueError as error:
+        # Bad MIN_DETECTION_CONFIDENCE in the environment (see config.py).
+        return jsonify({"status": "error", "message": str(error)}), 500
+    except Exception:
+        # Don't leak connection details; the frontend only needs "unavailable".
+        return jsonify({"status": "unavailable", "message": "Detection data is unavailable"}), 503
+
+    return jsonify({"status": "success", "source": "database", **result}), 200
+
 
 @app.route("/api/risk-areas", methods=["GET"])
 def get_risk_areas():

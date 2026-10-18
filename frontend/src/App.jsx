@@ -1,7 +1,16 @@
 
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
-import { MapContainer, TileLayer, Circle } from "react-leaflet";
+import { fetchDetections } from "./services/detectionApi";
+import {
+  classificationLabel,
+  detectionStyle,
+  detectionSummary,
+  formatConfidence,
+  formatCoordinates,
+  formatDetectionTime,
+} from "./utils/detectionFormat";
+import { MapContainer, TileLayer, Circle, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 const riskColors = {
@@ -34,6 +43,37 @@ function App() {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [detectionError, setDetectionError] = useState(null);
+
+  // #18: detections load separately from risk areas, so if one request fails
+  // the other still shows (see #4, reliable handling of failures).
+  useEffect(() => {
+    let active = true;
+
+    async function loadDetections() {
+      try {
+        const result = await fetchDetections();
+
+        if (!active) return;
+
+        setDetectionResult(result);
+        setDetectionError(null);
+      } catch (err) {
+        if (!active) return;
+
+        // Show an error, never invented detections.
+        setDetectionResult(null);
+        setDetectionError(err.message || "Unable to load wildfire detections.");
+      }
+    }
+
+    loadDetections();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -90,6 +130,16 @@ function App() {
         <p>No monitored areas were returned by the backend.</p>
       )}
 
+      {detectionError && (
+        <p role="alert" style={{ color: "red" }}>
+          Detections unavailable: {detectionError}
+        </p>
+      )}
+
+      {detectionResult && (
+        <p>{detectionSummary(detectionResult)}</p>
+      )}
+
       <div 
         style={{
           display: "flex",
@@ -125,16 +175,50 @@ function App() {
                   }}
                   eventHandlers={{
                     click: () => { 
-                      console.log("Circle clicked:", area);
-                      console.log("Environmental Factors:", area.environmental_factors);
                       setSelectedArea(area);
                     },
                   }}
-                />
-              );
-            })}
-          </MapContainer>
-        </div>              
+                >
+                {dataSource === "mock" && (
+                  <Popup>Demo data — not live wildfire risk</Popup>
+                )} 
+               </Circle>  
+             );
+           })}
+           
+          {detectionResult?.detections.map((detection) => {
+            const { radius, ...pathOptions } = detectionStyle(detection);
+
+            return (
+              <CircleMarker
+                key={`detection-${detection.id}`}
+                center={[detection.latitude, detection.longitude]}
+                radius={radius}
+                pathOptions={pathOptions}
+              >
+                <Popup>
+                  <strong>{classificationLabel(detection)}</strong>
+                  <p>
+                    Location: {formatCoordinates(detection.latitude, detection.longitude)}
+                    <br />
+                    Detected: {formatDetectionTime(detection.timestamp)}
+                    <br />
+                    Confidence: {formatConfidence(detection.confidence)}
+                  </p>
+
+                  {!detection.meets_threshold && (
+                    <p>
+                      Below the {detectionResult.threshold}% confidence
+                      threshold. Treat with caution.
+                    </p>
+                  )}
+                </Popup>
+              </CircleMarker>
+            );
+          })}
+        </MapContainer>
+      </div>
+      
         <aside
           style={{
             flex: "0 1 300px",

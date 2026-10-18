@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 
 def validate_detection(data):
@@ -18,6 +19,8 @@ def validate_detection(data):
         or isinstance(lon, bool)
         or not isinstance(lat, (int, float))
         or not isinstance(lon, (int, float))
+        or not math.isfinite(lat)
+        or not math.isfinite(lon)
         or not -90 <= lat <= 90
         or not -180 <= lon <= 180
     ):
