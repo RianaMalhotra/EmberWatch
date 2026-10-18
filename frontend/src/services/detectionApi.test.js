@@ -37,7 +37,7 @@ test("#18 fetches detections from Flask with the requested limit", async () => {
     return { ok: true, json: async () => sample };
   };
   const result = await fetchDetections(50);
-  assert.equal(requestedUrl, "http://127.0.0.1:5000/api/detections?limit=50");
+  assert.equal(requestedUrl, "/api/detections?limit=50");
   assert.deepEqual(result.detections, sample.detections);
 });
 
@@ -128,10 +128,10 @@ test("#18 fetchDetections never returns a detection Leaflet could not draw", asy
   assert.deepEqual(result.detections.map((d) => d.id), [1, 2]);
 });
 
-test("API base URL defaults to local Flask and can be overridden", () => {
-  assert.equal(resolveApiBaseUrl(undefined), "http://127.0.0.1:5000");
-  assert.equal(resolveApiBaseUrl(""), "http://127.0.0.1:5000");
-  assert.equal(resolveApiBaseUrl("   "), "http://127.0.0.1:5000");
+test("API base URL defaults to same-origin proxy and can be overridden", () => {
+  assert.equal(resolveApiBaseUrl(undefined), "");
+  assert.equal(resolveApiBaseUrl(""), "");
+  assert.equal(resolveApiBaseUrl("   "), "");
   assert.equal(resolveApiBaseUrl("https://api.example.com"), "https://api.example.com");
   assert.equal(resolveApiBaseUrl(" https://api.example.com/// "), "https://api.example.com");
 });
