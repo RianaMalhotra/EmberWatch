@@ -30,7 +30,7 @@ jobs:
       - name: Run backend tests
         working-directory: backend
         run: |
-          python -m pytest -q --cov=services.detection_pipeline --cov=services.detection_validation --cov=services.detection_filter --cov=services.risk_scoring --cov-report=term-missing --cov-report=xml:coverage.xml
+          python -m pytest -q --cov=services.detection_pipeline --cov=services.detection_validation --cov=services.detection_filter --cov=services.risk_scoring --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
 
       - name: Upload backend coverage report
         if: always()
