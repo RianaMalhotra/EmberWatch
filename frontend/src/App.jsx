@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
+import ReportFire from "./components/ReportFire";
 import { fetchDetections } from "./services/detectionApi";
 import {
   classificationLabel,
@@ -45,6 +46,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
 
   // #18: detections load separately from risk areas, so if one request fails
   // the other still shows (see #4, reliable handling of failures).
@@ -111,6 +113,19 @@ function App() {
   return (
     <div>
       <h1>Wildfire Early Detection & Risk Assessment</h1>
+
+      {/* #51: public fire reports. Not an emergency service. */}
+      {reporting ? (
+        <ReportFire onClose={() => setReporting(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setReporting(true)}
+          style={{ background: "#C2410C", color: "#fff", border: 0, borderRadius: 8, padding: "10px 16px", fontWeight: 600, marginBottom: 8 }}
+        >
+          Report a Fire
+        </button>
+      )}
 
       {loading && (
         <p>Loading wildfire risk data...</p>
