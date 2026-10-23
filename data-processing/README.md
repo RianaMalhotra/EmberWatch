@@ -35,6 +35,15 @@ Options: `--radius-km`, `--window-hours`, `--min-recall`, and `--label type` (us
 
 Put the recommended value in `DEFAULT_MIN_DETECTION_CONFIDENCE` in `backend/config.py`. The threshold can also be overridden at runtime with the `MIN_DETECTION_CONFIDENCE` environment variable.
 
+## Areas and environmental data (`load_environment_to_db.py`, issue #68)
+
+Loads the monitored areas from `areas.csv` plus noon weather and terrain slope from Open-Meteo into Supabase. Details, sources and units: [docs/environmental-data.md](../docs/environmental-data.md).
+
+```bash
+python data-processing/load_environment_to_db.py --dry-run
+python data-processing/load_environment_to_db.py
+```
+
 ## Tests
 
 ```bash

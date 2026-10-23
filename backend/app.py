@@ -100,7 +100,7 @@ def get_risk_areas():
                     "wind_speed_kmh": area["wind_speed_kmh"],
                     "precipitation_mm": area["precipitation_mm"],
                     "vegetation_index": area["vegetation_index"],
-                    "slope_deg": None,
+                    "slope_deg": area.get("slope_deg"),
                     "nearby_detections": nearby_detections,
                 }
 
@@ -126,7 +126,7 @@ def get_risk_areas():
                         "wind_speed_kmh": area["wind_speed_kmh"],
                         "precipitation_mm": area["precipitation_mm"],
                         "vegetation_index": area["vegetation_index"],
-                        "slope_deg": None,
+                        "slope_deg": area.get("slope_deg"),
                         "nearby_detections": nearby_detections,
                     },
 
