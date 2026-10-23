@@ -1,7 +1,7 @@
 
 # Wildfire Early Detection and Risk Assessment Platform
 
-**Team Ash Detectives | ECE444 – Software Engineering | University of Toronto**
+**Team Ash Detectives**
 
 > **Project Status:** Active Development — Functional React–Flask Prototype  
 > The application currently supports an interactive wildfire risk map, backend API communication, detection input validation, and automated backend testing. Wildfire risk values displayed in the current prototype are mock data and do not represent real-time wildfire conditions.
