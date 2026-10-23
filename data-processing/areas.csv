@@ -1,0 +1,14 @@
+name,province,latitude,longitude,reason
+Kelowna,BC,49.8880,-119.4960,McDougall Creek wildfire (Aug 2023); example area in docs/risk-model.md
+Kamloops,BC,50.6745,-120.3273,Interior BC fire-prone grassland/forest; frequent fire seasons
+Lytton,BC,50.2316,-121.5824,Town destroyed by wildfire (Jun 2021); hot dry canyon terrain
+Jasper,AB,52.8734,-118.0814,Jasper wildfire (Jul 2024); steep mountain terrain
+Fort McMurray,AB,56.7268,-111.3790,Horse River wildfire (May 2016); boreal forest
+Slave Lake,AB,55.2833,-114.7697,Slave Lake wildfire (May 2011); boreal forest
+Yellowknife,NT,62.4540,-114.3718,City evacuated for wildfire (Aug 2023)
+Hay River,NT,60.8156,-115.7999,Evacuated for wildfires (2023 and 2024)
+Prince Albert,SK,53.2033,-105.7531,Boreal edge; Saskatchewan fire seasons
+Thunder Bay,ON,48.3809,-89.2477,Northwestern Ontario boreal fire region
+Sudbury,ON,46.4917,-80.9930,Northeastern Ontario forest fire region
+Chibougamau,QC,49.9133,-74.3797,Evacuated during the 2023 Quebec wildfires
+Ottawa,ON,45.4215,-75.6972,Low-risk urban comparison; example area in docs/risk-model.md

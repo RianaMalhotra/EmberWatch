@@ -208,6 +208,7 @@ SELECT
     a.name,
     a.latitude,
     a.longitude,
+    a.slope_deg,
     eo.temperature_c,
     eo.relative_humidity_pct,
     eo.wind_speed_kmh,
@@ -265,12 +266,13 @@ def get_area_environmental_data(conn):
             "name": row[1],
             "latitude": row[2],
             "longitude": row[3],
-            "temperature_c": row[4],
-            "relative_humidity_pct": row[5],
-            "wind_speed_kmh": row[6],
-            "precipitation_mm": row[7],
-            "vegetation_index": row[8],
-            "observed_at": row[9],
+            "slope_deg": row[4],
+            "temperature_c": row[5],
+            "relative_humidity_pct": row[6],
+            "wind_speed_kmh": row[7],
+            "precipitation_mm": row[8],
+            "vegetation_index": row[9],
+            "observed_at": row[10],
         }
         for row in rows
     ]
