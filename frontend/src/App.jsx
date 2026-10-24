@@ -10,24 +10,17 @@ import {
   formatCoordinates,
   formatDetectionTime,
 } from "./utils/detectionFormat";
-import { MapContainer, TileLayer, Circle, CircleMarker, Popup } from "react-leaflet";
+import {
+  FACTOR_LABELS as factorLabels,
+  areaBounds,
+  missingInputNames,
+  riskAreaStyle,
+  riskColor,
+  riskState,
+  riskStatusText,
+} from "./utils/riskFormat";
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-
-const riskColors = {
-  HIGH: "red",
-  MODERATE: "orange",
-  LOW: "green",
-};
-
-const factorLabels = {
-  temperature_c: "Temperature",
-  relative_humidity_pct: "Relative Humidity",
-  wind_speed_kmh: "Wind Speed",
-  precipitation_mm: "Precipitation",
-  vegetation_index: "Vegetation Index",
-  slope_deg: "Slope",
-  nearby_detections: "Nearby Fire Detections",
-};
 
 const factorUnits = {
   temperature_c: "°C",
@@ -36,6 +29,45 @@ const factorUnits = {
   precipitation_mm: "mm",
   slope_deg: "°",
 };
+
+// Zoom the map to the monitored areas once they load (#68 areas span Canada).
+function FitToAreas({ areas }) {
+  const map = useMap();
+  const points = areaBounds(areas);
+  const key = points.map((p) => p.join(",")).join(";");
+
+  useEffect(() => {
+    if (points.length > 0) {
+      map.fitBounds(points, { padding: [30, 30], maxZoom: 8 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, key]);
+
+  return null;
+}
+
+// #28: explains the three ways a risk area can be drawn.
+function RiskLegend() {
+  const swatch = (style) => ({
+    display: "inline-block",
+    width: 14,
+    height: 14,
+    borderRadius: "50%",
+    marginRight: 6,
+    verticalAlign: "middle",
+    ...style,
+  });
+
+  return (
+    <div aria-label="Map legend" style={{ fontSize: 14, marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap" }}>
+      <span><span style={swatch({ background: "#dc2626" })} />High</span>
+      <span><span style={swatch({ background: "#f97316" })} />Moderate</span>
+      <span><span style={swatch({ background: "#16a34a" })} />Low</span>
+      <span><span style={swatch({ border: "2px dashed #374151" })} />Dashed outline: incomplete (some inputs missing)</span>
+      <span><span style={swatch({ background: "#e5e7eb", border: "2px dashed #6b7280" })} />Grey: risk unavailable (not enough data)</span>
+    </div>
+  );
+}
 
 function App() {
   const [riskAreas, setRiskAreas] = useState([]);
@@ -159,30 +191,31 @@ function App() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
+            <FitToAreas areas={riskAreas} />
+
             {riskAreas.map((area) => {
-              const color = riskColors[area.risk_level] || "gray";
+              // Pixel-sized markers stay visible at country-wide zoom levels.
+              const { radius, ...pathOptions } = riskAreaStyle(area, selectedArea?.id === area.id);
 
               return (
-                <Circle
+                <CircleMarker
                   key={area.id}
                   center={[area.latitude, area.longitude]}
-                  radius={12000}
-                  pathOptions={{
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: selectedArea?.id === area.id ? 0.8 : 0.5,
-                    weight: selectedArea?.id === area.id ? 4 : 2,
-                  }}
+                  radius={radius}
+                  pathOptions={pathOptions}
                   eventHandlers={{
                     click: () => { 
                       setSelectedArea(area);
                     },
                   }}
                 >
+                  <Tooltip>
+                    {area.name ?? `Area ${area.id}`}: {riskStatusText(area)}
+                  </Tooltip>
                 {dataSource === "mock" && (
                   <Popup>Demo data — not live wildfire risk</Popup>
                 )} 
-               </Circle>  
+               </CircleMarker>  
              );
            })}
            
@@ -217,6 +250,7 @@ function App() {
             );
           })}
         </MapContainer>
+        <RiskLegend />
       </div>
       
         <aside
@@ -240,7 +274,7 @@ function App() {
 
               <h3
                 style={{
-                  color: riskColors[selectedArea.risk_level] || "gray",
+                  color: riskColor(selectedArea),
                 }}
               >
                 Risk: {selectedArea.risk_level ?? "Unavailable"}
@@ -253,9 +287,15 @@ function App() {
                   : "Unavailable"}
               </p>
 
-              {selectedArea.is_complete === false && (
+              {riskState(selectedArea) === "incomplete" && (
                 <p role="status">
                   Some inputs are missing. This risk assessment is incomplete.
+                </p>
+              )}
+
+              {riskState(selectedArea) === "unavailable" && (
+                <p role="status">
+                  Not enough input data to calculate a risk score for this area.
                 </p>
               )}
 
@@ -283,7 +323,7 @@ function App() {
               {selectedArea.missing_inputs?.length > 0 && (
                 <p>
                   <strong>Missing inputs: </strong>
-                  {selectedArea.missing_inputs.join(", ")}
+                  {missingInputNames(selectedArea).join(", ")}
                 </p>
               )}
 

@@ -16,19 +16,32 @@ vi.mock("react-leaflet", async () => {
       React.createElement("div", { "data-testid": "map" }, children),
 
     TileLayer: () => null,
+    Popup: () => null,
+    Tooltip: ({ children }) =>
+      React.createElement("span", { role: "tooltip" }, children),
+    useMap: () => mockMap,
 
-    Circle: ({ center, eventHandlers }) =>
+    CircleMarker: ({ center, eventHandlers, pathOptions, children }) =>
       React.createElement(
         "button",
         {
           type: "button",
           "aria-label": `Select area at ${center.join(", ")}`,
+          "data-color": pathOptions?.color,
+          "data-dashed": pathOptions?.dashArray ? "yes" : "no",
           onClick: eventHandlers?.click,
         },
         "Select area",
+        children,
       ),
   };
 });
+
+const mockMap = vi.hoisted(() => ({ fitBounds: vi.fn() }));
+
+vi.mock("./services/detectionApi", () => ({
+  fetchDetections: vi.fn().mockRejectedValue(new Error("not under test")),
+}));
 
 const mockArea = {
   id: 1,
@@ -166,5 +179,48 @@ describe("Wildfire risk map", () => {
     await waitFor(() => {
       expect(fetchRiskAreas).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("draws incomplete areas dashed and unscored areas grey (#28)", async () => {
+    const complete = { ...mockArea, id: 2, latitude: 49.888, longitude: -119.496,
+      is_complete: true, missing_inputs: [] };
+    const unscored = { ...mockArea, id: 3, latitude: 62.454, longitude: -114.372,
+      risk_score: null, risk_level: null, is_complete: false,
+      missing_inputs: ["temperature_c", "relative_humidity_pct", "wind_speed_kmh", "vegetation_index"] };
+
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea, complete, unscored] });
+
+    render(<App />);
+
+    const incompleteMarker = await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
+    const completeMarker = screen.getByRole("button", { name: "Select area at 49.888, -119.496" });
+    const unscoredMarker = screen.getByRole("button", { name: "Select area at 62.454, -114.372" });
+
+    expect(incompleteMarker).toHaveAttribute("data-dashed", "yes");
+    expect(completeMarker).toHaveAttribute("data-dashed", "no");
+    expect(unscoredMarker).toHaveAttribute("data-dashed", "yes");
+    expect(unscoredMarker).toHaveAttribute("data-color", "#6b7280");
+    expect(incompleteMarker).toHaveTextContent("incomplete: missing Slope");
+
+    expect(screen.getByLabelText("Map legend")).toHaveTextContent("incomplete");
+    expect(mockMap.fitBounds).toHaveBeenCalled();
+  });
+
+  it("explains when an area has no risk score", async () => {
+    const user = userEvent.setup();
+    const unscored = { ...mockArea, risk_score: null, risk_level: null,
+      missing_inputs: ["temperature_c", "vegetation_index"] };
+
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [unscored] });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
+
+    expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Not enough input data/i);
+    expect(screen.getByText(/Missing inputs:/).parentElement)
+      .toHaveTextContent("Temperature, Vegetation Index");
+    expect(screen.queryByText(/Some inputs are missing/i)).not.toBeInTheDocument();
   });
 });
