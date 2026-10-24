@@ -1,9 +1,10 @@
 
 import { API_BASE_URL } from "./apiConfig.js";
+import { withTimeout } from "./requestHelpers.js";
 
 export async function fetchRiskAreas() {
-  const response = await fetch(
-    `${API_BASE_URL}/api/risk-areas`
+  const response = await withTimeout(
+    fetch(`${API_BASE_URL}/api/risk-areas`)
   );
 
   if (!response.ok) {

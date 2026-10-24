@@ -1,16 +1,23 @@
+import math
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from config import get_cors_origins
 from db import check_database, get_connection
 
-from services.risk_scoring import count_nearby_detections, score_area, get_area_environmental_data
+from services.risk_scoring import (
+    count_nearby_detections,
+    get_area_environmental_data,
+    score_area,
+)
 from services.detection_pipeline import get_classified_detections
 
 app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {"origins": get_cors_origins()}
 })
+
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
@@ -51,6 +58,7 @@ def risk_score():
             with get_connection() as conn:
                 inputs["nearby_detections"] = count_nearby_detections(conn, lat, lon)
         except Exception:
+            app.logger.warning("Fire history unavailable for /api/risk-score", exc_info=True)
             inputs["nearby_detections"] = None
 
     return jsonify({"status": "success", "data": score_area(inputs)}), 200
@@ -71,81 +79,148 @@ def get_detections():
             result = get_classified_detections(conn, request.args.get("limit"))
     except ValueError as error:
         # Bad MIN_DETECTION_CONFIDENCE in the environment (see config.py).
+        app.logger.error("Invalid detection configuration: %s", error)
         return jsonify({"status": "error", "message": str(error)}), 500
     except Exception:
         # Don't leak connection details; the frontend only needs "unavailable".
+        app.logger.exception("Could not load detections")
         return jsonify({"status": "unavailable", "message": "Detection data is unavailable"}), 503
 
     return jsonify({"status": "success", "source": "database", **result}), 200
 
 
+def _is_coordinate(value):
+    """A finite number (not bool/NaN/inf), so the map can draw the area."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _environmental_factors(area, nearby_detections):
+    return {
+        "temperature_c": area.get("temperature_c"),
+        "relative_humidity_pct": area.get("relative_humidity_pct"),
+        "wind_speed_kmh": area.get("wind_speed_kmh"),
+        "precipitation_mm": area.get("precipitation_mm"),
+        "vegetation_index": area.get("vegetation_index"),
+        "slope_deg": area.get("slope_deg"),
+        "nearby_detections": nearby_detections,
+    }
+
+
+def _risk_area_record(area, nearby_detections, risk):
+    record = {
+        "id": area.get("id"),
+        "name": area.get("name"),
+        "latitude": area.get("latitude"),
+        "longitude": area.get("longitude"),
+
+        "risk_score": risk["risk_score"],
+        "risk_level": risk["risk_level"],
+        "is_complete": risk["is_complete"],
+        "missing_inputs": risk["missing_inputs"],
+        "coverage": risk["coverage"],
+        "factor_scores": risk["factor_scores"],
+        "model_version": risk["model_version"],
+
+        "environmental_factors": _environmental_factors(area, nearby_detections),
+
+        "observed_at": area.get("observed_at"),
+    }
+    return record
+
+
+def _build_risk_areas(conn, areas):
+    """Score every area, degrading instead of failing (#25).
+
+    Returns ``(results, warnings)``. One problem never takes the whole map down:
+
+    * Fire-history lookup fails (database/PostGIS problem): history becomes a
+      missing input for every area, so scores are marked incomplete, and later
+      areas skip the lookup instead of waiting on a broken connection again.
+    * An area has no usable location: it is left out and counted in a warning.
+    """
+    results = []
+    history_available = True
+    skipped = 0
+
+    for area in areas:
+        if not (_is_coordinate(area.get("latitude")) and _is_coordinate(area.get("longitude"))):
+            skipped += 1
+            continue
+
+        nearby_detections = None
+        if history_available:
+            try:
+                nearby_detections = count_nearby_detections(
+                    conn, area["latitude"], area["longitude"]
+                )
+            except Exception:
+                app.logger.exception("Fire history lookup failed; scoring without it")
+                history_available = False
+
+        risk = score_area({
+            "temperature_c": area.get("temperature_c"),
+            "relative_humidity_pct": area.get("relative_humidity_pct"),
+            "wind_speed_kmh": area.get("wind_speed_kmh"),
+            "precipitation_mm": area.get("precipitation_mm"),
+            "vegetation_index": area.get("vegetation_index"),
+            "slope_deg": area.get("slope_deg"),
+            "nearby_detections": nearby_detections,
+        })
+        results.append(_risk_area_record(area, nearby_detections, risk))
+
+    warnings = []
+    if not history_available:
+        warnings.append({
+            "code": "history_unavailable",
+            "message": "Nearby fire history is temporarily unavailable, "
+                       "so risk scores are incomplete.",
+        })
+    if skipped:
+        warnings.append({
+            "code": "area_skipped",
+            "count": skipped,
+            "message": f"{skipped} area(s) were left out because their location is missing or invalid.",
+        })
+    return results, warnings
+
+
 @app.route("/api/risk-areas", methods=["GET"])
 def get_risk_areas():
+    """Risk for every monitored area (#22, #23).
+
+    If the database can't be reached or the area query fails there is nothing
+    to show, so the answer is 503 (no invented data). A smaller problem (fire
+    history unavailable) still returns 200 with the areas plus a ``warnings``
+    list the UI can show (#25).
+    """
+    results = warnings = None
     try:
         with get_connection() as conn:
             areas = get_area_environmental_data(conn)
-
-            results = []
-
-            for area in areas:
-                nearby_detections = count_nearby_detections(
-                    conn,
-                    area["latitude"],
-                    area["longitude"],
-                )
-
-                inputs = {
-                    "temperature_c": area["temperature_c"],
-                    "relative_humidity_pct": area["relative_humidity_pct"],
-                    "wind_speed_kmh": area["wind_speed_kmh"],
-                    "precipitation_mm": area["precipitation_mm"],
-                    "vegetation_index": area["vegetation_index"],
-                    "slope_deg": area.get("slope_deg"),
-                    "nearby_detections": nearby_detections,
-                }
-
-                risk = score_area(inputs)
-
-                results.append({
-                    "id": area["id"],
-                    "name": area["name"],
-                    "latitude": area["latitude"],
-                    "longitude": area["longitude"],
-
-                    "risk_score": risk["risk_score"],
-                    "risk_level": risk["risk_level"],
-                    "is_complete": risk["is_complete"],
-                    "missing_inputs": risk["missing_inputs"],
-                    "coverage": risk["coverage"],
-                    "factor_scores": risk["factor_scores"],
-                    "model_version": risk["model_version"],
-
-                    "environmental_factors": {
-                        "temperature_c": area["temperature_c"],
-                        "relative_humidity_pct": area["relative_humidity_pct"],
-                        "wind_speed_kmh": area["wind_speed_kmh"],
-                        "precipitation_mm": area["precipitation_mm"],
-                        "vegetation_index": area["vegetation_index"],
-                        "slope_deg": area.get("slope_deg"),
-                        "nearby_detections": nearby_detections,
-                    },
-
-                    "observed_at": area["observed_at"],
-                })
-
+            results, warnings = _build_risk_areas(conn, areas)
+    except Exception:
+        app.logger.exception("Could not load risk areas")
+        # If only closing the connection failed after the data was gathered,
+        # the results are still good, so serve them.
+        if results is None:
             return jsonify({
-                "status": "success",
-                "source": "supabase",
-                "data": results,
-            }), 200
+                "status": "error",
+                "message": "Unable to retrieve wildfire risk data",
+            }), 503
 
-    except Exception as error:
-        print("ERROR in /api/risk-areas:", repr(error))
+    body = {
+        "status": "success",
+        "source": "supabase",
+        "data": results,
+    }
+    if warnings:
+        body["warnings"] = warnings
+    return jsonify(body), 200
 
-        return jsonify({
-            "status": "error",
-            "message": "Unable to retrieve wildfire risk data",
-        }), 503
-    
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
 import { fetchDetections } from "./services/detectionApi";
+import { describeLoadError } from "./utils/loadError";
 import {
   classificationLabel,
   detectionStyle,
@@ -77,6 +78,11 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  // #25: warnings from the API (e.g. fire history unavailable), plus
+  // counters that re-run a load when the user presses "Try again".
+  const [warnings, setWarnings] = useState([]);
+  const [riskAttempt, setRiskAttempt] = useState(0);
+  const [detectionAttempt, setDetectionAttempt] = useState(0);
 
   // #18: detections load separately from risk areas, so if one request fails
   // the other still shows (see #4, reliable handling of failures).
@@ -96,7 +102,7 @@ function App() {
 
         // Show an error, never invented detections.
         setDetectionResult(null);
-        setDetectionError(err.message || "Unable to load wildfire detections.");
+        setDetectionError(describeLoadError(err, "Unable to load wildfire detections."));
       }
     }
 
@@ -105,7 +111,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [detectionAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -118,12 +124,14 @@ function App() {
 
         setRiskAreas(result.data);
         setDataSource(result.source);
+        setWarnings(Array.isArray(result.warnings) ? result.warnings : []);
         setError(null);
       } catch (err) {
         if (!active) return;
 
         setRiskAreas([]);
-        setError(err.message || "Unable to load wildfire risk data.");
+        setWarnings([]);
+        setError(describeLoadError(err, "Unable to load wildfire risk data."));
       } finally {
         if (active) {
           setLoading(false);
@@ -136,7 +144,18 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [riskAttempt]);
+
+  function retryRiskAreas() {
+    setLoading(true);
+    setError(null);
+    setRiskAttempt((n) => n + 1);
+  }
+
+  function retryDetections() {
+    setDetectionError(null);
+    setDetectionAttempt((n) => n + 1);
+  }
 
   const factors = selectedArea?.environmental_factors ?? {};
 
@@ -150,9 +169,18 @@ function App() {
 
       {error && (
         <p role="alert" style={{ color: "red" }}>
-          Risk data unavailable: {error}
+          Risk data unavailable: {error}{" "}
+          <button type="button" aria-label="Try loading risk data again" onClick={retryRiskAreas}>
+            Try again
+          </button>
         </p>
       )}
+
+      {warnings.map((warning) => (
+        <p key={warning.code} role="status" style={{ color: "#92400e" }}>
+          Notice: {warning.message}
+        </p>
+      ))}
 
       {dataSource === "mock" && !error && (
         <p>Demo data — not live wildfire risk</p>
@@ -164,7 +192,10 @@ function App() {
 
       {detectionError && (
         <p role="alert" style={{ color: "red" }}>
-          Detections unavailable: {detectionError}
+          Detections unavailable: {detectionError}{" "}
+          <button type="button" aria-label="Try loading detections again" onClick={retryDetections}>
+            Try again
+          </button>
         </p>
       )}
 
