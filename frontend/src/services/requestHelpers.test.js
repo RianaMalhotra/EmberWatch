@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   REQUEST_TIMEOUT_MS,
   RequestTimeoutError,
+  readJson,
   withTimeout,
 } from "./requestHelpers.js";
 
-// #25: a slow backend must not leave the page waiting forever.
+// #25/#26: a slow or broken backend must not leave the page waiting forever.
 
 describe("withTimeout", () => {
   beforeEach(() => {
@@ -52,5 +53,21 @@ describe("withTimeout", () => {
 
   it("defaults to a 15 second limit", () => {
     expect(REQUEST_TIMEOUT_MS).toBe(15000);
+  });
+});
+
+describe("readJson", () => {
+  it("returns the parsed body", async () => {
+    const response = { json: vi.fn().mockResolvedValue({ a: 1 }) };
+    await expect(readJson(response, "bad")).resolves.toEqual({ a: 1 });
+  });
+
+  it("reports a readable error when the body is not JSON", async () => {
+    const response = {
+      json: vi.fn().mockRejectedValue(new SyntaxError("Unexpected token <")),
+    };
+    await expect(readJson(response, "Invalid risk data received")).rejects.toThrow(
+      "Invalid risk data received",
+    );
   });
 });

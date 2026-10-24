@@ -226,7 +226,7 @@ describe("Wildfire risk map", () => {
     expect(screen.queryByText(/Some inputs are missing/i)).not.toBeInTheDocument();
   });
 
-  // ---- #25: failure handling ------------------------------------
+  // ---- #25 / #26: failure handling ------------------------------------
 
   it("shows the API's warnings next to the map (#25)", async () => {
     fetchRiskAreas.mockResolvedValue({
@@ -327,5 +327,30 @@ describe("Wildfire risk map", () => {
     });
     expect(fetchDetections).toHaveBeenCalledTimes(2);
     expect(fetchRiskAreas).toHaveBeenCalledTimes(1);
+  });
+
+  it("says the score could not be calculated when the model failed for an area (#26)", async () => {
+    const user = userEvent.setup();
+    const failed = { ...mockArea, risk_score: null, risk_level: null, is_complete: false,
+      missing_inputs: [], processing_error: true };
+    const ok = { ...mockArea, id: 2, latitude: 49.888, longitude: -119.496,
+      is_complete: true, missing_inputs: [] };
+
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [failed, ok] });
+
+    render(<App />);
+
+    // The failed area is grey and the healthy one still shows its risk.
+    const failedMarker = await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
+    expect(failedMarker).toHaveAttribute("data-color", "#6b7280");
+    expect(failedMarker).toHaveTextContent(/the score could not be calculated/i);
+    expect(screen.getByRole("button", { name: "Select area at 49.888, -119.496" }))
+      .toHaveAttribute("data-color", "#dc2626");
+
+    await user.click(failedMarker);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/could not be calculated for this area/i);
+    expect(screen.queryByText(/Not enough input data/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Missing inputs:/)).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
-"""Failure-handling tests for #25 (data-source failures).
+"""Failure-handling tests for #25 (data-source failures) and #26 (API and
+model-processing failures).
 
 Every test uses Flask's test client and monkeypatches, so no live Supabase or
 network is needed. The common rule being checked: a failure is reported
@@ -176,3 +177,117 @@ def test_area_without_a_usable_location_is_left_out_with_a_warning(client, patch
     assert [a["id"] for a in body["data"]] == [1, 3]
     warning = next(w for w in body["warnings"] if w["code"] == "area_skipped")
     assert warning["count"] == 1
+
+
+# --------------------------------------------------------------------------
+# #26: API and model-processing failures
+# --------------------------------------------------------------------------
+
+def test_model_failure_for_one_area_does_not_break_the_others(client, patch_areas, monkeypatch):
+    patch_areas([make_area(1), make_area(2), make_area(3)])
+    real_score = api.score_area
+
+    def flaky_score(inputs):
+        if inputs["temperature_c"] == 99:
+            raise ValueError("model exploded")
+        return real_score(inputs)
+
+    monkeypatch.setattr(api, "score_area", flaky_score)
+    monkeypatch.setattr(api, "get_area_environmental_data",
+                        lambda conn: [make_area(1), make_area(2, temperature_c=99), make_area(3)])
+
+    response = client.get("/api/risk-areas")
+    body = response.get_json()
+
+    assert response.status_code == 200
+    first, broken, third = body["data"]
+
+    assert first["risk_level"] is not None and "processing_error" not in first
+    assert third["risk_level"] is not None
+
+    # The failed area is marked unavailable: no score, no level, not "complete".
+    assert broken["id"] == 2
+    assert broken["risk_score"] is None
+    assert broken["risk_level"] is None
+    assert broken["is_complete"] is False
+    assert broken["processing_error"] is True
+    assert broken["environmental_factors"]["temperature_c"] == 99  # real data still shown
+    assert "model exploded" not in response.get_data(as_text=True)
+
+    warning = next(w for w in body["warnings"] if w["code"] == "scoring_failed")
+    assert warning["count"] == 1
+
+
+def test_model_failure_response_keeps_the_full_area_shape(client, patch_areas, monkeypatch):
+    patch_areas([make_area(1)])
+
+    def always_fails(inputs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(api, "score_area", always_fails)
+    area = client.get("/api/risk-areas").get_json()["data"][0]
+
+    # The frontend reads these keys, so a failed area must still have them all.
+    for key in ("id", "name", "latitude", "longitude", "risk_score", "risk_level",
+                "is_complete", "missing_inputs", "coverage", "factor_scores",
+                "model_version", "environmental_factors", "observed_at"):
+        assert key in area
+    # The inputs were present; the model failed, so nothing is reported as missing.
+    assert area["missing_inputs"] == []
+
+
+def test_risk_score_endpoint_reports_model_failure_as_json_500(client, monkeypatch):
+    def always_fails(inputs):
+        raise RuntimeError(SECRET)
+
+    monkeypatch.setattr(api, "score_area", always_fails)
+    response = client.post("/api/risk-score", json={"temperature_c": 30})
+
+    assert response.status_code == 500
+    assert response.is_json
+    assert response.get_json() == {"status": "error", "message": "Risk score could not be calculated"}
+    assert SECRET not in response.get_data(as_text=True)
+
+
+def test_risk_score_endpoint_works_when_fire_history_lookup_fails(client, monkeypatch):
+    def broken_connection():
+        raise RuntimeError(SECRET)
+
+    monkeypatch.setattr(api, "get_connection", broken_connection)
+    response = client.post("/api/risk-score", json={
+        "temperature_c": 30, "relative_humidity_pct": 20, "wind_speed_kmh": 30,
+        "precipitation_mm": 0, "vegetation_index": 0.5,
+        "latitude": 45.0, "longitude": -77.0,
+    })
+
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    assert "nearby_detections" in data["missing_inputs"]
+    assert data["is_complete"] is False
+
+
+def test_unexpected_error_returns_generic_json_500(client, monkeypatch):
+    def explode():
+        raise RuntimeError(SECRET)
+
+    monkeypatch.setattr(api, "check_database", explode)
+    response = client.get("/api/health/db")
+
+    assert response.status_code == 500
+    assert response.is_json
+    assert response.get_json() == {"status": "error", "message": "Unexpected server error"}
+    assert SECRET not in response.get_data(as_text=True)
+
+
+def test_unknown_api_route_returns_json_404(client):
+    response = client.get("/api/does-not-exist")
+
+    assert response.status_code == 404
+    assert response.get_json() == {"status": "error", "message": "Not Found"}
+
+
+def test_wrong_method_returns_json_405(client):
+    response = client.post("/api/health")
+
+    assert response.status_code == 405
+    assert response.get_json()["status"] == "error"

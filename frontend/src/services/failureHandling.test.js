@@ -3,8 +3,8 @@ import { fetchRiskAreas } from "./riskApi.js";
 import { fetchDetections } from "./detectionApi.js";
 import { RequestTimeoutError } from "./requestHelpers.js";
 
-// #25: a slow, unreachable or degraded backend as seen by the two API
-// services. Server side: backend/tests/test_failure_handling.py.
+// #25 (data-source failures) and #26 (API/processing failures) as seen by the
+// two API services. Server side: backend/tests/test_failure_handling.py.
 
 afterEach(() => {
   vi.useRealTimers();
@@ -17,10 +17,26 @@ function stubFetch(impl) {
   return fetchMock;
 }
 
+const htmlErrorPage = () =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.reject(new SyntaxError("Unexpected token '<'")),
+  });
+
 describe.each([
-  ["fetchRiskAreas", fetchRiskAreas],
-  ["fetchDetections", fetchDetections],
-])("%s failure handling", (_name, load) => {
+  ["fetchRiskAreas", fetchRiskAreas, "Invalid risk data received"],
+  ["fetchDetections", fetchDetections, "Invalid detection data received"],
+])("%s failure handling", (_name, load, invalidMessage) => {
+  it("reports a readable error when the response body is not JSON", async () => {
+    stubFetch(htmlErrorPage);
+    await expect(load()).rejects.toThrow(invalidMessage);
+  });
+
+  it("reports a readable error when the body is JSON null", async () => {
+    stubFetch(() => Promise.resolve({ ok: true, json: () => Promise.resolve(null) }));
+    await expect(load()).rejects.toThrow(invalidMessage);
+  });
+
   it("gives up with a timeout error when the server never answers", async () => {
     vi.useFakeTimers();
     stubFetch(() => new Promise(() => {}));

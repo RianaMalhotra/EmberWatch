@@ -1,4 +1,4 @@
-// #25: turns the errors thrown by the API helpers into one short,
+// #25/#26: turns the errors thrown by the API helpers into one short,
 // readable sentence for the page. Unknown messages are passed through as-is.
 
 const STATUS_AT_END = /:\s*(\d{3})$/; // "Failed to fetch risk data: 503"

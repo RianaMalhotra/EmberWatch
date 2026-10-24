@@ -1,4 +1,5 @@
-// #25: a slow backend must not leave the page stuck on "Loading...".
+// #25/#26: small helpers so a slow or broken backend can't leave the page
+// stuck on "Loading..." or show a cryptic parsing error.
 
 export const REQUEST_TIMEOUT_MS = 15000;
 
@@ -18,4 +19,14 @@ export function withTimeout(promise, timeoutMs = REQUEST_TIMEOUT_MS) {
   });
 
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// response.json() throws a SyntaxError for an HTML error page or an empty
+// body; report that as a plain, readable error instead.
+export async function readJson(response, invalidMessage) {
+  try {
+    return await response.json();
+  } catch {
+    throw new Error(invalidMessage);
+  }
 }

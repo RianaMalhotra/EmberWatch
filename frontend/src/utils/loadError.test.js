@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RequestTimeoutError } from "../services/requestHelpers.js";
 import { describeLoadError } from "./loadError.js";
 
-// #25: what the person sees when loading data fails.
+// #25/#26: what the person sees when loading data fails.
 
 describe("describeLoadError", () => {
   it("explains a timeout", () => {

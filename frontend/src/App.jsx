@@ -78,7 +78,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
-  // #25: warnings from the API (e.g. fire history unavailable), plus
+  // #25/#26: warnings from the API (e.g. fire history unavailable), plus
   // counters that re-run a load when the user presses "Try again".
   const [warnings, setWarnings] = useState([]);
   const [riskAttempt, setRiskAttempt] = useState(0);
@@ -326,7 +326,9 @@ function App() {
 
               {riskState(selectedArea) === "unavailable" && (
                 <p role="status">
-                  Not enough input data to calculate a risk score for this area.
+                  {selectedArea.processing_error
+                    ? "The risk score could not be calculated for this area. Try again later."
+                    : "Not enough input data to calculate a risk score for this area."}
                 </p>
               )}
 
