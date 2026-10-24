@@ -232,7 +232,7 @@ The second diagram represents the intended architecture. Not all components are 
 The repository separates application code, tests, documentation, and planned data-processing and machine-learning components.
 
 ```text
-ECE444-PROJECT/
+EmberWatch/
 │
 ├── backend/
 │   ├── app.py
@@ -289,8 +289,8 @@ Ensure Python, Node.js, and npm are available from your terminal.
 ### 7.2 Clone the Repository
 
 ```bash
-git clone https://github.com/RianaMalhotra/ECE444-PROJECT.git
-cd ECE444-PROJECT
+git clone https://github.com/RianaMalhotra/EmberWatch.git
+cd EmberWatch
 ```
 
 ### 7.3 Set Up the Backend
@@ -442,7 +442,7 @@ The frontend has been manually tested for:
 - Display of HIGH, MODERATE, and LOW risk categories.
 - Display of demonstration-data labels.
 
-Additional frontend unit tests, integration tests, and automated continuous integration checks remain future development priorities.
+Frontend integration tests and automated CI regression checks were added during Sprint 2; see the milestone update below for current scope.
 
 ## 9. Functional and Non-Functional Requirements
 
@@ -491,10 +491,10 @@ The team uses:
 
 ### Project Resources
 
-- [GitHub Repository](https://github.com/RianaMalhotra/ECE444-PROJECT)
+- [GitHub Repository](https://github.com/RianaMalhotra/EmberWatch)
 - [GitHub Project Board](https://github.com/users/RianaMalhotra/projects/1)
-- [GitHub Issues](https://github.com/RianaMalhotra/ECE444-PROJECT/issues)
-- [GitHub Pull Requests](https://github.com/RianaMalhotra/ECE444-PROJECT/pulls)
+- [GitHub Issues](https://github.com/RianaMalhotra/EmberWatch/issues)
+- [GitHub Pull Requests](https://github.com/RianaMalhotra/EmberWatch/pulls)
 - [Project Requirements](docs/requirements.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
 - [Team Workflow](team_workflow.md)
@@ -628,4 +628,54 @@ See [Sprint 1 Integration Verification](docs/sprint1-verification.md) for browse
 - The scoring model and confidence threshold are provisional; this application is not a validated forecast or emergency notification service.
 - Additional tests for issues #20 and #22 are being developed separately; their inclusion in `main` should be confirmed through the corresponding pull request.
 
-For the latest work and responsibilities, continue using the original [GitHub Project Board](https://github.com/users/RianaMalhotra/projects/1), [Issues](https://github.com/RianaMalhotra/ECE444-PROJECT/issues), and [Pull Requests](https://github.com/RianaMalhotra/ECE444-PROJECT/pulls) linked above.
+For the latest work and responsibilities, continue using the original [GitHub Project Board](https://github.com/users/RianaMalhotra/projects/1), [Issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [Pull Requests](https://github.com/RianaMalhotra/EmberWatch/pulls) linked above.
+
+
+---
+
+## P1M4 — Sprint 2 Implementation and Sprint 3 Plan (October 2026)
+
+### Sprint 2 objectives and progress
+
+Sprint 2 prioritized **reliability (user story #4)** and **maintainable modular architecture (user story #12)**, alongside carry-over work from Sprint 1. The team tracked tasks in [GitHub Projects](https://github.com/users/RianaMalhotra/projects/1), using Backlog, Ready, In Progress, In Review, and Done workflow states. Statuses below describe the milestone review snapshot; consult the board and linked pull requests for live status.
+
+| Issue | Sprint 2 work | Milestone review status |
+| --- | --- | --- |
+| #29 | Define and document component interfaces | Done |
+| #30 | Establish CI regression checks and automated coverage baseline | Done |
+| #25 | Handle external data-source failures | In progress |
+| #26 | Handle API and model-processing failures | In progress |
+| #27 | Verify area selection and display of populated Supabase data | In review |
+| #28 | Mark derived outputs incomplete when required inputs are missing | In review |
+| #31 | Extract shared and reusable modules | In progress |
+| #68 | Populate areas and environmental observations using Open-Meteo | Reported completed during Sprint 2; verify deployed data separately |
+
+Sprint 2 also included integration and regression tests, pull request reviews, and frontend/backend coordination. An issue in review or in progress should not be treated as fully delivered until its acceptance criteria and review requirements are satisfied.
+
+### CI and test commands
+
+The backend CI workflow runs Pytest with coverage and an **80% minimum coverage gate** (issue #30). To reproduce the backend check locally, from `backend/`:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest --cov=. --cov-fail-under=80
+```
+
+The repository also contains frontend tests and integration checks; from `frontend/`, run the scripts supported by `package.json` (for example `npm run build` and `npm run lint`). Check the [GitHub Actions workflows](.github/workflows) and the latest PR checks for the authoritative current CI configuration. Passing mocked database tests does **not** establish live Supabase connectivity.
+
+### Sprint 3 planned integration
+
+| Issue | Planned deliverable |
+| --- | --- |
+| #43 | Connect wildfire detection pipeline results to the dashboard |
+| #44 | Integrate environmental risk scoring with the geographic risk visualization |
+| #45 | Show explainable risk factors when selecting an area |
+| #46 | Validate detection ingestion, timestamps, deduplication, and historical storage |
+
+Historical early-warning simulation (#55) remains optional stretch work. Sprint 3 also includes documentation, code reviews, and integration/regression tests.
+
+### Data provenance and limitations
+
+The displayed demonstration circles must not be described as verified live wildfire risk. The risk-scoring service, data-processing utilities, and database infrastructure are distinct from a validated end-to-end live ingestion-to-map workflow. The application remains a student development prototype and is **not** an emergency alert system.
+
+For acceptance criteria and current implementation progress, see [requirements](docs/requirements.md), the [Kanban board](https://github.com/users/RianaMalhotra/projects/1), [issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls).
