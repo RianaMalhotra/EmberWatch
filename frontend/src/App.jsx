@@ -21,6 +21,7 @@ import {
 } from "./utils/riskFormat";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { explainFactors } from "./utils/riskExplanation";
 
 const factorUnits = {
   temperature_c: "°C",
@@ -302,6 +303,7 @@ function App() {
               <hr />
 
               <h3>Environmental Factors</h3>
+              <p>These factors contribute to a weighted risk estimate, not a confirmed wildfire detection. Higher factor scores mean higher modeled risk; missing factors are excluded and the remaining weights are normalized.</p>
 
               {Object.entries(factorLabels).map(([key, label]) => {
                 const value = factors[key];
@@ -319,6 +321,17 @@ function App() {
                   </p>
                 );
               })}
+
+              <h3>How the risk estimate is calculated</h3>
+              <ul aria-label="Risk factor explanations">
+                {explainFactors(selectedArea).map(({ key, weight, score, explanation }) => (
+                  <li key={key}>
+                    <strong>{factorLabels[key]} ({Math.round(weight * 100)}% base weight): </strong>
+                    {score === null ? "Unavailable" : `${score.toFixed(1)} / 100`}. {explanation}
+                  </li>
+                ))}
+              </ul>
+              <p>Model: {selectedArea.model_version ?? "Unavailable"}. Factor scores and weights are provisional; this is not a validated real-time fire forecast.</p>
 
               {selectedArea.missing_inputs?.length > 0 && (
                 <p>
