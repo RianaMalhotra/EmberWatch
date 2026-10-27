@@ -20,14 +20,22 @@ export const FACTOR_LABELS = {
 };
 
 // Three states, each drawn differently on the map.
+export function validRiskScore(area) {
+  return typeof area?.risk_score === "number"
+    && Number.isFinite(area.risk_score)
+    && area.risk_score >= 0
+    && area.risk_score <= 100
+    && ["LOW", "MODERATE", "HIGH"].includes(area.risk_level);
+}
+
 export function riskState(area) {
-  if (!area?.risk_level) return "unavailable"; // too few inputs to score at all
+  if (!validRiskScore(area)) return "unavailable"; // too few inputs to score at all
   if (area.is_complete === false) return "incomplete"; // scored, but some inputs missing
   return "complete";
 }
 
 export function riskColor(area) {
-  return RISK_COLORS[area?.risk_level] ?? UNAVAILABLE_COLOR;
+  return validRiskScore(area) ? RISK_COLORS[area.risk_level] : UNAVAILABLE_COLOR;
 }
 
 // Leaflet path options. Dashed outline = incomplete; grey = no score.
