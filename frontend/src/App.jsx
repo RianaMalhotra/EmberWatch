@@ -77,6 +77,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [detectionsLoading, setDetectionsLoading] = useState(true);
 
   // #18: detections load separately from risk areas, so if one request fails
   // the other still shows (see #4, reliable handling of failures).
@@ -97,6 +98,8 @@ function App() {
         // Show an error, never invented detections.
         setDetectionResult(null);
         setDetectionError(err.message || "Unable to load wildfire detections.");
+      } finally {
+        if (active) setDetectionsLoading(false);
       }
     }
 
@@ -160,6 +163,12 @@ function App() {
 
       {!loading && !error && riskAreas.length === 0 && (
         <p>No monitored areas were returned by the backend.</p>
+      )}
+
+      {detectionsLoading && <p role="status">Loading wildfire detections...</p>}
+
+      {!detectionsLoading && !detectionError && detectionResult?.detections.length === 0 && (
+        <p role="status">No wildfire detections available for the current query.</p>
       )}
 
       {detectionError && (
