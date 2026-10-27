@@ -15,6 +15,7 @@ import {
   areaBounds,
   missingInputNames,
   riskAreaStyle,
+  validRiskScore,
   riskColor,
   riskState,
   riskStatusText,
@@ -277,12 +278,12 @@ function App() {
                   color: riskColor(selectedArea),
                 }}
               >
-                Risk: {selectedArea.risk_level ?? "Unavailable"}
+                Risk: {validRiskScore(selectedArea) ? selectedArea.risk_level : "Unavailable"}
               </h3>
 
               <p>
                 <strong>Risk Score: </strong>
-                {typeof selectedArea.risk_score === "number"
+                {validRiskScore(selectedArea)
                   ? `${selectedArea.risk_score.toFixed(1)} / 100`
                   : "Unavailable"}
               </p>
