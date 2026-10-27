@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveApiBaseUrl } from "./apiConfig.js";
-import { fetchDetections } from "./detectionApi.js";
+import { fetchDetections, fetchDetectionHistory } from "./detectionApi.js";
 import {
   classificationLabel,
   detectionStyle,
@@ -187,4 +187,41 @@ it("API base URL defaults to same-origin proxy and can be overridden", () => {
   expect(resolveApiBaseUrl("   ")).toBe("");
   expect(resolveApiBaseUrl("https://api.example.com")).toBe("https://api.example.com");
   expect(resolveApiBaseUrl(" https://api.example.com/// ")).toBe("https://api.example.com");
+});
+
+describe("historical detection API client (#46)", () => {
+  const filters = {
+    south: 45, north: 55, west: -125, east: -110,
+    start: "2025-07-01T00:00:00Z", end: "2025-08-01T00:00:00Z",
+  };
+
+  it("sends normalized region/time filters and sanitizes detections", async () => {
+    let requested;
+    globalThis.fetch = async (url) => {
+      requested = url;
+      return { ok: true, json: async () => sample };
+    };
+    const result = await fetchDetectionHistory(filters);
+    const url = new URL(requested, "https://example.com");
+    expect(url.pathname).toBe("/api/detections/history");
+    expect(url.searchParams.get("south")).toBe("45");
+    expect(url.searchParams.get("start")).toBe("2025-07-01T00:00:00.000Z");
+    expect(result.detections).toHaveLength(2);
+  });
+
+  it("rejects invalid filters before making a network request", async () => {
+    const request = vi.fn();
+    globalThis.fetch = request;
+    await expect(fetchDetectionHistory({ ...filters, south: NaN })).rejects.toThrow(/region/);
+    await expect(fetchDetectionHistory({ ...filters, west: 10, east: -10 })).rejects.toThrow(/region/);
+    await expect(fetchDetectionHistory({ ...filters, start: "2025-07-01T00:00:00" })).rejects.toThrow(/timezone/);
+    await expect(fetchDetectionHistory({ ...filters, end: filters.start })).rejects.toThrow(/earlier/);
+    await expect(fetchDetectionHistory({ ...filters, limit: 1001 })).rejects.toThrow(/limit/);
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("reports server errors without presenting historical data", async () => {
+    globalThis.fetch = async () => ({ ok: false, status: 503 });
+    await expect(fetchDetectionHistory(filters)).rejects.toThrow(/503/);
+  });
 });
