@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { fetchRiskAreas } from "./services/riskApi";
+import { fetchDetections } from "./services/detectionApi";
 
 vi.mock("./services/riskApi", () => ({
   fetchRiskAreas: vi.fn(),
@@ -222,5 +223,43 @@ describe("Wildfire risk map", () => {
     expect(screen.getByText(/Missing inputs:/).parentElement)
       .toHaveTextContent("Temperature, Vegetation Index");
     expect(screen.queryByText(/Some inputs are missing/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("Sprint 3 detection dashboard integration (#43)", () => {
+  it("renders classified detection markers alongside risk areas", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockResolvedValue({
+      threshold: 70,
+      detections: [{
+        id: 501, latitude: 48.1, longitude: -89.2,
+        confidence: 92, classification: "potential_wildfire",
+        meets_threshold: true, timestamp: "2026-10-20T12:00:00Z",
+      }],
+      counts: { shown: 1, potential_wildfire: 1, low_confidence: 0, unavailable: 0 },
+    });
+    render(<App />);
+    expect(await screen.findByText(/1 detections shown:/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select area at 48.1, -89.2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
+  });
+
+  it("preserves the risk map when detection retrieval fails", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockRejectedValue(new Error("Detection service unavailable"));
+    render(<App />);
+    expect(await screen.findByText(/Detections unavailable:/)).toHaveTextContent("Detection service unavailable");
+    expect(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
+  });
+
+  it("shows an explicit empty detection state without creating markers", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [] });
+    fetchDetections.mockResolvedValue({
+      threshold: 70, detections: [],
+      counts: { shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+    });
+    render(<App />);
+    expect(await screen.findByText(/No wildfire detections available/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Select area at/ })).not.toBeInTheDocument();
   });
 });
