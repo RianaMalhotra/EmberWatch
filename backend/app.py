@@ -6,6 +6,7 @@ from db import check_database, get_connection
 
 from services.risk_scoring import count_nearby_detections, score_area, get_area_environmental_data
 from services.detection_pipeline import get_classified_detections
+from services.detection_history import get_historical_detections
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -75,6 +76,31 @@ def get_detections():
     except Exception:
         # Don't leak connection details; the frontend only needs "unavailable".
         return jsonify({"status": "unavailable", "message": "Detection data is unavailable"}), 503
+
+    return jsonify({"status": "success", "source": "database", **result}), 200
+
+
+@app.route("/api/detections/history", methods=["GET"])
+def get_detection_history():
+    """Historical detections filtered by bounding box and UTC time window (#46).
+
+    Required query parameters: south, north, west, east, start, end.
+    The end timestamp is exclusive; limit defaults to 200 (maximum 1000).
+    """
+    try:
+        # Validate user input before connecting to the database.
+        from services.detection_history import history_params
+        history_params(request.args)
+    except ValueError as error:
+        return jsonify({"status": "error", "message": str(error)}), 400
+
+    try:
+        with get_connection() as conn:
+            result = get_historical_detections(conn, request.args)
+    except ValueError as error:
+        return jsonify({"status": "error", "message": str(error)}), 500
+    except Exception:
+        return jsonify({"status": "unavailable", "message": "Historical detection data is unavailable"}), 503
 
     return jsonify({"status": "success", "source": "database", **result}), 200
 
