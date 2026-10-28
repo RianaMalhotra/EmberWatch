@@ -54,10 +54,7 @@ def patch_areas(monkeypatch):
     return install
 
 
-# --------------------------------------------------------------------------
 # #25: external data-source (database) failures
-# --------------------------------------------------------------------------
-
 def test_healthy_response_has_no_warnings(client, patch_areas):
     patch_areas([make_area(1)])
     body = client.get("/api/risk-areas").get_json()
@@ -82,7 +79,7 @@ def test_fire_history_failure_still_returns_areas_marked_incomplete(client, patc
         assert area["environmental_factors"]["nearby_detections"] is None
         assert "nearby_detections" in area["missing_inputs"]
         assert area["is_complete"] is False
-        # The other six inputs are real, so a score is still produced.
+        # The other six inputs are real, so a score is still produced
         assert isinstance(area["risk_score"], float)
         assert area["risk_level"] in ("LOW", "MODERATE", "HIGH")
 
@@ -179,10 +176,24 @@ def test_area_without_a_usable_location_is_left_out_with_a_warning(client, patch
     assert warning["count"] == 1
 
 
-# --------------------------------------------------------------------------
-# #26: API and model-processing failures
-# --------------------------------------------------------------------------
+def test_bad_confidence_threshold_is_a_config_error_not_a_quiet_fallback(client, patch_areas):
+    """A misconfigured MIN_DETECTION_CONFIDENCE must not look like an outage:
+    no 200 with incomplete scores, but the same 503 error as a failed query."""
+    def bad_threshold(lat, lon):
+        raise ValueError("MIN_DETECTION_CONFIDENCE must be between 0 and 100, got 150")
 
+    patch_areas([make_area(1)], history=bad_threshold)
+    response = client.get("/api/risk-areas")
+    body = response.get_json()
+
+    assert response.status_code == 503
+    assert body["status"] == "error"
+    assert "data" not in body and "warnings" not in body
+    assert "MIN_DETECTION_CONFIDENCE" not in response.get_data(as_text=True)
+
+
+
+# #26: API and model-processing failures
 def test_model_failure_for_one_area_does_not_break_the_others(client, patch_areas, monkeypatch):
     patch_areas([make_area(1), make_area(2), make_area(3)])
     real_score = api.score_area
@@ -205,7 +216,7 @@ def test_model_failure_for_one_area_does_not_break_the_others(client, patch_area
     assert first["risk_level"] is not None and "processing_error" not in first
     assert third["risk_level"] is not None
 
-    # The failed area is marked unavailable: no score, no level, not "complete".
+    # The failed area is marked unavailable: no score, no level, not "complete"
     assert broken["id"] == 2
     assert broken["risk_score"] is None
     assert broken["risk_level"] is None
@@ -227,12 +238,12 @@ def test_model_failure_response_keeps_the_full_area_shape(client, patch_areas, m
     monkeypatch.setattr(api, "score_area", always_fails)
     area = client.get("/api/risk-areas").get_json()["data"][0]
 
-    # The frontend reads these keys, so a failed area must still have them all.
+    # The frontend reads these keys, so a failed area must still have them all
     for key in ("id", "name", "latitude", "longitude", "risk_score", "risk_level",
                 "is_complete", "missing_inputs", "coverage", "factor_scores",
                 "model_version", "environmental_factors", "observed_at"):
         assert key in area
-    # The inputs were present; the model failed, so nothing is reported as missing.
+    # The inputs were present; the model failed, so nothing is reported as missing
     assert area["missing_inputs"] == []
 
 

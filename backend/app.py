@@ -197,6 +197,10 @@ def _build_risk_areas(conn, areas):
                 nearby_detections = count_nearby_detections(
                     conn, area["latitude"], area["longitude"]
                 )
+            except ValueError:
+                # A bad MIN_DETECTION_CONFIDENCE is a configuration mistake, not
+                # an outage: let it surface as an error instead of a quiet fallback.
+                raise
             except Exception:
                 app.logger.exception("Fire history lookup failed; scoring without it")
                 history_available = False
