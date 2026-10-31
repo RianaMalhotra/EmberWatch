@@ -8,8 +8,8 @@ import {
   riskStatusText,
 } from "./riskFormat";
 
-const complete = { risk_level: "HIGH", is_complete: true, missing_inputs: [] };
-const incomplete = { risk_level: "LOW", is_complete: false, missing_inputs: ["vegetation_index"] };
+const complete = { risk_score: 85, risk_level: "HIGH", is_complete: true, missing_inputs: [] };
+const incomplete = { risk_score: 25, risk_level: "LOW", is_complete: false, missing_inputs: ["vegetation_index"] };
 const unscored = { risk_level: null, risk_score: null, is_complete: false, missing_inputs: ["temperature_c"] };
 
 describe("risk area states (#28)", () => {

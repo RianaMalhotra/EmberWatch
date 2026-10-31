@@ -138,6 +138,11 @@ describe("Wildfire risk map", () => {
     expect(screen.getByText(/Nearby Fire Detections:/).parentElement)
       .toHaveTextContent("2");
 
+    expect(screen.getByRole("heading", { name: "How the risk estimate is calculated" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Risk factor explanations")).toHaveTextContent("Slope (5% base weight): Unavailable");
+    expect(screen.getByLabelText("Risk factor explanations")).toHaveTextContent("Nearby Fire Detections (25% base weight)");
+    expect(screen.getByText(/not a validated real-time fire forecast/i)).toBeInTheDocument();
+
     expect(screen.getByText(/Some inputs are missing/i))
       .toBeInTheDocument();
   });
@@ -208,6 +213,18 @@ describe("Wildfire risk map", () => {
     expect(mockMap.fitBounds).toHaveBeenCalled();
   });
 
+  it("does not present a stale risk level when the score is missing", async () => {
+    const user = userEvent.setup();
+    const inconsistent = { ...mockArea, risk_score: null, risk_level: "HIGH" };
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [inconsistent] });
+    render(<App />);
+    const marker = await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
+    expect(marker).toHaveAttribute("data-color", "#6b7280");
+    await user.click(marker);
+    expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/Risk Score:/).parentElement).toHaveTextContent("Unavailable");
+  });
+
   it("explains when an area has no risk score", async () => {
     const user = userEvent.setup();
     const unscored = { ...mockArea, risk_score: null, risk_level: null,
@@ -220,6 +237,7 @@ describe("Wildfire risk map", () => {
     await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
 
     expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/Risk Score:/).parentElement).toHaveTextContent("Unavailable");
     expect(screen.getByRole("status")).toHaveTextContent(/Not enough input data/i);
     expect(screen.getByText(/Missing inputs:/).parentElement)
       .toHaveTextContent("Temperature, Vegetation Index");
