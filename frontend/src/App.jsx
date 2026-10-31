@@ -82,6 +82,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [view, setView] = useState("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
@@ -169,7 +170,7 @@ function App() {
 
   return (
     <div className={`ew-app ew-view-${view}`}>
-      <header className="ew-header"><div className="ew-header-left">{view !== "dashboard" && <button className="ew-nav-back" type="button" onClick={() => { if(view === "risk") {setView("information");setShowFullDetails(false);} else {setView("dashboard");setSelectedArea(null);} }}>← Back</button>}<div className="ew-brand"><span className="ew-brand-icon" aria-hidden="true">♨</span><span>EMBER<span className="ew-brand-accent">WATCH</span></span></div></div><span className="ew-header-right">☰</span></header>
+      <header className="ew-header"><div className="ew-header-left">{view !== "dashboard" && <button className="ew-nav-back" type="button" onClick={() => { if(view === "risk") {setView("information");setShowFullDetails(false);} else {setView("dashboard");setSelectedArea(null);} }}>← Back</button>}<div className="ew-brand"><span className="ew-brand-icon" aria-hidden="true">♨</span><span>EMBER<span className="ew-brand-accent">WATCH</span></span></div></div><div className="ew-menu-wrap"><button type="button" className="ew-menu-toggle" aria-label="Open navigation menu" aria-expanded={menuOpen} aria-controls="ew-navigation" onClick={() => setMenuOpen((open) => !open)}>☰</button>{menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Main navigation"><button type="button" onClick={() => { setView("dashboard"); setSelectedArea(null); setShowFullDetails(false); setMenuOpen(false); }}>Wildfire Dashboard</button><button type="button" disabled={!selectedArea} onClick={() => { setView("information"); setShowFullDetails(false); setMenuOpen(false); }}>Fire Information</button><button type="button" disabled={!selectedArea} onClick={() => { setView("risk"); setShowFullDetails(true); setMenuOpen(false); }}>Risk Details</button></nav>}</div></header>
       <main className="ew-main"><div className="ew-page-heading"><div><span className="ew-eyebrow">WILDFIRE MONITORING</span><h1>{view === "dashboard" ? "Wildfire Dashboard" : view === "information" ? "Fire Information" : "Risk Details"}</h1><p>{view === "dashboard" ? "Select a location to explore wildfire risk." : view === "information" ? "Fire information and environmental conditions" : "Risk factors and current conditions"}</p></div></div>
 
       {loading && (
