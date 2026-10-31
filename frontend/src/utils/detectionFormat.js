@@ -51,7 +51,7 @@ export function detectionSummary(result) {
   const low = counts.low_confidence ?? 0;
   const unavailable = counts.unavailable ?? 0;
 
-  let text = `${shown} detections shown: ${likely} potential wildfire, ${low} low confidence (threshold ${result.threshold}%).`;
+  let text = `${shown} ${shown === 1 ? "detection" : "detections"} shown: ${likely} potential wildfire, ${low} low confidence (threshold ${result.threshold}%).`;
   if (unavailable > 0) {
     text += ` ${unavailable} could not be shown because their data is missing or invalid.`;
   }
