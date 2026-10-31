@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
 import { fetchDetections } from "./services/detectionApi";
+import { describeLoadError } from "./utils/loadError";
 import {
   classificationLabel,
   detectionStyle,
@@ -15,12 +16,14 @@ import {
   areaBounds,
   missingInputNames,
   riskAreaStyle,
+  validRiskScore,
   riskColor,
   riskState,
   riskStatusText,
 } from "./utils/riskFormat";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { explainFactors } from "./utils/riskExplanation";
 
 const factorUnits = {
   temperature_c: "°C",
@@ -77,6 +80,11 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  // #25/#26: warnings from the API (e.g. fire history unavailable), plus
+  // counters that re-run a load when the user presses "Try again".
+  const [warnings, setWarnings] = useState([]);
+  const [riskAttempt, setRiskAttempt] = useState(0);
+  const [detectionAttempt, setDetectionAttempt] = useState(0);
 
   // #18: detections load separately from risk areas, so if one request fails
   // the other still shows (see #4, reliable handling of failures).
@@ -96,7 +104,7 @@ function App() {
 
         // Show an error, never invented detections.
         setDetectionResult(null);
-        setDetectionError(err.message || "Unable to load wildfire detections.");
+        setDetectionError(describeLoadError(err, "Unable to load wildfire detections."));
       }
     }
 
@@ -105,7 +113,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [detectionAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -118,12 +126,14 @@ function App() {
 
         setRiskAreas(result.data);
         setDataSource(result.source);
+        setWarnings(Array.isArray(result.warnings) ? result.warnings : []);
         setError(null);
       } catch (err) {
         if (!active) return;
 
         setRiskAreas([]);
-        setError(err.message || "Unable to load wildfire risk data.");
+        setWarnings([]);
+        setError(describeLoadError(err, "Unable to load wildfire risk data."));
       } finally {
         if (active) {
           setLoading(false);
@@ -136,7 +146,18 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [riskAttempt]);
+
+  function retryRiskAreas() {
+    setLoading(true);
+    setError(null);
+    setRiskAttempt((n) => n + 1);
+  }
+
+  function retryDetections() {
+    setDetectionError(null);
+    setDetectionAttempt((n) => n + 1);
+  }
 
   const factors = selectedArea?.environmental_factors ?? {};
 
@@ -150,9 +171,18 @@ function App() {
 
       {error && (
         <p role="alert" style={{ color: "red" }}>
-          Risk data unavailable: {error}
+          Risk data unavailable: {error}{" "}
+          <button type="button" aria-label="Try loading risk data again" onClick={retryRiskAreas}>
+            Try again
+          </button>
         </p>
       )}
+
+      {warnings.map((warning) => (
+        <p key={warning.code} role="status" style={{ color: "#92400e" }}>
+          Notice: {warning.message}
+        </p>
+      ))}
 
       {dataSource === "mock" && !error && (
         <p>Demo data — not live wildfire risk</p>
@@ -164,7 +194,10 @@ function App() {
 
       {detectionError && (
         <p role="alert" style={{ color: "red" }}>
-          Detections unavailable: {detectionError}
+          Detections unavailable: {detectionError}{" "}
+          <button type="button" aria-label="Try loading detections again" onClick={retryDetections}>
+            Try again
+          </button>
         </p>
       )}
 
@@ -277,12 +310,12 @@ function App() {
                   color: riskColor(selectedArea),
                 }}
               >
-                Risk: {selectedArea.risk_level ?? "Unavailable"}
+                Risk: {validRiskScore(selectedArea) ? selectedArea.risk_level : "Unavailable"}
               </h3>
 
               <p>
                 <strong>Risk Score: </strong>
-                {typeof selectedArea.risk_score === "number"
+                {validRiskScore(selectedArea)
                   ? `${selectedArea.risk_score.toFixed(1)} / 100`
                   : "Unavailable"}
               </p>
@@ -295,13 +328,16 @@ function App() {
 
               {riskState(selectedArea) === "unavailable" && (
                 <p role="status">
-                  Not enough input data to calculate a risk score for this area.
+                  {selectedArea.processing_error
+                    ? "The risk score could not be calculated for this area. Try again later."
+                    : "Not enough input data to calculate a risk score for this area."}
                 </p>
               )}
 
               <hr />
 
               <h3>Environmental Factors</h3>
+              <p>These factors contribute to a weighted risk estimate, not a confirmed wildfire detection. Higher factor scores mean higher modeled risk; missing factors are excluded and the remaining weights are normalized.</p>
 
               {Object.entries(factorLabels).map(([key, label]) => {
                 const value = factors[key];
@@ -319,6 +355,17 @@ function App() {
                   </p>
                 );
               })}
+
+              <h3>How the risk estimate is calculated</h3>
+              <ul aria-label="Risk factor explanations">
+                {explainFactors(selectedArea).map(({ key, weight, score, explanation }) => (
+                  <li key={key}>
+                    <strong>{factorLabels[key]} ({Math.round(weight * 100)}% base weight): </strong>
+                    {score === null ? "Unavailable" : `${score.toFixed(1)} / 100`}. {explanation}
+                  </li>
+                ))}
+              </ul>
+              <p>Model: {selectedArea.model_version ?? "Unavailable"}. Factor scores and weights are provisional; this is not a validated real-time fire forecast.</p>
 
               {selectedArea.missing_inputs?.length > 0 && (
                 <p>
