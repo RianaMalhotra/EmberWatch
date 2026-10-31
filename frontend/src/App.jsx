@@ -80,6 +80,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [detectionLoading, setDetectionLoading] = useState(true);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
   // counters that re-run a load when the user presses "Try again".
   const [warnings, setWarnings] = useState([]);
@@ -92,6 +93,7 @@ function App() {
     let active = true;
 
     async function loadDetections() {
+      setDetectionLoading(true);
       try {
         const result = await fetchDetections();
 
@@ -105,6 +107,8 @@ function App() {
         // Show an error, never invented detections.
         setDetectionResult(null);
         setDetectionError(describeLoadError(err, "Unable to load wildfire detections."));
+      } finally {
+        if (active) setDetectionLoading(false);
       }
     }
 
@@ -192,6 +196,10 @@ function App() {
         <p>No monitored areas were returned by the backend.</p>
       )}
 
+      {detectionLoading && (
+        <p role="status">Loading wildfire detections...</p>
+      )}
+
       {detectionError && (
         <p role="alert" style={{ color: "red" }}>
           Detections unavailable: {detectionError}{" "}
@@ -201,8 +209,13 @@ function App() {
         </p>
       )}
 
-      {detectionResult && (
-        <p>{detectionSummary(detectionResult)}</p>
+      {detectionResult && !detectionLoading && (
+        <>
+          <p>{detectionSummary(detectionResult)}</p>
+          {detectionResult.detections.length === 0 && (
+            <p role="status">No wildfire detections available for the latest observations.</p>
+          )}
+        </>
       )}
 
       <div 
@@ -284,6 +297,10 @@ function App() {
           })}
         </MapContainer>
         <RiskLegend />
+        <p style={{ fontSize: 14 }} aria-label="Detection marker legend">
+          Detection markers: solid red = meets confidence threshold; dashed grey = low confidence.
+          Detection confidence reflects the observation, not the environmental wildfire risk score.
+        </p>
       </div>
       
         <aside
