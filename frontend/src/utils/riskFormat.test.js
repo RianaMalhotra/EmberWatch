@@ -8,8 +8,8 @@ import {
   riskStatusText,
 } from "./riskFormat";
 
-const complete = { risk_level: "HIGH", is_complete: true, missing_inputs: [] };
-const incomplete = { risk_level: "LOW", is_complete: false, missing_inputs: ["vegetation_index"] };
+const complete = { risk_score: 85, risk_level: "HIGH", is_complete: true, missing_inputs: [] };
+const incomplete = { risk_score: 25, risk_level: "LOW", is_complete: false, missing_inputs: ["vegetation_index"] };
 const unscored = { risk_level: null, risk_score: null, is_complete: false, missing_inputs: ["temperature_c"] };
 
 describe("risk area states (#28)", () => {
@@ -48,5 +48,20 @@ describe("risk area states (#28)", () => {
     expect(areaBounds([{ latitude: 50, longitude: -120 }, { latitude: null, longitude: 3 }]))
       .toEqual([[50, -120]]);
     expect(areaBounds(undefined)).toEqual([]);
+  });
+});
+
+describe("riskStatusText for a model failure (#26)", () => {
+  const failed = { risk_level: null, is_complete: false, missing_inputs: [], processing_error: true };
+
+  it("says the score could not be calculated, not that inputs are missing", () => {
+    expect(riskStatusText(failed)).toMatch(/could not be calculated/);
+    expect(riskStatusText(failed)).not.toMatch(/not enough input data/);
+  });
+
+  it("still draws the area grey and dashed like any unscored area", () => {
+    expect(riskState(failed)).toBe("unavailable");
+    expect(riskAreaStyle(failed).color).toBe(UNAVAILABLE_COLOR);
+    expect(riskAreaStyle(failed).dashArray).toBeTruthy();
   });
 });

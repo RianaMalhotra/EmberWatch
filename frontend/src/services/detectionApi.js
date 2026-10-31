@@ -1,10 +1,11 @@
 import { API_BASE_URL } from "./apiConfig.js";
 import { sanitizeDetections } from "../utils/detectionFormat.js";
+import { readJson, withTimeout } from "./requestHelpers.js";
 
 // #18: loads classified detections (#17) from Flask. Same style as riskApi.js.
 export async function fetchDetections(limit = 200) {
-  const response = await fetch(
-    `${API_BASE_URL}/api/detections?limit=${encodeURIComponent(limit)}`
+  const response = await withTimeout(
+    fetch(`${API_BASE_URL}/api/detections?limit=${encodeURIComponent(limit)}`)
   );
 
   if (!response.ok) {
@@ -13,9 +14,9 @@ export async function fetchDetections(limit = 200) {
     );
   }
 
-  const result = await response.json();
+  const result = await readJson(response, "Invalid detection data received");
 
-  if (!Array.isArray(result.detections)) {
+  if (!Array.isArray(result?.detections)) {
     throw new Error("Invalid detection data received");
   }
 
