@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
@@ -11,27 +11,17 @@ import {
   formatCoordinates,
   formatDetectionTime,
 } from "./utils/detectionFormat";
-import {
-  FACTOR_LABELS as factorLabels,
-  areaBounds,
-  missingInputNames,
-  riskAreaStyle,
-  validRiskScore,
-  riskColor,
-  riskState,
-  riskStatusText,
-} from "./utils/riskFormat";
+import { areaBounds, riskAreaStyle, riskStatusText } from "./utils/riskFormat";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { explainFactors } from "./utils/riskExplanation";
+import RiskLegend from "./components/RiskLegend";
+import AreaList from "./components/AreaList";
+import AreaDetails from "./components/AreaDetails";
+import "./dashboard.css";
 
-const factorUnits = {
-  temperature_c: "°C",
-  relative_humidity_pct: "%",
-  wind_speed_kmh: "km/h",
-  precipitation_mm: "mm",
-  slope_deg: "°",
-};
+// On narrow screens the details panel sits under the map, so after a tap we
+// scroll to it; otherwise selecting an area looks like nothing happened.
+const STACKED_LAYOUT = "(max-width: 860px)";
 
 // Zoom the map to the monitored areas once they load (#68 areas span Canada).
 function FitToAreas({ areas }) {
@@ -49,27 +39,19 @@ function FitToAreas({ areas }) {
   return null;
 }
 
-// #28: explains the three ways a risk area can be drawn.
-function RiskLegend() {
-  const swatch = (style) => ({
-    display: "inline-block",
-    width: 14,
-    height: 14,
-    borderRadius: "50%",
-    marginRight: 6,
-    verticalAlign: "middle",
-    ...style,
-  });
+// Keep the selected area on screen, e.g. after choosing it from the list.
+function FocusSelected({ area }) {
+  const map = useMap();
 
-  return (
-    <div aria-label="Map legend" style={{ fontSize: 14, marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap" }}>
-      <span><span style={swatch({ background: "#dc2626" })} />High</span>
-      <span><span style={swatch({ background: "#f97316" })} />Moderate</span>
-      <span><span style={swatch({ background: "#16a34a" })} />Low</span>
-      <span><span style={swatch({ border: "2px dashed #374151" })} />Dashed outline: incomplete (some inputs missing)</span>
-      <span><span style={swatch({ background: "#e5e7eb", border: "2px dashed #6b7280" })} />Grey: risk unavailable (not enough data)</span>
-    </div>
-  );
+  useEffect(() => {
+    if (!area) return;
+    const point = [area.latitude, area.longitude];
+    if (!map.getBounds().contains(point)) {
+      map.panTo(point);
+    }
+  }, [map, area]);
+
+  return null;
 }
 
 function App() {
@@ -159,10 +141,21 @@ function App() {
     setDetectionAttempt((n) => n + 1);
   }
 
-  const factors = selectedArea?.environmental_factors ?? {};
+  const panelRef = useRef(null);
+
+  function selectArea(area) {
+    setSelectedArea(area);
+    if (window.matchMedia?.(STACKED_LAYOUT).matches) {
+      // Wait for the panel to render the new area before scrolling to it.
+      requestAnimationFrame(() => {
+        panelRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+        panelRef.current?.focus?.({ preventScroll: true });
+      });
+    }
+  }
 
   return (
-    <div>
+    <div className="app">
       <h1>Wildfire Early Detection & Risk Assessment</h1>
 
       {loading && (
@@ -205,19 +198,12 @@ function App() {
         <p>{detectionSummary(detectionResult)}</p>
       )}
 
-      <div 
-        style={{
-          display: "flex",
-          gap: "16px",
-          alignItems: "stretch",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1 1 500px", minWidth: 0 }}>
+      <div className="dash">
+        <div className="dash-map">
           <MapContainer
+            className="dash-leaflet"
             center={[45.4, -77.5]}
             zoom={7}
-            style={{ height: "75vh", width: "100%" }}
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
@@ -225,6 +211,7 @@ function App() {
             />
 
             <FitToAreas areas={riskAreas} />
+            <FocusSelected area={selectedArea} />
 
             {riskAreas.map((area) => {
               // Pixel-sized markers stay visible at country-wide zoom levels.
@@ -237,9 +224,7 @@ function App() {
                   radius={radius}
                   pathOptions={pathOptions}
                   eventHandlers={{
-                    click: () => { 
-                      setSelectedArea(area);
-                    },
+                    click: () => selectArea(area),
                   }}
                 >
                   <Tooltip>
@@ -283,108 +268,12 @@ function App() {
             );
           })}
         </MapContainer>
-        <RiskLegend />
-      </div>
-      
-        <aside
-          style={{
-            flex: "0 1 300px",
-            minWidth: "260px",
-            padding: "16px",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            alignSelf: "flex-start",
-          }}
-        >
-          {!selectedArea ? (
-            <>
-              <h2>Area Details</h2>
-              <p>Click a colored circle on the map to view its risk assessment and environmental data.</p>
-            </>
-          ) : (
-            <>
-              <h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2>
+          <RiskLegend />
+        </div>
 
-              <h3
-                style={{
-                  color: riskColor(selectedArea),
-                }}
-              >
-                Risk: {validRiskScore(selectedArea) ? selectedArea.risk_level : "Unavailable"}
-              </h3>
+        <AreaDetails ref={panelRef} area={selectedArea} onClear={() => setSelectedArea(null)} />
 
-              <p>
-                <strong>Risk Score: </strong>
-                {validRiskScore(selectedArea)
-                  ? `${selectedArea.risk_score.toFixed(1)} / 100`
-                  : "Unavailable"}
-              </p>
-
-              {riskState(selectedArea) === "incomplete" && (
-                <p role="status">
-                  Some inputs are missing. This risk assessment is incomplete.
-                </p>
-              )}
-
-              {riskState(selectedArea) === "unavailable" && (
-                <p role="status">
-                  {selectedArea.processing_error
-                    ? "The risk score could not be calculated for this area. Try again later."
-                    : "Not enough input data to calculate a risk score for this area."}
-                </p>
-              )}
-
-              <hr />
-
-              <h3>Environmental Factors</h3>
-              <p>These factors contribute to a weighted risk estimate, not a confirmed wildfire detection. Higher factor scores mean higher modeled risk; missing factors are excluded and the remaining weights are normalized.</p>
-
-              {Object.entries(factorLabels).map(([key, label]) => {
-                const value = factors[key];
-                const available =
-                  value !== null &&
-                  value !== undefined &&
-                  Number.isFinite(value);
-
-                return (
-                  <p key={key}>
-                    <strong>{label}: </strong>
-                    {available
-                      ? `${value}${factorUnits[key] ? ` ${factorUnits[key]}` : ""}`
-                      : "Unavailable"}
-                  </p>
-                );
-              })}
-
-              <h3>How the risk estimate is calculated</h3>
-              <ul aria-label="Risk factor explanations">
-                {explainFactors(selectedArea).map(({ key, weight, score, explanation }) => (
-                  <li key={key}>
-                    <strong>{factorLabels[key]} ({Math.round(weight * 100)}% base weight): </strong>
-                    {score === null ? "Unavailable" : `${score.toFixed(1)} / 100`}. {explanation}
-                  </li>
-                ))}
-              </ul>
-              <p>Model: {selectedArea.model_version ?? "Unavailable"}. Factor scores and weights are provisional; this is not a validated real-time fire forecast.</p>
-
-              {selectedArea.missing_inputs?.length > 0 && (
-                <p>
-                  <strong>Missing inputs: </strong>
-                  {missingInputNames(selectedArea).join(", ")}
-                </p>
-              )}
-
-              <p>
-                <strong>Assessment complete: </strong>
-                {selectedArea.is_complete ? "Yes" : "No"}
-              </p>
-
-              <button onClick={() => setSelectedArea(null)}>
-                Clear selection
-              </button>
-            </>
-          )}
-        </aside>
+        <AreaList areas={riskAreas} selectedId={selectedArea?.id} onSelect={selectArea} />
       </div>
     </div>
   );
