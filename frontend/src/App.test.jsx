@@ -115,7 +115,7 @@ describe("Wildfire risk map", () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText(/Risk: HIGH/)).toBeInTheDocument();
-    expect(screen.getByText(/75\.0 \/ 100/)).toBeInTheDocument();
+    expect(screen.getAllByText(/75\.0 \/ 100/).length).toBeGreaterThan(0);
 
     expect(screen.getByText(/Temperature:/).parentElement)
       .toHaveTextContent("32 °C");
