@@ -4,3 +4,4 @@ pytest
 psycopg[binary]
 python-dotenv
 pytest-cov
+gunicorn
