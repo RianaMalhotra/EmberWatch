@@ -35,7 +35,7 @@ export async function fetchDetectionHistory({ south, north, west, east, start, e
     throw new Error("Invalid historical detection region");
   }
   const parseInstant = (value) => {
-    if (typeof value !== "string" || !/(Z|[+-]\\d{2}:\\d{2})$/i.test(value)) {
+    if (typeof value !== "string" || !/(Z|[+-]\d{2}:\d{2})$/i.test(value)) {
       throw new Error("History dates must include a timezone");
     }
     const instant = Date.parse(value);
