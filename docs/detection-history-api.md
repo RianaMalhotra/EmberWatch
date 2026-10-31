@@ -25,7 +25,7 @@ exclusive. ISO-8601 timestamps must include a timezone and are normalized to
 UTC. The region cannot cross the antimeridian. Results are newest first and
 capped at 1000 per request. The endpoint returns the same `detections`,
 `gaps`, `counts`, and `threshold` contract as `GET /api/detections`,
-plus an echo of validated `filters`. HTTP 400 means invalid filters;
+plus an echo of validated `filters` and a `truncated` boolean. The query fetches one extra row to detect whether more matches exist beyond `limit`; `truncated: true` means the response is incomplete. HTTP 400 means invalid filters;
 HTTP 503 means the database is unavailable. No data is invented.
 
 This is a historical retrieval API; the frontend does not yet expose a
