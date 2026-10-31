@@ -188,3 +188,36 @@ it("API base URL defaults to same-origin proxy and can be overridden", () => {
   expect(resolveApiBaseUrl("https://api.example.com")).toBe("https://api.example.com");
   expect(resolveApiBaseUrl(" https://api.example.com/// ")).toBe("https://api.example.com");
 });
+
+
+describe("Sprint 4 detection response contract (#63)", () => {
+  it("accepts an empty detection collection without fabricating markers", async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({
+      status: "success", source: "database", detections: [], gaps: [],
+      counts: { total: 0, shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+    }) });
+    const result = await fetchDetections();
+    expect(result.detections).toEqual([]);
+  });
+
+  it.each([null, {}, { detections: {} }, { detections: "invalid" }])(
+    "rejects a response without a detection array: %j",
+    async (payload) => {
+      globalThis.fetch = async () => ({ ok: true, json: async () => payload });
+      await expect(fetchDetections()).rejects.toThrow(/Invalid detection data/);
+    },
+  );
+
+  it("filters invalid geographic points without exposing them to Leaflet", async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({
+      ...sample,
+      detections: [
+        ...sample.detections,
+        { ...sample.detections[0], id: 99, latitude: 100 },
+      ],
+    }) });
+    const result = await fetchDetections();
+    expect(result.detections.map((item) => item.id)).toEqual([1, 2]);
+    expect(result.counts.unavailable).toBe(2);
+  });
+});
