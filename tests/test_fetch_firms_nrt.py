@@ -38,14 +38,10 @@ def opener_returning(text, calls=None):
 
 # --- request ------------------------------------------------------------------
 
-def test_default_query_is_clipped_to_canada():
+def test_url_uses_firms_area_api_with_a_box_around_canada():
     url = nrt.build_url("KEY123", "MODIS_NRT", days=2)
-    assert url == "https://firms.modaps.eosdis.nasa.gov/api/country/csv/KEY123/MODIS_NRT/CAN/2"
-
-
-def test_a_box_can_be_used_instead():
-    url = nrt.build_url("KEY123", "MODIS_NRT", "-125,48,-114,60", 2)
-    assert url == "https://firms.modaps.eosdis.nasa.gov/api/area/csv/KEY123/MODIS_NRT/-125,48,-114,60/2"
+    assert url == ("https://firms.modaps.eosdis.nasa.gov/api/area/csv/"
+                   "KEY123/MODIS_NRT/-141.01,41.67,-52.62,83.11/2")
 
 
 @pytest.mark.parametrize("days", [0, 11, -1])
@@ -101,11 +97,35 @@ def test_http_error_is_reported_with_its_message():
         nrt.fetch_detections("KEY", opener=opener)
 
 
-def test_country_reply_with_extra_column_is_read():
-    country_csv = "country_id," + MODIS_CSV.splitlines()[0] + "\n" + "\n".join(
-        "CAN," + line for line in MODIS_CSV.splitlines()[1:]) + "\n"
-    cleaned, report = nrt.fetch_detections("KEY", opener=opener_returning(country_csv))
-    assert report["kept_rows"] == 2 and len(cleaned) == 2
+# Rows from the first live dry run (Oct 30, 2026): the box returned US fires.
+LIVE_ROWS = [
+    ("43.83977", "-103.92831", "70"),  # South Dakota
+    ("46.99208", "-114.05936", "78"),  # Montana
+    ("45.43474", "-123.46241", "90"),  # Oregon
+    ("50.11018", "-118.44401", "86"),  # BC, near Vernon
+    ("56.31197", "-121.33006", "98"),  # BC, northeast
+    ("54.38717", "-129.13278", "75"),  # BC, near Terrace
+]
+
+
+def live_csv():
+    header = MODIS_CSV.splitlines()[0]
+    lines = [f"{lat},{lon},330.0,1.0,1.0,2026-10-30,302,Terra,MODIS,{conf},6.1NRT,290.0,10.0,N"
+             for lat, lon, conf in LIVE_ROWS]
+    return header + "\n" + "\n".join(lines) + "\n"
+
+
+def test_us_detections_from_the_box_are_dropped():
+    cleaned, report = nrt.fetch_detections("KEY", opener=opener_returning(live_csv()))
+    assert [(round(c["latitude"], 2), round(c["longitude"], 2)) for c in cleaned] == [
+        (50.11, -118.44), (56.31, -121.33), (54.39, -129.13)]
+    assert report["outside_canada"] == 3
+    assert report["kept_rows"] == 3
+
+
+def test_outside_rows_can_be_kept_on_purpose():
+    cleaned, report = nrt.fetch_detections("KEY", opener=opener_returning(live_csv()), canada_only=False)
+    assert len(cleaned) == 6 and report["outside_canada"] == 0
 
 
 def test_byte_order_mark_is_ignored():
@@ -202,7 +222,7 @@ def test_dry_run_writes_nothing(monkeypatch, capsys):
                         lambda *a, **k: nrt.clean_rows(nrt.normalize_satellite(nrt.parse_csv(MODIS_CSV))))
     nrt.main(["--dry-run"])
     out = capsys.readouterr().out
-    assert "usable: 2" in out and "Nothing written" in out
+    assert "usable: 2" in out and "outside Canada: 0" in out and "Nothing written" in out
 
 
 @pytest.mark.parametrize("days", ["0", "11"])
