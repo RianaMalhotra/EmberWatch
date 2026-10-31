@@ -50,11 +50,12 @@ Keeps the map current with NASA FIRMS **near-real-time** (NRT) detections, which
 
 ```bash
 python data-processing/fetch_firms_nrt.py --dry-run     # fetch and print, write nothing
-python data-processing/fetch_firms_nrt.py               # last 2 days, MODIS, Canada
+python data-processing/fetch_firms_nrt.py               # last 2 days, MODIS, inside Canada's border
 python data-processing/fetch_firms_nrt.py --days 10     # catch up after a gap (max 10)
 ```
 
 - Needs a free map key in `FIRMS_MAP_KEY` (https://firms.modaps.eosdis.nasa.gov/api/map_key/), plus `DATABASE_URL`. Both can go in `backend/.env`.
+- Queries FIRMS by country (`CAN`), so only detections inside Canada's border are stored, matching the archive. A bounding box around Canada would also include the northern US. `--area west,south,east,north` uses a box instead.
 - Default product is `MODIS_NRT`, the same instrument as the stored archive and the #19 threshold backtest. `--source VIIRS_SNPP_NRT` (or NOAA-20/21) is supported.
 - Each row's `source` column says which feed it came from, e.g. `NASA FIRMS MODIS_NRT` (archive rows: `NASA FIRMS`).
 - NRT rows have no FIRMS `type`, so they can't be checked for non-wildfire heat sources the way archive rows can.

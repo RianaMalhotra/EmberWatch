@@ -30,15 +30,18 @@ from firms_cleaning import clean_rows
 from load_firms_to_db import build_rows, insert_detections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-API_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/{area}/{days}"
+# The country endpoint clips to Canada's border. A bounding box around
+# Canada also covers the northern US (it returned fires in Montana and
+# Oregon), which the archive download did not include.
+COUNTRY_URL = "https://firms.modaps.eosdis.nasa.gov/api/country/csv/{key}/{source}/{country}/{days}"
+AREA_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/{area}/{days}"
+DEFAULT_COUNTRY = "CAN"
 
 # MODIS matches the archive already stored and the confidence threshold
 # backtest (#19), which used MODIS 0-100 confidence.
 DEFAULT_SOURCE = "MODIS_NRT"
 SOURCES = ("MODIS_NRT", "VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT")
 
-# Canada, as west,south,east,north (FIRMS order).
-CANADA_BBOX = "-141.01,41.67,-52.62,83.11"
 
 MAX_DAYS = 10  # FIRMS allows 1-10 days per request
 TIMEOUT_SECONDS = 60
@@ -60,12 +63,15 @@ class FirmsError(RuntimeError):
     """FIRMS answered, but not with detection data (bad key, limit reached, ...)."""
 
 
-def build_url(key, source=DEFAULT_SOURCE, area=CANADA_BBOX, days=2):
+def build_url(key, source=DEFAULT_SOURCE, area=None, days=2, country=DEFAULT_COUNTRY):
+    """Country query by default; a west,south,east,north box if `area` is given."""
     if source not in SOURCES:
         raise ValueError(f"source must be one of {', '.join(SOURCES)}")
     if not 1 <= days <= MAX_DAYS:
         raise ValueError(f"days must be between 1 and {MAX_DAYS}")
-    return API_URL.format(key=key, source=source, area=area, days=days)
+    if area:
+        return AREA_URL.format(key=key, source=source, area=area, days=days)
+    return COUNTRY_URL.format(key=key, source=source, country=country, days=days)
 
 
 def parse_csv(text):
@@ -98,7 +104,7 @@ def fetch_text(url, opener=urllib.request.urlopen):
         raise FirmsError(f"FIRMS returned HTTP {error.code}: {body}") from error
 
 
-def fetch_detections(key, source=DEFAULT_SOURCE, area=CANADA_BBOX, days=2, opener=urllib.request.urlopen):
+def fetch_detections(key, source=DEFAULT_SOURCE, area=None, days=2, opener=urllib.request.urlopen):
     """Fetch and clean. Returns (cleaned rows, cleaning report)."""
     rows = normalize_satellite(parse_csv(fetch_text(build_url(key, source, area, days), opener)))
     return clean_rows(rows)
@@ -115,8 +121,8 @@ def parse_args(argv):
                         help=f"days to fetch, ending today (1-{MAX_DAYS}, default 2)")
     parser.add_argument("--source", default=DEFAULT_SOURCE, choices=SOURCES,
                         help=f"FIRMS NRT product (default {DEFAULT_SOURCE})")
-    parser.add_argument("--area", default=CANADA_BBOX,
-                        help="west,south,east,north (default: Canada)")
+    parser.add_argument("--area", default=None,
+                        help="west,south,east,north box instead of Canada's border (optional)")
     parser.add_argument("--dry-run", action="store_true", help="fetch and print; no database")
     args = parser.parse_args(argv)
     if not 1 <= args.days <= MAX_DAYS:

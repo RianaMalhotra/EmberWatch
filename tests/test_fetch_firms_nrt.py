@@ -38,10 +38,14 @@ def opener_returning(text, calls=None):
 
 # --- request ------------------------------------------------------------------
 
-def test_url_uses_firms_area_api_format():
-    url = nrt.build_url("KEY123", "MODIS_NRT", nrt.CANADA_BBOX, 2)
-    assert url == ("https://firms.modaps.eosdis.nasa.gov/api/area/csv/"
-                   "KEY123/MODIS_NRT/-141.01,41.67,-52.62,83.11/2")
+def test_default_query_is_clipped_to_canada():
+    url = nrt.build_url("KEY123", "MODIS_NRT", days=2)
+    assert url == "https://firms.modaps.eosdis.nasa.gov/api/country/csv/KEY123/MODIS_NRT/CAN/2"
+
+
+def test_a_box_can_be_used_instead():
+    url = nrt.build_url("KEY123", "MODIS_NRT", "-125,48,-114,60", 2)
+    assert url == "https://firms.modaps.eosdis.nasa.gov/api/area/csv/KEY123/MODIS_NRT/-125,48,-114,60/2"
 
 
 @pytest.mark.parametrize("days", [0, 11, -1])
@@ -53,12 +57,6 @@ def test_day_range_is_limited_to_what_firms_allows(days):
 def test_unknown_product_is_rejected():
     with pytest.raises(ValueError):
         nrt.build_url("KEY", source="MODIS_SP")  # archive product, not NRT
-
-
-def test_canada_box_is_west_south_east_north():
-    west, south, east, north = map(float, nrt.CANADA_BBOX.split(","))
-    assert west < east and south < north
-    assert -141.1 < west < -140.9 and 83 < north < 83.2
 
 
 # --- reply --------------------------------------------------------------------
@@ -101,6 +99,13 @@ def test_http_error_is_reported_with_its_message():
         raise urllib.error.HTTPError(url, 400, "Bad Request", {}, io.BytesIO(b"Invalid area coordinates"))
     with pytest.raises(nrt.FirmsError, match="HTTP 400: Invalid area coordinates"):
         nrt.fetch_detections("KEY", opener=opener)
+
+
+def test_country_reply_with_extra_column_is_read():
+    country_csv = "country_id," + MODIS_CSV.splitlines()[0] + "\n" + "\n".join(
+        "CAN," + line for line in MODIS_CSV.splitlines()[1:]) + "\n"
+    cleaned, report = nrt.fetch_detections("KEY", opener=opener_returning(country_csv))
+    assert report["kept_rows"] == 2 and len(cleaned) == 2
 
 
 def test_byte_order_mark_is_ignored():
