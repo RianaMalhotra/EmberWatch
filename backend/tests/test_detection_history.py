@@ -55,6 +55,8 @@ def test_history_query_maps_records_and_uses_parameterized_bounds():
     sql, params = conn.cur.query
     assert sql == HISTORY_SQL
     assert params["south"] == 45 and params["north"] == 55
+    assert params["limit"] == 6
+    assert result["truncated"] is False
     assert params["start"].tzinfo == timezone.utc
     assert "detected_at < %(end)s" in sql
 
@@ -96,3 +98,10 @@ def test_history_endpoint_returns_503_on_database_failure(monkeypatch):
     response = app_module.app.test_client().get("/api/detections/history", query_string=ARGS)
     assert response.status_code == 503
     assert "private" not in response.get_data(as_text=True)
+
+
+def test_history_truncated_when_more_rows_exist():
+    rows = [DB_ROW] * 6
+    result = get_historical_detections(Connection(rows), ARGS, min_confidence=70)
+    assert result["truncated"] is True
+    assert len(result["detections"]) == 5
