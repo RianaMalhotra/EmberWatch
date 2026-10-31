@@ -23,6 +23,7 @@ Usage (from the repository root):
 """
 
 import csv
+import math
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -73,7 +74,7 @@ def parse_confidence(raw):
     if value in VIIRS_CLASS_TO_SCORE:
         return VIIRS_CLASS_TO_SCORE[value], VIIRS_CLASS_NAMES[value]
     score = float(value)  # raises ValueError for anything non-numeric
-    if not 0 <= score <= 100:
+    if not math.isfinite(score) or not 0 <= score <= 100:
         raise ValueError("confidence out of range")
     return score, classify_modis_confidence(score)
 
@@ -94,7 +95,7 @@ def parse_timestamp(acq_date, acq_time):
 
 def parse_coordinate(raw, low, high):
     value = float(raw)
-    if not low <= value <= high:
+    if not math.isfinite(value) or not low <= value <= high:
         raise ValueError("coordinate out of range")
     return value
 
@@ -103,7 +104,10 @@ def optional_float(raw):
     """Return a float, or None when the value is missing (never a made-up 0)."""
     if raw is None or str(raw).strip() == "":
         return None
-    return float(raw)
+    value = float(raw)
+    if not math.isfinite(value) or value < 0:
+        raise ValueError("invalid fire radiative power")
+    return value
 
 
 def clean_row(row):
