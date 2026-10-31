@@ -21,7 +21,6 @@ import {
   riskColor,
   riskState,
   riskStatusText,
-  sortAreasByRisk,
 } from "./utils/riskFormat";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -185,7 +184,13 @@ function App() {
   }
 
   const factors = selectedArea?.environmental_factors ?? {};
-  const filteredAreas = sortAreasByRisk(riskAreas.filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase())));
+  const filteredAreas = riskAreas
+    .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => {
+      const aScore = validRiskScore(a) ? a.risk_score : -1;
+      const bScore = validRiskScore(b) ? b.risk_score : -1;
+      return bScore - aScore || (a.name ?? "").localeCompare(b.name ?? "");
+    });
   function selectArea(area) { setSelectedArea(area); setShowFullDetails(false); setView("information"); }
 
   return (
