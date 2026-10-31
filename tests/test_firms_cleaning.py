@@ -77,3 +77,21 @@ def test_clean_file_round_trip(tmp_path):
     with open(out, newline="") as f:
         rows = list(csv.DictReader(f))
     assert rows[0]["timestamp"] == "2023-06-04T17:45:00Z"
+
+def test_nonfinite_coordinates_and_confidence_are_rejected():
+    for coordinate in ("nan", "inf", "-inf"):
+        cleaned, report = clean_rows([{**MODIS_ROW, "latitude": coordinate}])
+        assert cleaned == []
+        assert report["drop_reasons"] == {"invalid coordinates": 1}
+
+    for confidence in ("nan", "inf", "-inf"):
+        cleaned, report = clean_rows([{**MODIS_ROW, "confidence": confidence}])
+        assert cleaned == []
+        assert report["drop_reasons"] == {"invalid confidence": 1}
+
+
+def test_nonfinite_or_negative_frp_stays_unavailable():
+    for frp in ("nan", "inf", "-inf", "-1"):
+        cleaned, report = clean_rows([{**MODIS_ROW, "frp": frp}])
+        assert report["kept_rows"] == 1
+        assert cleaned[0]["frp"] is None

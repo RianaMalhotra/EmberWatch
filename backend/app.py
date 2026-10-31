@@ -112,6 +112,27 @@ def get_detections():
     return jsonify({"status": "success", "source": "database", **result}), 200
 
 
+@app.route("/api/detections/history", methods=["GET"])
+def get_detection_history():
+    """Historical detections filtered by geographic bounds and UTC time range."""
+    try:
+        history_params(request.args)
+    except ValueError as error:
+        return jsonify({"status": "error", "message": str(error)}), 400
+
+    try:
+        with get_connection() as conn:
+            result = get_historical_detections(conn, request.args)
+    except ValueError as error:
+        app.logger.error("Invalid history configuration: %s", error)
+        return jsonify({"status": "error", "message": str(error)}), 500
+    except Exception:
+        app.logger.exception("Could not load historical detections")
+        return jsonify({"status": "unavailable", "message": "Historical detection data is unavailable"}), 503
+
+    return jsonify({"status": "success", "source": "database", **result}), 200
+
+
 def _is_coordinate(value):
     """A finite number (not bool/NaN/inf), so the map can draw the area."""
     return (
@@ -244,27 +265,6 @@ def _build_risk_areas(conn, areas):
             "message": f"{skipped} area(s) were left out because their location is missing or invalid.",
         })
     return results, warnings
-
-
-@app.route("/api/detections/history", methods=["GET"])
-def get_detection_history():
-    """Historical detections filtered by geographic bounds and UTC time range."""
-    try:
-        history_params(request.args)
-    except ValueError as error:
-        return jsonify({"status": "error", "message": str(error)}), 400
-
-    try:
-        with get_connection() as conn:
-            result = get_historical_detections(conn, request.args)
-    except ValueError as error:
-        app.logger.error("Invalid history configuration: %s", error)
-        return jsonify({"status": "error", "message": str(error)}), 500
-    except Exception:
-        app.logger.exception("Could not load historical detections")
-        return jsonify({"status": "unavailable", "message": "Historical detection data is unavailable"}), 503
-
-    return jsonify({"status": "success", "source": "database", **result}), 200
 
 
 @app.route("/api/risk-areas", methods=["GET"])
