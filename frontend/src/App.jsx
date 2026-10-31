@@ -85,6 +85,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [detectionLoading, setDetectionLoading] = useState(true);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
   // counters that re-run a load when the user presses "Try again".
   const [warnings, setWarnings] = useState([]);
@@ -97,6 +98,7 @@ function App() {
     let active = true;
 
     async function loadDetections() {
+      setDetectionLoading(true);
       try {
         const result = await fetchDetections();
 
@@ -110,6 +112,8 @@ function App() {
         // Show an error, never invented detections.
         setDetectionResult(null);
         setDetectionError(describeLoadError(err, "Unable to load wildfire detections."));
+      } finally {
+        if (active) setDetectionLoading(false);
       }
     }
 
@@ -200,6 +204,10 @@ function App() {
         <p>No monitored areas were returned by the backend.</p>
       )}
 
+      {detectionLoading && (
+        <p role="status">Loading wildfire detections...</p>
+      )}
+
       {detectionError && (
         <p role="alert" style={{ color: "red" }}>
           Detections unavailable: {detectionError}{" "}
@@ -209,8 +217,13 @@ function App() {
         </p>
       )}
 
-      {detectionResult && (
-        <p>{detectionSummary(detectionResult)}</p>
+      {detectionResult && !detectionLoading && (
+        <>
+          <p>{detectionSummary(detectionResult)}</p>
+          {detectionResult.detections.length === 0 && (
+            <p role="status">No wildfire detections available for the latest observations.</p>
+          )}
+        </>
       )}
 
       <div className="ew-workspace">
@@ -285,6 +298,10 @@ function App() {
           })}
         </MapContainer></div>
         <RiskLegend />
+        <p style={{ fontSize: 14 }} aria-label="Detection marker legend">
+          Detection markers: solid red = meets confidence threshold; dashed grey = low confidence.
+          Detection confidence reflects the observation, not the environmental wildfire risk score.
+        </p>
       </div>
       
         <aside className="ew-side-panel"><div className="ew-panel-top"><span className="ew-overline">SELECT A LOCATION</span><h2>Active Detections & Monitored Areas</h2><label className="ew-search-label" htmlFor="ew-area-search">Search monitored areas</label><input id="ew-area-search" type="search" placeholder="Search location..." value={search} onChange={(event) => setSearch(event.target.value)} /><div className="ew-area-list" aria-label="Monitored areas">{filteredAreas.slice(0, 8).map((area) => <button type="button" className={`ew-area-row ${selectedArea?.id === area.id ? "is-selected" : ""}`} key={area.id} onClick={() => selectArea(area)}><span className="ew-area-name">{area.name ?? `Area ${area.id}`}</span><span className={`ew-risk-tag ew-risk-${(validRiskScore(area) ? area.risk_level : "unavailable").toLowerCase()}`}>{validRiskScore(area) ? area.risk_level : "N/A"}</span><span aria-hidden="true">›</span></button>)}{filteredAreas.length === 0 && <p className="ew-empty-search">No matching monitored areas.</p>}</div></div><div className="ew-detail-panel"><span className="ew-overline">{view === "risk" ? "RISK DETAILS" : "FIRE INFORMATION"}</span>
