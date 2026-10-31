@@ -78,3 +78,13 @@
 @media(min-width:951px){.ew-view-dashboard .ew-detail-panel{display:none}.ew-view-dashboard .ew-workspace{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr)}}
 @media(max-width:950px){.ew-workspace{grid-template-columns:1fr}.ew-view-dashboard .ew-detail-panel{display:none}.ew-view-information .ew-map-column,.ew-view-risk .ew-map-column{display:none}.ew-map-frame{height:380px}}
 @media(max-width:560px){.ew-header-left{gap:10px}.ew-brand{font-size:16px}.ew-map-frame{height:320px}.ew-page-heading{margin-bottom:20px}}
+
+
+/* Accessible working navigation menu */
+.ew-menu-wrap{position:relative}
+.ew-menu-toggle{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid transparent;border-radius:8px;background:transparent;color:#33483a;font-size:27px;line-height:1;cursor:pointer}
+.ew-menu-toggle:hover,.ew-menu-toggle:focus-visible{background:#edf2ed;border-color:#d4dfd5}
+.ew-navigation{position:absolute;top:calc(100% + 10px);right:0;z-index:1200;display:flex;flex-direction:column;width:225px;padding:7px;background:white;border:1px solid #d8ded7;border-radius:10px;box-shadow:0 12px 30px #22362a24}
+.ew-navigation button{font:inherit;font-size:13px;text-align:left;background:transparent;color:#2b4635;border:0;border-radius:7px;padding:12px 14px;cursor:pointer}
+.ew-navigation button:hover:not(:disabled),.ew-navigation button:focus-visible:not(:disabled){background:#edf5ef}
+.ew-navigation button:disabled{opacity:.45;cursor:not-allowed}
