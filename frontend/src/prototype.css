@@ -39,3 +39,42 @@
 .ew-app [role="alert"],.ew-app [role="status"]{font-size:13px;line-height:1.5}
 @media(max-width:950px){.ew-workspace{grid-template-columns:1fr}.ew-map-frame{height:460px}.ew-page-heading{align-items:start}}
 @media(max-width:560px){.ew-header{height:64px}.ew-brand{font-size:17px}.ew-header-right{font-size:0}.ew-header-right .ew-live-dot{display:block}.ew-header-divider{display:none}.ew-page-heading{display:block}.ew-status-chip{display:inline-block;margin-top:14px}.ew-map-frame{height:350px}.ew-main{padding-top:24px}.ew-panel-top,.ew-detail-panel{padding:17px}}
+
+
+/* Storyboard fidelity: clean paper-like screens, outlined cards and a three-step flow. */
+.ew-app{background:#f8f7f3;color:#292f2b}
+.ew-header{background:#fff;color:#263a30;height:68px;border-bottom:1px solid #deded8;box-shadow:0 2px 12px #20282008}
+.ew-header-left{display:flex;align-items:center;gap:26px}
+.ew-brand{font-size:20px;letter-spacing:.025em;color:#263c30}
+.ew-brand-icon{background:#b93635;color:#fff;width:34px;height:34px;border-radius:50%;font-size:21px}
+.ew-brand-accent{color:#b93635}
+.ew-header-right{font-size:23px;color:#3b4940;letter-spacing:0}
+.ew-nav-back{border:0;background:transparent;font:inherit;color:#405548;font-size:14px;cursor:pointer;padding:8px}
+.ew-main{max-width:1280px;padding-top:38px}
+.ew-page-heading h1{font-size:clamp(29px,3vw,38px);font-weight:750;letter-spacing:-.03em}
+.ew-page-heading p{font-size:14px}
+.ew-workspace{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:24px}
+.ew-map-column,.ew-side-panel{border:1px solid #d8ded7;box-shadow:0 3px 12px #273c2a0a;border-radius:12px}
+.ew-map-frame{height:440px;border:1px solid #d6ded6;border-radius:8px}
+.ew-section-heading h2,.ew-panel-top h2{font-size:18px}
+.ew-panel-top input{background:#fff;border-color:#cfd9d0}
+.ew-area-row{border-color:#dce2da;background:#fff;padding:14px 12px}
+.ew-area-row:hover{border-color:#9abca5}
+.ew-risk-tag{font-size:11px;border:1px solid currentColor;padding:5px 10px}
+.ew-risk-high{color:#ba3836;background:#fff0ef}
+.ew-risk-moderate{color:#a87921;background:#fff7e5}
+.ew-risk-low{color:#477c47;background:#f0f8ec}
+.ew-detail-panel{background:#fff}
+.ew-detail-panel h2{font-size:25px}
+.ew-metric{background:#faf9f7;border-color:#e1e3dd}
+.ew-details-button{background:#e7eff7;color:#2a4d70;border:1px solid #c6d7e7;font-size:14px;padding:16px}
+.ew-details-button:hover{background:#d8e8f7}
+.ew-view-information .ew-panel-top,.ew-view-risk .ew-panel-top{display:none}
+.ew-view-information .ew-side-panel,.ew-view-risk .ew-side-panel{border-color:#d6ded7}
+.ew-view-risk .ew-detail-panel{border-top:5px solid #c9584e}
+.ew-view-risk .ew-detail-panel>.ew-overline{color:#bd4b44}
+.ew-view-risk .ew-metric:first-child{background:#fff0ee;border-color:#efc7c3}
+.ew-view-information .ew-map-frame,.ew-view-risk .ew-map-frame{height:390px}
+@media(min-width:951px){.ew-view-dashboard .ew-detail-panel{display:none}.ew-view-dashboard .ew-workspace{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr)}}
+@media(max-width:950px){.ew-workspace{grid-template-columns:1fr}.ew-view-dashboard .ew-detail-panel{display:none}.ew-view-information .ew-map-column,.ew-view-risk .ew-map-column{display:none}.ew-map-frame{height:380px}}
+@media(max-width:560px){.ew-header-left{gap:10px}.ew-brand{font-size:16px}.ew-map-frame{height:320px}.ew-page-heading{margin-bottom:20px}}
