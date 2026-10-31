@@ -27,6 +27,15 @@
 }
 .app > p button { min-height: 36px; margin-left: 6px; }
 
+/* How old the data is (above the map). */
+.freshness { margin: 6px 0 0; }
+.app .freshness-line { margin: 4px 0; font-size: 14px; color: var(--muted); }
+.app .freshness-line.is-history { color: var(--ink); }
+.app .freshness-line.is-stale {
+  color: var(--ink); background: #fff6e5; border-left: 4px solid #d97706;
+  padding: 6px 10px; border-radius: 6px;
+}
+
 /* Desktop: map and area list on the left, details on the right.
    Phone: map, then details, then the list, so a tapped area's details
    appear right under the map instead of after the whole list. */

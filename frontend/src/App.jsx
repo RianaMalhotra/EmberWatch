@@ -17,6 +17,7 @@ import "leaflet/dist/leaflet.css";
 import RiskLegend from "./components/RiskLegend";
 import AreaList from "./components/AreaList";
 import AreaDetails from "./components/AreaDetails";
+import DataFreshness from "./components/DataFreshness";
 import "./dashboard.css";
 
 // On narrow screens the details panel sits under the map, so after a tap we
@@ -197,6 +198,8 @@ function App() {
       {detectionResult && (
         <p>{detectionSummary(detectionResult)}</p>
       )}
+
+      <DataFreshness areas={riskAreas} detections={detectionResult?.detections} />
 
       <div className="dash">
         <div className="dash-map">

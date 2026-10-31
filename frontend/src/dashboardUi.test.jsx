@@ -191,3 +191,30 @@ describe("detection summary wording", () => {
     expect(detectionSummary(one)).toMatch(/^1 detection shown:/);
   });
 });
+
+describe("data freshness", () => {
+  it("says how old the weather is and that old detections are history", async () => {
+    fetchDetections.mockResolvedValue({
+      threshold: 20, gaps: [],
+      detections: [
+        { id: 1, latitude: 56, longitude: -111, timestamp: "2025-11-23T22:24:00Z", confidence: 90,
+          classification: "potential_wildfire", meets_threshold: true },
+        { id: 2, latitude: 57, longitude: -112, timestamp: "2025-12-31T22:07:00Z", confidence: 90,
+          classification: "potential_wildfire", meets_threshold: true },
+      ],
+      counts: { total: 2, shown: 2, potential_wildfire: 2, low_confidence: 0, unavailable: 0 },
+    });
+    render(<App />);
+
+    const box = await screen.findByLabelText("Data freshness");
+    await waitFor(() => expect(box).toHaveTextContent("historical records, not current fires"));
+    expect(box).toHaveTextContent(/Weather data (as of|is \d+ days old)/);
+  });
+
+  it("shows nothing when there is no dated data", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [] });
+    render(<App />);
+    await screen.findByText(/No monitored areas/);
+    expect(screen.queryByLabelText("Data freshness")).not.toBeInTheDocument();
+  });
+});
