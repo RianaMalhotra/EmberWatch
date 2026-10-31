@@ -1,6 +1,8 @@
 
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
+import ReportFire from "./components/ReportFire";
+import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
 import {
@@ -80,6 +82,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
   const [detectionLoading, setDetectionLoading] = useState(true);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
   // counters that re-run a load when the user presses "Try again".
@@ -168,6 +171,19 @@ function App() {
   return (
     <div>
       <h1>Wildfire Early Detection & Risk Assessment</h1>
+
+      {/* #51: public fire reports. Not an emergency service. */}
+      {reporting ? (
+        <ReportFire onClose={() => setReporting(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setReporting(true)}
+          style={{ background: "#C2410C", color: "#fff", border: 0, borderRadius: 8, padding: "10px 16px", fontWeight: 600, marginBottom: 8 }}
+        >
+          {REPORTS_ENABLED ? "Report a Fire" : "Report a Fire (preview)"}
+        </button>
+      )}
 
       {loading && (
         <p>Loading wildfire risk data...</p>
