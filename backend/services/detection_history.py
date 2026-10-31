@@ -51,10 +51,12 @@ def history_params(args):
 def get_historical_detections(conn, args, min_confidence=None):
     params = history_params(args)
     with conn.cursor() as cur:
-        cur.execute(HISTORY_SQL, params)
-        rows = [dict(zip(DETECTION_COLUMNS, row)) for row in cur.fetchall()]
+        cur.execute(HISTORY_SQL, {**params, "limit": params["limit"] + 1})
+        fetched = cur.fetchall()
+        truncated = len(fetched) > params["limit"]
+        rows = [dict(zip(DETECTION_COLUMNS, row)) for row in fetched[:params["limit"]]]
     result = classify_detections(rows, min_confidence)
-    return {"filters": {
+    return {"truncated": truncated, "filters": {
         "south": params["south"], "north": params["north"],
         "west": params["west"], "east": params["east"],
         "start": params["start"].isoformat().replace("+00:00", "Z"),
