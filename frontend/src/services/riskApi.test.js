@@ -81,3 +81,24 @@ describe("fetchRiskAreas", () => {
     await expect(fetchRiskAreas()).rejects.toThrow("Network error");
   });
 });
+
+
+describe("Sprint 4 risk response contract (#63)", () => {
+  it("accepts a valid empty risk-area response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ status: "success", source: "database", data: [] }),
+    }));
+    const result = await fetchRiskAreas();
+    expect(result.data).toEqual([]);
+  });
+
+  it.each([null, {}, { data: null }, { data: "invalid" }])(
+    "rejects malformed risk-area envelopes: %j",
+    async (payload) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true, json: async () => payload,
+      }));
+      await expect(fetchRiskAreas()).rejects.toThrow("Invalid risk data received");
+    },
+  );
+});
