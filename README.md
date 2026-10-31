@@ -1,6 +1,8 @@
 
 # Wildfire Early Detection and Risk Assessment Platform
 
+🌐 **Live Demo:** https://ember-watch-xi.vercel.app/
+
 **Team Ash Detectives | ECE444 – Software Engineering | University of Toronto**
 
 > **Project Status:** Active Development — Functional React–Flask Prototype  
