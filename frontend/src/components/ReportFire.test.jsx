@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import ReportFire from "./ReportFire";
 import { submitReport } from "../services/reportApi";
 
-vi.mock("../services/reportApi", () => ({ submitReport: vi.fn() }));
+vi.mock("../services/reportApi", () => ({ submitReport: vi.fn(), REPORTS_ENABLED: false }));
 
 // Leaflet needs a real browser; a fake map lets tests "tap" a location.
 const mapClick = vi.hoisted(() => ({ handler: null }));
@@ -80,10 +80,10 @@ describe("Report a Fire (#51)", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Hour must be 0–23");
   });
 
-  it("reviews, submits once, and shows the report as Unverified", async () => {
-    submitReport.mockResolvedValue({ id: 42, status: "unverified" });
+  it("reviews, submits once, and says the report is awaiting review", async () => {
+    submitReport.mockResolvedValue({ id: 42, reviewStatus: "unverified" });
     const user = userEvent.setup();
-    render(<ReportFire onClose={() => {}} />);
+    render(<ReportFire onClose={() => {}} enabled />);
     await fillToReview(user);
 
     expect(screen.getByText(/Your current location \(49\.8880° N, 119\.4960° W\)/)).toBeInTheDocument();
@@ -99,14 +99,15 @@ describe("Report a Fire (#51)", () => {
       observed_type: "smoke", description: "Grey smoke near the highway",
     });
     expect(screen.getByRole("heading", { name: "Report received" })).toBeInTheDocument();
-    expect(screen.getByText("Unverified")).toBeInTheDocument();
+    expect(screen.getByText("awaiting review")).toBeInTheDocument();
+    expect(screen.queryByText(/on the map/i)).not.toBeInTheDocument(); // map display is not built yet
     expect(screen.getByText("Report ID: 42")).toBeInTheDocument();
   });
 
   it("keeps the answers and shows an error if saving fails", async () => {
     submitReport.mockRejectedValue(new Error("The report could not be saved (error 503). Please try again."));
     const user = userEvent.setup();
-    render(<ReportFire onClose={() => {}} />);
+    render(<ReportFire onClose={() => {}} enabled />);
     await fillToReview(user);
 
     await user.click(screen.getByRole("button", { name: "Submit report" }));
@@ -114,5 +115,25 @@ describe("Report a Fire (#51)", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("error 503");
     expect(screen.getByRole("heading", { name: "Check your report" })).toBeInTheDocument();
     expect(screen.getByText("Smoke")).toBeInTheDocument();
+  });
+
+  it("runs as a preview until reporting is enabled: nothing is sent", async () => {
+    const user = userEvent.setup();
+    render(<ReportFire onClose={() => {}} />); // VITE_ENABLE_REPORTS not set
+    expect(screen.getByText(/reports can't be sent yet/)).toBeInTheDocument();
+
+    await fillToReview(user);
+    const send = screen.getByRole("button", { name: "Sending not available yet" });
+    expect(send).toBeDisabled();
+    await user.click(send);
+
+    expect(submitReport).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Submit report" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Report received" })).not.toBeInTheDocument();
+  });
+
+  it("shows no preview note when reporting is enabled", () => {
+    render(<ReportFire onClose={() => {}} enabled />);
+    expect(screen.queryByText(/reports can't be sent yet/)).not.toBeInTheDocument();
   });
 });

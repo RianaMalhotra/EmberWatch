@@ -60,3 +60,6 @@
   .rf-row { flex-direction: column; gap: 2px; }
   .rf-key { width: auto; font-size: 13px; }
 }
+
+/* Shown until POST /api/reports (#52) is live. */
+.rf-preview { background: #EEF2F7; padding: 8px 10px; border-radius: 6px; margin: 0 0 8px; font-size: 14px; }

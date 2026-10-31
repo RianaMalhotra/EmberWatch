@@ -10,17 +10,19 @@ import {
   reportProblems,
   validLocation,
 } from "../utils/reportForm";
-import { submitReport } from "../services/reportApi";
+import { REPORTS_ENABLED, submitReport } from "../services/reportApi";
 import "./ReportFire.css";
 
 // #51: public "Report a Fire" flow, ported from the PRA4 usability-tested prototype (v2).
-// Steps: location → what you saw → check → received. Reports are shown as
-// "Unverified" until staff review them (#53) and are never sent to 911.
+// Steps: location → what you saw → check → received. Reports wait for staff
+// review (#53) and are never sent to 911. Until POST /api/reports (#52) is
+// live, the form runs as a preview: everything works except sending.
 
 const INK = "#1B2430"; // colours match prototype v2; layout lives in ReportFire.css
 
 
 const DISCLAIMER = "This is not an emergency service. If there is immediate danger, call 911.";
+const PREVIEW_NOTE = "Preview: reports can't be sent yet. The reporting service is still being built.";
 
 function PinOnClick({ onPick }) {
   useMapEvents({
@@ -40,7 +42,7 @@ function CenterOnGps({ pin }) {
   return null;
 }
 
-export default function ReportFire({ onClose, onSubmitted }) {
+export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENABLED }) {
   const [step, setStep] = useState("location");
   const [pin, setPin] = useState(null);
   const [locError, setLocError] = useState(null);
@@ -85,7 +87,7 @@ export default function ReportFire({ onClose, onSubmitted }) {
   }
 
   async function submit() {
-    if (submitting) return; // prevent duplicate reports from double clicks
+    if (submitting || !enabled) return; // no duplicates from double clicks; nothing sent in preview
     const problems = reportProblems(form);
     if (problems.length > 0) {
       setSubmitError(problems.join(" "));
@@ -109,6 +111,8 @@ export default function ReportFire({ onClose, onSubmitted }) {
 
   return (
     <section className="rf-panel" aria-label="Report a fire" role="dialog">
+      {!enabled && step !== "done" && <p className="rf-preview" role="note">{PREVIEW_NOTE}</p>}
+
       {step === "location" && (
         <>
           <p className="rf-hint">Step 1 of 3</p>
@@ -221,8 +225,8 @@ export default function ReportFire({ onClose, onSubmitted }) {
           {submitError && <p role="alert" className="rf-error">{submitError}</p>}
           <div className="rf-footer">
             <button type="button" className="rf-btn rf-outline" onClick={() => setStep("details")} disabled={submitting}>Back</button>
-            <button type="button" className="rf-btn rf-fire" onClick={submit} disabled={submitting}>
-              {submitting ? "Sending…" : "Submit report"}
+            <button type="button" className="rf-btn rf-fire" onClick={submit} disabled={submitting || !enabled}>
+              {!enabled ? "Sending not available yet" : submitting ? "Sending…" : "Submit report"}
             </button>
           </div>
         </>
@@ -231,7 +235,7 @@ export default function ReportFire({ onClose, onSubmitted }) {
       {step === "done" && (
         <>
           <h2>Report received</h2>
-          <p>Your report is now on the map as <strong>Unverified</strong> until staff review it.</p>
+          <p>Thank you. Your report was received and is <strong>awaiting review</strong> by staff.</p>
           <p>It has <strong>not</strong> been sent to emergency services. If there is immediate danger, call 911.</p>
           {receipt?.id && <p className="rf-hint">Report ID: {receipt.id}</p>}
           <div className="rf-footer"><button type="button" className="rf-btn rf-primary" onClick={onClose}>Back to map</button></div>

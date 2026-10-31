@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
+import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
 import {
@@ -174,7 +175,7 @@ function App() {
           onClick={() => setReporting(true)}
           style={{ background: "#C2410C", color: "#fff", border: 0, borderRadius: 8, padding: "10px 16px", fontWeight: 600, marginBottom: 8 }}
         >
-          Report a Fire
+          {REPORTS_ENABLED ? "Report a Fire" : "Report a Fire (preview)"}
         </button>
       )}
 
