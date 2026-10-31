@@ -51,6 +51,11 @@ export function missingInputNames(area) {
 // Short text for screen readers, tooltips and the details panel.
 export function riskStatusText(area) {
   const state = riskState(area);
+  // #26: the backend couldn't run the model for this area, which is different
+  // from the area simply having too few inputs.
+  if (area?.processing_error) {
+    return "Risk unavailable: the score could not be calculated for this area.";
+  }
   if (state === "unavailable") {
     return "Risk unavailable: not enough input data to calculate a score.";
   }
