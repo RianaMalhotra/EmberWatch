@@ -40,6 +40,29 @@ jobs:
           path: backend/coverage.xml
           if-no-files-found: ignore
 
+  data-processing-tests:
+    # Tests in tests/ cover data-processing/ (FIRMS cleaning, loading,
+    # validation) and ml/; they need no database (#46).
+    name: Data Processing Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run data-processing tests
+        run: python -m pytest tests -q
+
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
