@@ -209,6 +209,22 @@ describe("historical detection API client (#46)", () => {
     expect(result.detections).toHaveLength(2);
   });
 
+  it("accepts timezone offsets and normalizes them to UTC", async () => {
+    let requested;
+    globalThis.fetch = async (url) => {
+      requested = url;
+      return { ok: true, json: async () => sample };
+    };
+    await fetchDetectionHistory({
+      ...filters,
+      start: "2025-07-01T06:00:00+06:00",
+      end: "2025-07-31T20:00:00-04:00",
+    });
+    const url = new URL(requested, "https://example.com");
+    expect(url.searchParams.get("start")).toBe("2025-07-01T00:00:00.000Z");
+    expect(url.searchParams.get("end")).toBe("2025-08-01T00:00:00.000Z");
+  });
+
   it("rejects invalid filters before making a network request", async () => {
     const request = vi.fn();
     globalThis.fetch = request;
