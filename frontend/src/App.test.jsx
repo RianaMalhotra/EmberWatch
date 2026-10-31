@@ -3,6 +3,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { fetchRiskAreas } from "./services/riskApi";
+import { fetchDetections } from "./services/detectionApi";
+import { RequestTimeoutError } from "./services/requestHelpers";
 
 vi.mock("./services/riskApi", () => ({
   fetchRiskAreas: vi.fn(),
@@ -136,6 +138,11 @@ describe("Wildfire risk map", () => {
     expect(screen.getByText(/Nearby Fire Detections:/).parentElement)
       .toHaveTextContent("2");
 
+    expect(screen.getByRole("heading", { name: "How the risk estimate is calculated" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Risk factor explanations")).toHaveTextContent("Slope (5% base weight): Unavailable");
+    expect(screen.getByLabelText("Risk factor explanations")).toHaveTextContent("Nearby Fire Detections (25% base weight)");
+    expect(screen.getByText(/not a validated real-time fire forecast/i)).toBeInTheDocument();
+
     expect(screen.getByText(/Some inputs are missing/i))
       .toBeInTheDocument();
   });
@@ -235,5 +242,133 @@ describe("Wildfire risk map", () => {
     expect(screen.getByText(/Missing inputs:/).parentElement)
       .toHaveTextContent("Temperature, Vegetation Index");
     expect(screen.queryByText(/Some inputs are missing/i)).not.toBeInTheDocument();
+  });
+
+  // ---- #25 / #26: failure handling ------------------------------------
+
+  it("shows the API's warnings next to the map (#25)", async () => {
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+      warnings: [
+        { code: "history_unavailable", message: "Nearby fire history is temporarily unavailable, so risk scores are incomplete." },
+        { code: "scoring_failed", count: 1, message: "Risk could not be calculated for 1 area(s)." },
+      ],
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Nearby fire history is temporarily unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/Risk could not be calculated for 1 area/)).toBeInTheDocument();
+    // The areas that did load are still on the map.
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
+  });
+
+  it("shows no notice when the API sends no warnings", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+
+    render(<App />);
+
+    await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
+    expect(screen.queryByText(/Notice:/)).not.toBeInTheDocument();
+  });
+
+  it("explains a timeout in plain words (#25)", async () => {
+    fetchRiskAreas.mockRejectedValue(new RequestTimeoutError(15000));
+
+    render(<App />);
+
+    expect(await screen.findByText(/Risk data unavailable:/))
+      .toHaveTextContent("The server took too long to respond.");
+  });
+
+  it("explains an unreachable server in plain words (#25)", async () => {
+    fetchRiskAreas.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    render(<App />);
+
+    expect(await screen.findByText(/Risk data unavailable:/))
+      .toHaveTextContent(/Can't reach the server/);
+  });
+
+  it("lets the user retry loading risk data after a failure (#25)", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas
+      .mockRejectedValueOnce(new Error("Failed to fetch risk data: 503"))
+      .mockResolvedValueOnce({ source: "supabase", data: [mockArea] });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Risk data unavailable:/))
+      .toHaveTextContent("The data service is temporarily unavailable.");
+
+    await user.click(screen.getByRole("button", { name: "Try loading risk data again" }));
+
+    expect(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
+    expect(screen.queryByText(/Risk data unavailable:/)).not.toBeInTheDocument();
+    expect(fetchRiskAreas).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the error and offers another retry if the retry also fails (#25)", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas.mockRejectedValue(new Error("Failed to fetch risk data: 503"));
+
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Try loading risk data again" }));
+
+    expect(await screen.findByText(/Risk data unavailable:/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try loading risk data again" })).toBeInTheDocument();
+    expect(fetchRiskAreas).toHaveBeenCalledTimes(2);
+  });
+
+  it("lets the user retry detections without reloading the risk areas (#25)", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections
+      .mockRejectedValueOnce(new Error("Failed to fetch detections: 503"))
+      .mockResolvedValueOnce({
+        threshold: 20,
+        detections: [],
+        counts: { total: 0, shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+      });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Detections unavailable:/))
+      .toHaveTextContent("The data service is temporarily unavailable.");
+
+    await user.click(screen.getByRole("button", { name: "Try loading detections again" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Detections unavailable:/)).not.toBeInTheDocument();
+    });
+    expect(fetchDetections).toHaveBeenCalledTimes(2);
+    expect(fetchRiskAreas).toHaveBeenCalledTimes(1);
+  });
+
+  it("says the score could not be calculated when the model failed for an area (#26)", async () => {
+    const user = userEvent.setup();
+    const failed = { ...mockArea, risk_score: null, risk_level: null, is_complete: false,
+      missing_inputs: [], processing_error: true };
+    const ok = { ...mockArea, id: 2, latitude: 49.888, longitude: -119.496,
+      is_complete: true, missing_inputs: [] };
+
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [failed, ok] });
+
+    render(<App />);
+
+    // The failed area is grey and the healthy one still shows its risk.
+    const failedMarker = await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
+    expect(failedMarker).toHaveAttribute("data-color", "#6b7280");
+    expect(failedMarker).toHaveTextContent(/the score could not be calculated/i);
+    expect(screen.getByRole("button", { name: "Select area at 49.888, -119.496" }))
+      .toHaveAttribute("data-color", "#dc2626");
+
+    await user.click(failedMarker);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/could not be calculated for this area/i);
+    expect(screen.queryByText(/Not enough input data/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Missing inputs:/)).not.toBeInTheDocument();
   });
 });

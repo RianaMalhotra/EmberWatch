@@ -50,3 +50,18 @@ describe("risk area states (#28)", () => {
     expect(areaBounds(undefined)).toEqual([]);
   });
 });
+
+describe("riskStatusText for a model failure (#26)", () => {
+  const failed = { risk_level: null, is_complete: false, missing_inputs: [], processing_error: true };
+
+  it("says the score could not be calculated, not that inputs are missing", () => {
+    expect(riskStatusText(failed)).toMatch(/could not be calculated/);
+    expect(riskStatusText(failed)).not.toMatch(/not enough input data/);
+  });
+
+  it("still draws the area grey and dashed like any unscored area", () => {
+    expect(riskState(failed)).toBe("unavailable");
+    expect(riskAreaStyle(failed).color).toBe(UNAVAILABLE_COLOR);
+    expect(riskAreaStyle(failed).dashArray).toBeTruthy();
+  });
+});
