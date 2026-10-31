@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
@@ -78,6 +79,8 @@ function App() {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [search, setSearch] = useState("");
+  const [showFullDetails, setShowFullDetails] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
@@ -160,10 +163,13 @@ function App() {
   }
 
   const factors = selectedArea?.environmental_factors ?? {};
+  const filteredAreas = riskAreas.filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
+  function selectArea(area) { setSelectedArea(area); setShowFullDetails(false); }
 
   return (
-    <div>
-      <h1>Wildfire Early Detection & Risk Assessment</h1>
+    <div className="ew-app">
+      <header className="ew-header"><div className="ew-brand"><span className="ew-brand-icon" aria-hidden="true">✳</span><span>EMBER<span className="ew-brand-accent">WATCH</span></span></div><div className="ew-header-right"><span className="ew-live-dot" /> Wildfire intelligence <span className="ew-header-divider">/</span> Canada</div></header>
+      <main className="ew-main"><div className="ew-eyebrow">WILDFIRE MONITORING / OVERVIEW</div><div className="ew-page-heading"><div><h1>Wildfire Dashboard</h1><p>Explore monitored areas, detection confidence and environmental wildfire risk.</p></div><span className="ew-status-chip">● Monitoring dashboard</span></div>
 
       {loading && (
         <p>Loading wildfire risk data...</p>
@@ -205,19 +211,12 @@ function App() {
         <p>{detectionSummary(detectionResult)}</p>
       )}
 
-      <div 
-        style={{
-          display: "flex",
-          gap: "16px",
-          alignItems: "stretch",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1 1 500px", minWidth: 0 }}>
+      <div className="ew-workspace">
+        <div className="ew-map-column"><div className="ew-section-heading"><div><span className="ew-overline">01 / GEOGRAPHIC OVERVIEW</span><h2>Active monitoring map</h2></div><span className="ew-section-meta">{riskAreas.length} monitored areas</span></div><div className="ew-map-frame">
           <MapContainer
             center={[45.4, -77.5]}
             zoom={7}
-            style={{ height: "75vh", width: "100%" }}
+            style={{ height: "100%", width: "100%" }}
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
@@ -238,7 +237,7 @@ function App() {
                   pathOptions={pathOptions}
                   eventHandlers={{
                     click: () => { 
-                      setSelectedArea(area);
+                      selectArea(area);
                     },
                   }}
                 >
@@ -282,20 +281,11 @@ function App() {
               </CircleMarker>
             );
           })}
-        </MapContainer>
+        </MapContainer></div>
         <RiskLegend />
       </div>
       
-        <aside
-          style={{
-            flex: "0 1 300px",
-            minWidth: "260px",
-            padding: "16px",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            alignSelf: "flex-start",
-          }}
-        >
+        <aside className="ew-side-panel"><div className="ew-panel-top"><span className="ew-overline">02 / AREA EXPLORER</span><h2>Recent detections & areas</h2><label className="ew-search-label" htmlFor="ew-area-search">Search monitored areas</label><input id="ew-area-search" type="search" placeholder="Search location..." value={search} onChange={(event) => setSearch(event.target.value)} /><div className="ew-area-list" aria-label="Monitored areas">{filteredAreas.slice(0, 8).map((area) => <button type="button" className={`ew-area-row ${selectedArea?.id === area.id ? "is-selected" : ""}`} key={area.id} onClick={() => selectArea(area)}><span className="ew-area-name">{area.name ?? `Area ${area.id}`}</span><span className={`ew-risk-tag ew-risk-${(validRiskScore(area) ? area.risk_level : "unavailable").toLowerCase()}`}>{validRiskScore(area) ? area.risk_level : "N/A"}</span><span aria-hidden="true">›</span></button>)}{filteredAreas.length === 0 && <p className="ew-empty-search">No matching monitored areas.</p>}</div></div><div className="ew-detail-panel"><span className="ew-overline">03 / SELECTED LOCATION</span>
           {!selectedArea ? (
             <>
               <h2>Area Details</h2>
@@ -303,7 +293,7 @@ function App() {
             </>
           ) : (
             <>
-              <h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2>
+              <div className="ew-detail-heading"><div><span className="ew-overline">FIRE INFORMATION</span><h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2></div><button type="button" className="ew-back-button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); }}>← Back</button></div>
 
               <h3
                 style={{
@@ -334,7 +324,7 @@ function App() {
                 </p>
               )}
 
-              <hr />
+              <div className="ew-metric-grid"><div className="ew-metric"><span>Risk level</span><strong style={{color: riskColor(selectedArea)}}>{validRiskScore(selectedArea) ? selectedArea.risk_level : "Unavailable"}</strong></div><div className="ew-metric"><span>Risk score</span><strong>{validRiskScore(selectedArea) ? `${selectedArea.risk_score.toFixed(1)} / 100` : "Unavailable"}</strong></div></div><hr />
 
               <h3>Environmental Factors</h3>
               <p>These factors contribute to a weighted risk estimate, not a confirmed wildfire detection. Higher factor scores mean higher modeled risk; missing factors are excluded and the remaining weights are normalized.</p>
@@ -356,7 +346,8 @@ function App() {
                 );
               })}
 
-              <h3>How the risk estimate is calculated</h3>
+              <button type="button" className="ew-details-button" onClick={() => setShowFullDetails((v) => !v)} aria-expanded={showFullDetails}>{showFullDetails ? "Hide detailed information ↑" : "View detailed information →"}</button>
+              <div className={showFullDetails ? "ew-expanded-details" : "ew-collapsed-details"}><h3>How the risk estimate is calculated</h3>
               <ul aria-label="Risk factor explanations">
                 {explainFactors(selectedArea).map(({ key, weight, score, explanation }) => (
                   <li key={key}>
@@ -379,13 +370,13 @@ function App() {
                 {selectedArea.is_complete ? "Yes" : "No"}
               </p>
 
-              <button onClick={() => setSelectedArea(null)}>
+              </div><button onClick={() => { setSelectedArea(null); setShowFullDetails(false); }}>
                 Clear selection
               </button>
             </>
           )}
-        </aside>
-      </div>
+        </div></aside>
+      </div></main>
     </div>
   );
 }
