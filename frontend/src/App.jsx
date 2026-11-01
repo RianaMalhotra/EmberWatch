@@ -23,7 +23,8 @@ import {
   riskState,
   riskStatusText,
 } from "./utils/riskFormat";
-import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Tooltip, useMap } from "react-leaflet";
+import { RISK_ZONE_RADIUS_M, riskZoneStyle } from "./utils/riskZone";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
 
@@ -78,8 +79,9 @@ function App() {
   const [riskAreas, setRiskAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dataSource, setDataSource] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  // #44: heat-style risk zones around each scored area
+  const [showZones, setShowZones] = useState(true);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
@@ -132,7 +134,6 @@ function App() {
         if (!active) return;
 
         setRiskAreas(result.data);
-        setDataSource(result.source);
         setWarnings(Array.isArray(result.warnings) ? result.warnings : []);
         setError(null);
       } catch (err) {
@@ -204,10 +205,6 @@ function App() {
         </p>
       ))}
 
-      {dataSource === "mock" && !error && (
-        <p>Demo data — not live wildfire risk</p>
-      )}
-
       {!loading && !error && riskAreas.length === 0 && (
         <p>No monitored areas were returned by the backend.</p>
       )}
@@ -255,6 +252,20 @@ function App() {
 
             <FitToAreas areas={riskAreas} />
 
+            {/* #44: zones are drawn first so the clickable markers stay on top.
+                Areas without a score get no fill (see riskZoneStyle). */}
+            {showZones && riskAreas
+              .filter((area) => Number.isFinite(area.latitude) && Number.isFinite(area.longitude))
+              .map((area) => (
+                <Circle
+                  key={`zone-${area.id}`}
+                  center={[area.latitude, area.longitude]}
+                  radius={RISK_ZONE_RADIUS_M}
+                  pathOptions={riskZoneStyle(area)}
+                  interactive={false}
+                />
+              ))}
+
             {riskAreas.map((area) => {
               // Pixel-sized markers stay visible at country-wide zoom levels.
               const { radius, ...pathOptions } = riskAreaStyle(area, selectedArea?.id === area.id);
@@ -274,9 +285,6 @@ function App() {
                   <Tooltip>
                     {area.name ?? `Area ${area.id}`}: {riskStatusText(area)}
                   </Tooltip>
-                {dataSource === "mock" && (
-                  <Popup>Demo data — not live wildfire risk</Popup>
-                )} 
                </CircleMarker>  
              );
            })}
@@ -312,7 +320,19 @@ function App() {
             );
           })}
         </MapContainer>
+        <label style={{ fontSize: 14, display: "block", marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={showZones}
+            onChange={(event) => setShowZones(event.target.checked)}
+          />{" "}
+          Show 50 km risk zones
+        </label>
         <RiskLegend />
+        <p style={{ fontSize: 14 }} aria-label="Risk zone legend">
+          Shaded zones show the 50 km area used for nearby fire history; stronger shading means a
+          higher score. Areas without a score have no shading.
+        </p>
         <p style={{ fontSize: 14 }} aria-label="Detection marker legend">
           Detection markers: solid red = meets confidence threshold; dashed grey = low confidence.
           Detection confidence reflects the observation, not the environmental wildfire risk score.

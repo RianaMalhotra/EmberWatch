@@ -6,7 +6,7 @@
 **Team Ash Detectives | ECE444 – Software Engineering | University of Toronto**
 
 > **Project Status:** Active Development — Functional React–Flask Prototype  
-> The application currently supports an interactive wildfire risk map, backend API communication, detection input validation, and automated backend testing. Wildfire risk values displayed in the current prototype are mock data and do not represent real-time wildfire conditions.
+> The application currently supports an interactive wildfire risk map, backend API communication, detection input validation, and automated backend testing. The risk map shows scores computed by a provisional weighted model from stored weather, terrain and past fire-detection data; they are not a validated forecast and do not represent real-time wildfire conditions.
 
 ## 1. Overview
 
@@ -26,18 +26,18 @@ The initial application prototype includes:
 |---|---|---|
 | React frontend | Implemented | Web interface built using React and Vite |
 | Interactive geographic map | Implemented | Leaflet map with OpenStreetMap tiles |
-| Risk visualization | Prototype | Colored circles representing HIGH, MODERATE, and LOW risk |
+| Risk visualization | Implemented | Colored circles for HIGH, MODERATE, and LOW risk, with translucent 50 km risk zones; incomplete and unscored areas are drawn differently |
 | Flask backend | Implemented | Python backend exposing REST-style API endpoints |
 | Backend health endpoint | Implemented | Checks whether the Flask API is running |
-| Risk data endpoint | Prototype | Returns three mock wildfire risk areas |
+| Risk data endpoint | Implemented | `GET /api/risk-areas` returns each monitored area's risk level, score, contributing factors and data completeness, computed from Supabase data |
 | Frontend–backend integration | Implemented | React fetches risk data from Flask |
 | Input validation | Implemented as a utility | Validates detection input structure, coordinates, and timestamps |
 | Loading and error handling | Implemented | Displays loading and API failure messages |
 | Automated backend testing | Implemented | Pytest coverage for initial API and validation functionality |
 | AI/ML wildfire detection | In development | Planned detection pipeline and confidence reporting |
-| Environmental risk scoring | In development | Integration of environmental conditions and risk calculations |
-| Continuous geographic heatmap | Planned | More detailed risk visualization beyond the current circles |
-| Live environmental data | Planned | Integration of real external environmental data sources |
+| Environmental risk scoring | Implemented (provisional) | Weighted model combining temperature, humidity, wind, rainfall, slope and nearby fire history; vegetation is not yet available, so scores are marked incomplete |
+| Continuous geographic heatmap | Planned | A smooth surface between monitored areas; not built, so nothing is estimated for places without data |
+| Live environmental data | Partly implemented | Open-Meteo weather and terrain are loaded by `data-processing/load_environment_to_db.py`; there is no automatic refresh and no vegetation source yet |
 
 **Important:** The current application is a functional development prototype, not an operational wildfire monitoring or emergency alert service.
 
@@ -52,9 +52,9 @@ The current prototype supports:
 - Interactive map navigation and zooming.
 - Geographic markers represented by colored circles.
 - HIGH, MODERATE, and LOW risk categories.
-- Clickable popups displaying risk information.
+- A details panel with the risk score, environmental factors and missing inputs for the selected area.
 - Risk areas loaded from the Flask backend.
-- Clear identification of demonstration data.
+- Visible indicators for incomplete and unscored areas, so missing data is never drawn like a complete result.
 
 Current risk visualization:
 
@@ -64,13 +64,13 @@ Current risk visualization:
 | MODERATE | Orange |
 | LOW | Green |
 
-The current visualization uses discrete circular regions. A continuous heatmap is a future enhancement.
+Each monitored area is drawn as a marker with a translucent 50 km risk zone (the radius used for the nearby fire-history count). Zone shading follows the area's own score, and areas without a score get no shading. Nothing is interpolated between areas, so this is not a continuous heatmap; that remains a future enhancement.
 
 ### 3.2 Flask Backend API
 
 The backend is implemented using Python and Flask.
 
-It provides API endpoints for application health monitoring and prototype risk-data retrieval.
+It provides API endpoints for application health monitoring and risk-data retrieval.
 
 #### GET /api/health
 
@@ -87,38 +87,33 @@ Example response:
 
 #### GET /api/risk-areas
 
-Returns prototype wildfire risk information.
+Returns every monitored area with its computed risk. Scores come from `score_area` in `backend/services/risk_scoring.py`, applied to the latest stored environmental observation and the count of nearby past fire detections. See [component interfaces](docs/component-interfaces.md) for the full field list.
 
-Example response:
+Abbreviated example response (one area, illustrative values):
 
 ```json
 {
   "status": "success",
-  "source": "mock",
+  "source": "supabase",
   "data": [
     {
       "id": 1,
-      "latitude": 45.42,
-      "longitude": -75.69,
-      "risk_level": "HIGH"
-    },
-    {
-      "id": 2,
-      "latitude": 45.60,
-      "longitude": -78.40,
-      "risk_level": "MODERATE"
-    },
-    {
-      "id": 3,
-      "latitude": 44.20,
-      "longitude": -79.10,
-      "risk_level": "LOW"
+      "name": "Example area",
+      "latitude": 62.454,
+      "longitude": -114.3718,
+      "risk_score": 48.4,
+      "risk_level": "MODERATE",
+      "is_complete": false,
+      "missing_inputs": ["vegetation_index"],
+      "coverage": 0.9,
+      "factor_scores": { "...": "..." },
+      "environmental_factors": { "temperature_c": 1.6, "...": "..." }
     }
   ]
 }
 ```
 
-These coordinates and classifications are demonstration values. They are not generated from live environmental observations or a deployed risk-scoring model.
+If an area has too little data (less than 50% of the model's weight), `risk_score` and `risk_level` are `null`; no score is invented. Smaller problems return `200` with a `warnings` list, and a database failure returns `503`. The values come from a provisional model and are not a validated forecast.
 
 ### 3.3 Detection Input Validation
 
@@ -197,7 +192,7 @@ flowchart TD
     C[Fetch API]
     D[Flask Backend]
     E[GET /api/risk-areas]
-    F[Mock Risk Data]
+    F[Supabase data and risk model]
 
     A --> B
     A --> C
@@ -329,6 +324,8 @@ Install the Python dependencies:
 python -m pip install -r requirements.txt
 ```
 
+The risk map needs the Supabase database. Copy `.env.example` to `.env` in the `backend` folder and set `DATABASE_URL` to the Session pooler connection string (see [Database](docs/database.md)). Never commit `.env`. To fill the tables with weather and terrain data, see [Environmental data](docs/environmental-data.md). Without a working `DATABASE_URL`, `/api/risk-areas` returns `503` and the map shows an error.
+
 Start the Flask application:
 
 ```bash
@@ -342,6 +339,7 @@ http://127.0.0.1:5000
 Available API endpoints:
 
 - http://127.0.0.1:5000/api/health
+- http://127.0.0.1:5000/api/health/db
 - http://127.0.0.1:5000/api/risk-areas
 
 ### 7.4 Set Up the Frontend
@@ -362,7 +360,7 @@ http://localhost:5173
 
 Open the URL shown in the terminal.
 
-The frontend requires the Flask backend to be running to retrieve the prototype wildfire risk data.
+The frontend requires the Flask backend to be running to retrieve wildfire risk data.
 
 ### 7.5 Expected Application Behavior
 
@@ -371,10 +369,10 @@ When both servers are running:
 1. The React application loads.
 2. The Leaflet map displays geographic information.
 3. React requests risk areas from Flask.
-4. Flask returns mock risk data.
-5. Three colored risk circles are displayed.
-6. Clicking a circle opens a popup with its risk level.
-7. A demonstration-data notice is visible.
+4. Flask scores each monitored area from the database and returns the results.
+5. One colored circle and a translucent 50 km risk zone are drawn per area. A dashed outline means some inputs are missing; grey means there was not enough data for a score.
+6. Hovering a circle shows its risk level and completeness; clicking it opens the details panel with the risk score, environmental factors and missing inputs.
+7. The "Show 50 km risk zones" checkbox hides or shows the zones.
 
 If the backend is unavailable, the frontend displays an error instead of presenting missing data as valid risk information.
 
@@ -382,7 +380,7 @@ If the backend is unavailable, the frontend displays an error instead of present
 
 **Frontend loads but no risk areas appear**
 
-Check that the Flask backend is running and that `/api/risk-areas` returns valid JSON.
+Check that the Flask backend is running and that `/api/risk-areas` returns valid JSON. If it returns `503`, check `DATABASE_URL` in `backend/.env` and that the Supabase project is not paused (see [Database](docs/database.md)).
 
 **API request fails**
 
@@ -437,7 +435,7 @@ At the time of the initial React–Flask integration, all five backend tests pas
 
 ### Frontend Verification
 
-The frontend has been manually tested for:
+At the time of the initial integration, the frontend was manually tested for:
 
 - Successful rendering of the Leaflet map.
 - Retrieval of mock risk areas from Flask.
@@ -522,11 +520,11 @@ The following components have been implemented and merged:
 
 The next development stages will focus on:
 
-1. Integrating actual wildfire risk-scoring results into the Flask API.
+1. ~~Integrating actual wildfire risk-scoring results into the Flask API.~~ Done (#44).
 2. Connecting the detection pipeline with input validation.
 3. Incorporating environmental and geospatial data sources.
-4. Displaying contributing environmental risk factors.
-5. Improving risk visualization beyond circular prototype regions.
+4. ~~Displaying contributing environmental risk factors.~~ Done (#45).
+5. Improving risk visualization beyond per-area markers and 50 km zones (a continuous heatmap would need data between the monitored areas).
 6. Strengthening missing-data and service-failure handling.
 7. Expanding automated testing and regression coverage.
 8. Refining the dashboard's usability and accessibility.
@@ -535,7 +533,7 @@ These priorities are subject to sprint planning and team coordination.
 
 ## 12. Data Reliability and Limitations
 
-The current prototype uses static mock wildfire risk data.
+The risk values come from a provisional weighted model applied to Open-Meteo weather and terrain data and to past NASA FIRMS detections stored in Supabase. Vegetation (NDVI) has no data source yet, so every area is currently reported as incomplete.
 
 It does not currently provide:
 
@@ -588,14 +586,14 @@ For collaboration practices, see:
 
 ## M3 and M4 Implementation Update
 
-The sections above document the original project goals, setup instructions, architecture, project links, and team workflow. The following updates clarify features added since that README was first written. **The three circles on the React map still come from mock data**, not live risk assessments.
+The sections above document the original project goals, setup instructions, architecture, project links, and team workflow. The following updates clarify features added since that README was first written. **The map now shows scores computed from stored data** (see the Sprint 3 notes below), but they come from a provisional model and are not live or validated risk assessments.
 
 ### Newly implemented backend and data components
 
 | Component | Current state |
 | --- | --- |
 | Weighted risk-scoring model (#21) | Implemented in `backend/services/risk_scoring.py`. Uses temperature, humidity, wind, rainfall, vegetation, slope, and nearby detections to calculate a 0–100 score and LOW/MODERATE/HIGH category. |
-| Risk scoring API | `POST /api/risk-score` accepts environmental inputs and returns a score, coverage, factor scores, missing-input details, and model version. It is **not yet connected to the map**. |
+| Risk scoring API | `POST /api/risk-score` accepts environmental inputs and returns a score, coverage, factor scores, missing-input details, and model version. `GET /api/risk-areas` applies the same model to every monitored area for the map. |
 | Missing environmental data | The scoring model flags incomplete results and returns a null risk score if less than 50% of its weighted inputs are available. |
 | Detection confidence threshold (#19) | Configurable via `MIN_DETECTION_CONFIDENCE` in `backend/config.py`; default is currently 20, based on provisional backtesting. See `docs/threshold-backtest.md`. |
 | NASA FIRMS processing | `data-processing/firms_cleaning.py` cleans and deduplicates FIRMS CSV records. VIIRS confidence classes are mapped to approximate numeric values, which are assumptions. |
@@ -605,7 +603,7 @@ The sections above document the original project goals, setup instructions, arch
 
 ### Updated local development and testing
 
-The existing setup instructions above still apply. To configure the **optional** database, copy `backend/.env.example` to `backend/.env` and supply the current Supabase Session pooler connection string. Do not commit credentials. The mock heatmap works without a database connection.
+The existing setup instructions above still apply. To configure the database, copy `backend/.env.example` to `backend/.env` and supply the current Supabase Session pooler connection string. Do not commit credentials. The risk map needs the database: without it `/api/risk-areas` returns 503 and the map shows an error.
 
 From `backend/` run:
 
@@ -624,9 +622,9 @@ See [Sprint 1 Integration Verification](docs/sprint1-verification.md) for browse
 
 ### Current integration limitations
 
-- `GET /api/risk-areas` still returns **three mock risk areas**, even though a separate risk-scoring model exists.
+- `GET /api/risk-areas` scores each monitored area with the risk model (#44), but vegetation has no data source yet, so every area is currently marked incomplete.
 - FIRMS cleaning and database utilities are present, but a verified end-to-end live ingestion → detection → risk score → map pipeline is not yet established.
-- The displayed circles are a prototype visualization, not a continuous heatmap.
+- The map draws a marker and a translucent 50 km zone per monitored area. Nothing is interpolated between areas, so it is not a continuous heatmap.
 - The scoring model and confidence threshold are provisional; this application is not a validated forecast or emergency notification service.
 - Additional tests for issues #20 and #22 are being developed separately; their inclusion in `main` should be confirmed through the corresponding pull request.
 
@@ -678,6 +676,6 @@ Historical early-warning simulation (#55) remains optional stretch work. Sprint 
 
 ### Data provenance and limitations
 
-The displayed demonstration circles must not be described as verified live wildfire risk. The risk-scoring service, data-processing utilities, and database infrastructure are distinct from a validated end-to-end live ingestion-to-map workflow. The application remains a student development prototype and is **not** an emergency alert system.
+The displayed circles and risk zones must not be described as verified live wildfire risk. The risk-scoring service, data-processing utilities, and database infrastructure are distinct from a validated end-to-end live ingestion-to-map workflow. The application remains a student development prototype and is **not** an emergency alert system.
 
 For acceptance criteria and current implementation progress, see [requirements](docs/requirements.md), the [Kanban board](https://github.com/users/RianaMalhotra/projects/1), [issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls).
