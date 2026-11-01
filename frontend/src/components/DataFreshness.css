@@ -1,0 +1,8 @@
+/* How old the data on the map is (weather, satellite detections). */
+.freshness { margin: 6px 0 0; }
+.freshness-line { margin: 4px 0; font-size: 14px; color: #4a5563; }
+.freshness-line.is-history { color: #1b2430; }
+.freshness-line.is-stale {
+  color: #1b2430; background: #fff6e5; border-left: 4px solid #d97706;
+  padding: 6px 10px; border-radius: 6px;
+}

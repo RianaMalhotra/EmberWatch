@@ -14,6 +14,18 @@ python data-processing/load_environment_to_db.py --date 2026-08-15 --days 3
 
 `DATABASE_URL` is read from `backend/.env`. Re-running is safe: areas are updated by name and observations already stored are skipped. All data is fetched before anything is written, so a network error never leaves half a load in the database. Add `--skip-terrain` to fetch weather only.
 
+## Daily refresh (GitHub Actions)
+
+`.github/workflows/refresh-weather.yml` runs the loader every day at 09:17 UTC with `--days 3 --skip-terrain`, so the map always has yesterday's weather. Loading 3 days (not 1) means a missed run is filled in by the next one; days already stored are skipped.
+
+**One-time setup (repository owner):** add a repository secret named `DATABASE_URL` under *Settings → Secrets and variables → Actions*. Use the Supabase **Session pooler** connection string, the same one as in `backend/.env`. The direct connection is IPv6-only and GitHub's runners can't reach it.
+
+**Catch up after a gap:** *Actions → Refresh weather data → Run workflow*, and set *days* to the number of days missing (up to 60).
+
+GitHub turns off scheduled workflows in repositories with no activity for 60 days; re-enable it on the Actions tab if that happens.
+
+The dashboard shows how old the data is above the map. If the newest weather observation is 3 or more days old, it shows a warning that risk levels may not reflect current conditions. Satellite detections older than 3 days are labelled as historical records, not current fires.
+
 ## Areas
 
 `data-processing/areas.csv` lists the monitored areas: name, province, the town-centre coordinates (approximate), and **why each one was chosen**. Most are places with recent major wildfires (Kelowna 2023, Lytton 2021, Jasper 2024, Fort McMurray 2016, Yellowknife 2023, …). Ottawa is a low-risk comparison. To add an area, add a row and re-run the script.
