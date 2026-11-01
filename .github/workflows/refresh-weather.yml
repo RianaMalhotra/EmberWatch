@@ -1,0 +1,73 @@
+name: Refresh weather data
+
+# Loads the latest noon weather for every monitored area into Supabase, so the
+# risk map does not go stale (see docs/environmental-data.md).
+# Needs a repository secret DATABASE_URL: the Supabase "Session pooler"
+# connection string (GitHub runners have no IPv6, so the direct connection
+# does not work here).
+
+on:
+  schedule:
+    # Every day at 09:17 UTC. By then yesterday's noon values exist for every
+    # area (noon in BC is 19:00-20:00 UTC).
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days to load, ending yesterday (use more to catch up after a gap)"
+        required: false
+        default: "3"
+
+concurrency:
+  group: refresh-weather
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Load weather into Supabase
+    # Don't run on forks, which have no database secret.
+    if: github.repository == 'RianaMalhotra/EmberWatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "psycopg[binary]" python-dotenv
+
+      - name: Check settings
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DAYS: ${{ inputs.days || '3' }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Repository secret DATABASE_URL is not set (Settings > Secrets and variables > Actions). Use the Supabase Session pooler URL."
+            exit 1
+          fi
+          case "$DAYS" in
+            ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 1 ;;
+          esac
+          if [ "$DAYS" -lt 1 ] || [ "$DAYS" -gt 60 ]; then
+            echo "::error::days must be between 1 and 60, got $DAYS"
+            exit 1
+          fi
+
+      - name: Load weather
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DAYS: ${{ inputs.days || '3' }}
+        # Re-running is safe: observations already stored are skipped.
+        # Terrain (slope) does not change, so it is not re-fetched every day.
+        run: python data-processing/load_environment_to_db.py --days "$DAYS" --skip-terrain
