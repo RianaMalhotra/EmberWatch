@@ -1,5 +1,6 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
 import { REPORTS_ENABLED } from "./services/reportApi";
@@ -80,6 +81,25 @@ function App() {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [search, setSearch] = useState("");
+  const [showFullDetails, setShowFullDetails] = useState(false);
+  const [view, setView] = useState("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function closeMenu(event) {
+      if (event.type === "keydown" && event.key === "Escape") setMenuOpen(false);
+      if (event.type === "pointerdown" && !menuRef.current?.contains(event.target)) setMenuOpen(false);
+    }
+    document.addEventListener("keydown", closeMenu);
+    document.addEventListener("pointerdown", closeMenu);
+    return () => {
+      document.removeEventListener("keydown", closeMenu);
+      document.removeEventListener("pointerdown", closeMenu);
+    };
+  }, [menuOpen]);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
@@ -167,10 +187,19 @@ function App() {
   }
 
   const factors = selectedArea?.environmental_factors ?? {};
+  const filteredAreas = riskAreas
+    .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => {
+      const aScore = validRiskScore(a) ? a.risk_score : -1;
+      const bScore = validRiskScore(b) ? b.risk_score : -1;
+      return bScore - aScore || (a.name ?? "").localeCompare(b.name ?? "");
+    });
+  function selectArea(area) { setSelectedArea(area); setShowFullDetails(false); setView("information"); }
 
   return (
-    <div>
-      <h1>Wildfire Early Detection & Risk Assessment</h1>
+    <div className={`ew-app ew-view-${view}`}>
+      <header className="ew-header"><div className="ew-header-left">{view !== "dashboard" && <button className="ew-nav-back" type="button" onClick={() => { if(view === "risk") {setView("information");setShowFullDetails(false);} else {setView("dashboard");setSelectedArea(null);} }}>← Back</button>}<div className="ew-brand"><span className="ew-brand-icon" aria-hidden="true">♨</span><span>EMBER<span className="ew-brand-accent">WATCH</span></span></div></div><div className="ew-menu-wrap" ref={menuRef}><button type="button" className="ew-menu-toggle" aria-label="Open navigation menu" aria-expanded={menuOpen} aria-controls="ew-navigation" onClick={() => setMenuOpen((open) => !open)}>☰</button>{menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Main navigation"><button type="button" onClick={() => { setView("dashboard"); setSelectedArea(null); setShowFullDetails(false); setMenuOpen(false); }}>Wildfire Dashboard</button><button type="button" disabled={!selectedArea} onClick={() => { setView("information"); setShowFullDetails(false); setMenuOpen(false); }}>Fire Information</button><button type="button" disabled={!selectedArea} onClick={() => { setView("risk"); setShowFullDetails(true); setMenuOpen(false); }}>Risk Details</button></nav>}</div></header>
+      <main className="ew-main"><div className="ew-page-heading"><div><span className="ew-eyebrow">WILDFIRE MONITORING</span><h1>{view === "dashboard" ? "Wildfire Dashboard" : view === "information" ? "Fire Information" : "Risk Details"}</h1><p>{view === "dashboard" ? "Select a location to explore wildfire risk." : view === "information" ? "Fire information and environmental conditions" : "Risk factors and current conditions"}</p></div></div>
 
       {/* #51: public fire reports. Not an emergency service. */}
       {reporting ? (
@@ -234,19 +263,12 @@ function App() {
         </>
       )}
 
-      <div 
-        style={{
-          display: "flex",
-          gap: "16px",
-          alignItems: "stretch",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1 1 500px", minWidth: 0 }}>
+      <div className="ew-workspace">
+        <div className="ew-map-column"><div className="ew-section-heading"><div><span className="ew-overline">GEOGRAPHIC OVERVIEW</span><h2>{view === "dashboard" ? "Wildfire map" : "Selected area map"}</h2></div><span className="ew-section-meta">{riskAreas.length} monitored areas</span></div><div className="ew-map-frame">
           <MapContainer
             center={[45.4, -77.5]}
             zoom={7}
-            style={{ height: "75vh", width: "100%" }}
+            style={{ height: "100%", width: "100%" }}
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
@@ -267,7 +289,7 @@ function App() {
                   pathOptions={pathOptions}
                   eventHandlers={{
                     click: () => { 
-                      setSelectedArea(area);
+                      selectArea(area);
                     },
                   }}
                 >
@@ -311,7 +333,7 @@ function App() {
               </CircleMarker>
             );
           })}
-        </MapContainer>
+        </MapContainer></div>
         <RiskLegend />
         <p style={{ fontSize: 14 }} aria-label="Detection marker legend">
           Detection markers: solid red = meets confidence threshold; dashed grey = low confidence.
@@ -319,16 +341,7 @@ function App() {
         </p>
       </div>
       
-        <aside
-          style={{
-            flex: "0 1 300px",
-            minWidth: "260px",
-            padding: "16px",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            alignSelf: "flex-start",
-          }}
-        >
+        <aside className="ew-side-panel"><div className="ew-panel-top"><span className="ew-overline">SELECT A LOCATION</span><h2>Active Detections & Monitored Areas</h2><label className="ew-search-label" htmlFor="ew-area-search">Search monitored areas</label><input id="ew-area-search" type="search" placeholder="Search location..." value={search} onChange={(event) => setSearch(event.target.value)} /><div className="ew-area-list" aria-label="Monitored areas">{filteredAreas.map((area) => <button type="button" className={`ew-area-row ${selectedArea?.id === area.id ? "is-selected" : ""}`} key={area.id} onClick={() => selectArea(area)}><span className="ew-area-name">{area.name ?? `Area ${area.id}`}</span><span className={`ew-risk-tag ew-risk-${(validRiskScore(area) ? area.risk_level : "unavailable").toLowerCase()}`}>{validRiskScore(area) ? area.risk_level : "N/A"}</span><span aria-hidden="true">›</span></button>)}{filteredAreas.length === 0 && <p className="ew-empty-search">No matching monitored areas.</p>}</div></div><div className="ew-detail-panel"><span className="ew-overline">{view === "risk" ? "RISK DETAILS" : "FIRE INFORMATION"}</span>
           {!selectedArea ? (
             <>
               <h2>Area Details</h2>
@@ -336,22 +349,7 @@ function App() {
             </>
           ) : (
             <>
-              <h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2>
-
-              <h3
-                style={{
-                  color: riskColor(selectedArea),
-                }}
-              >
-                Risk: {validRiskScore(selectedArea) ? selectedArea.risk_level : "Unavailable"}
-              </h3>
-
-              <p>
-                <strong>Risk Score: </strong>
-                {validRiskScore(selectedArea)
-                  ? `${selectedArea.risk_score.toFixed(1)} / 100`
-                  : "Unavailable"}
-              </p>
+              <div className="ew-detail-heading"><div><span className="ew-overline">FIRE INFORMATION</span><h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2></div><button type="button" className="ew-back-button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); }}>← Back</button></div>
 
               {riskState(selectedArea) === "incomplete" && (
                 <p role="status">
@@ -367,7 +365,7 @@ function App() {
                 </p>
               )}
 
-              <hr />
+              <div className="ew-metric-grid"><div className="ew-metric"><span>Risk level</span><strong style={{color: riskColor(selectedArea)}}>{validRiskScore(selectedArea) ? selectedArea.risk_level : "Unavailable"}</strong></div><div className="ew-metric"><span>Risk score</span><strong>{validRiskScore(selectedArea) ? `${selectedArea.risk_score.toFixed(1)} / 100` : "Unavailable"}</strong></div></div><hr />
 
               <h3>Environmental Factors</h3>
               <p>These factors contribute to a weighted risk estimate, not a confirmed wildfire detection. Higher factor scores mean higher modeled risk; missing factors are excluded and the remaining weights are normalized.</p>
@@ -389,17 +387,6 @@ function App() {
                 );
               })}
 
-              <h3>How the risk estimate is calculated</h3>
-              <ul aria-label="Risk factor explanations">
-                {explainFactors(selectedArea).map(({ key, weight, score, explanation }) => (
-                  <li key={key}>
-                    <strong>{factorLabels[key]} ({Math.round(weight * 100)}% base weight): </strong>
-                    {score === null ? "Unavailable" : `${score.toFixed(1)} / 100`}. {explanation}
-                  </li>
-                ))}
-              </ul>
-              <p>Model: {selectedArea.model_version ?? "Unavailable"}. Factor scores and weights are provisional; this is not a validated real-time fire forecast.</p>
-
               {selectedArea.missing_inputs?.length > 0 && (
                 <p>
                   <strong>Missing inputs: </strong>
@@ -412,13 +399,25 @@ function App() {
                 {selectedArea.is_complete ? "Yes" : "No"}
               </p>
 
-              <button onClick={() => setSelectedArea(null)}>
+              <button type="button" className="ew-details-button" onClick={() => {setShowFullDetails((v) => !v);setView((v) => v === "risk" ? "information" : "risk");}} aria-expanded={showFullDetails}>{showFullDetails ? "← Back to Fire Information" : "View Risk Details →"}</button>
+              <div className={showFullDetails ? "ew-expanded-details" : "ew-collapsed-details"}><h3>How the risk estimate is calculated</h3>
+              <ul aria-label="Risk factor explanations">
+                {explainFactors(selectedArea).map(({ key, weight, score, explanation }) => (
+                  <li key={key}>
+                    <strong>{factorLabels[key]} ({Math.round(weight * 100)}% base weight): </strong>
+                    {score === null ? "Unavailable" : `${score.toFixed(1)} / 100`}. {explanation}
+                  </li>
+                ))}
+              </ul>
+              <p>Model: {selectedArea.model_version ?? "Unavailable"}. Factor scores and weights are provisional; this is not a validated real-time fire forecast.</p>
+
+              </div><button onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); }}>
                 Clear selection
               </button>
             </>
           )}
-        </aside>
-      </div>
+        </div></aside>
+      </div></main>
     </div>
   );
 }
