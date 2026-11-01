@@ -23,6 +23,16 @@ vi.mock("react-leaflet", async () => {
       React.createElement("span", { role: "tooltip" }, children),
     useMap: () => mockMap,
 
+    // #44: risk zone overlay
+    Circle: ({ center, radius, pathOptions }) =>
+      React.createElement("div", {
+        "data-testid": "risk-zone",
+        "data-center": center.join(", "),
+        "data-radius": String(radius),
+        "data-fill-opacity": String(pathOptions?.fillOpacity),
+        "data-dashed": pathOptions?.dashArray ? "yes" : "no",
+      }),
+
     CircleMarker: ({ center, eventHandlers, pathOptions, children }) =>
       React.createElement(
         "button",
