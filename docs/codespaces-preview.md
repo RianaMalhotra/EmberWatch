@@ -20,6 +20,6 @@ In Codespaces **Ports**, open the forwarded **5173** URL. The frontend calls `/a
 
 If `frontend/.env.local` contains `VITE_API_BASE_URL`, remove or comment it out to use the proxy, then restart Vite. A deployed production frontend can instead configure that variable to the deployed backend URL and enable CORS on Flask.
 
-The risk-area endpoint currently serves labeled mock data. The detection endpoint requires valid private database configuration; without it, detections can correctly report unavailable. Never commit database credentials.
+The risk-area and detection endpoints both require valid private database configuration (`DATABASE_URL`); without it, `/api/risk-areas` returns 503 and the map shows an error, and detections report unavailable. Never commit database credentials.
 
 The preview map uses Esri WorldTopoMap tiles. Tile availability and permitted usage depend on Esri's terms and network access.
