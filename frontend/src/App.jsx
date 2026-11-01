@@ -81,6 +81,8 @@ function App() {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  // #44: heat-style risk zones around each scored area
+  const [showZones, setShowZones] = useState(true);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
@@ -258,7 +260,7 @@ function App() {
 
             {/* #44: zones are drawn first so the clickable markers stay on top.
                 Areas without a score get no fill (see riskZoneStyle). */}
-            {riskAreas
+            {showZones && riskAreas
               .filter((area) => Number.isFinite(area.latitude) && Number.isFinite(area.longitude))
               .map((area) => (
                 <Circle
@@ -327,6 +329,14 @@ function App() {
             );
           })}
         </MapContainer>
+        <label style={{ fontSize: 14, display: "block", marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={showZones}
+            onChange={(event) => setShowZones(event.target.checked)}
+          />{" "}
+          Show 50 km risk zones
+        </label>
         <RiskLegend />
         <p style={{ fontSize: 14 }} aria-label="Risk zone legend">
           Shaded zones show the 50 km area used for nearby fire history; stronger shading means a

@@ -250,6 +250,19 @@ describe("Wildfire risk map", () => {
     expect(zoneAt("62.454, -114.372")).toHaveAttribute("data-fill-opacity", "0");
   });
 
+  it("lets the user hide the risk zones (#44)", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+
+    render(<App />);
+
+    expect(await screen.findAllByTestId("risk-zone")).toHaveLength(1);
+    await user.click(screen.getByRole("checkbox", { name: /show 50 km risk zones/i }));
+    expect(screen.queryAllByTestId("risk-zone")).toHaveLength(0);
+    // the clickable area markers are unaffected
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
+  });
+
   it("does not present a stale risk level when the score is missing", async () => {
     const user = userEvent.setup();
     const inconsistent = { ...mockArea, risk_score: null, risk_level: "HIGH" };
