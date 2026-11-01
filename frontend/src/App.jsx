@@ -79,7 +79,6 @@ function App() {
   const [riskAreas, setRiskAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dataSource, setDataSource] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
   // #44: heat-style risk zones around each scored area
   const [showZones, setShowZones] = useState(true);
@@ -135,7 +134,6 @@ function App() {
         if (!active) return;
 
         setRiskAreas(result.data);
-        setDataSource(result.source);
         setWarnings(Array.isArray(result.warnings) ? result.warnings : []);
         setError(null);
       } catch (err) {
@@ -206,10 +204,6 @@ function App() {
           Notice: {warning.message}
         </p>
       ))}
-
-      {dataSource === "mock" && !error && (
-        <p>Demo data — not live wildfire risk</p>
-      )}
 
       {!loading && !error && riskAreas.length === 0 && (
         <p>No monitored areas were returned by the backend.</p>
@@ -291,9 +285,6 @@ function App() {
                   <Tooltip>
                     {area.name ?? `Area ${area.id}`}: {riskStatusText(area)}
                   </Tooltip>
-                {dataSource === "mock" && (
-                  <Popup>Demo data — not live wildfire risk</Popup>
-                )} 
                </CircleMarker>  
              );
            })}
