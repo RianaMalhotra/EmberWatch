@@ -52,9 +52,9 @@ The current prototype supports:
 - Interactive map navigation and zooming.
 - Geographic markers represented by colored circles.
 - HIGH, MODERATE, and LOW risk categories.
-- Clickable popups displaying risk information.
+- A details panel with the risk score, environmental factors and missing inputs for the selected area.
 - Risk areas loaded from the Flask backend.
-- Clear identification of demonstration data.
+- Visible indicators for incomplete and unscored areas, so missing data is never drawn like a complete result.
 
 Current risk visualization:
 
@@ -70,7 +70,7 @@ Each monitored area is drawn as a marker with a translucent 50 km risk zone (the
 
 The backend is implemented using Python and Flask.
 
-It provides API endpoints for application health monitoring and prototype risk-data retrieval.
+It provides API endpoints for application health monitoring and risk-data retrieval.
 
 #### GET /api/health
 
@@ -380,7 +380,7 @@ If the backend is unavailable, the frontend displays an error instead of present
 
 **Frontend loads but no risk areas appear**
 
-Check that the Flask backend is running and that `/api/risk-areas` returns valid JSON.
+Check that the Flask backend is running and that `/api/risk-areas` returns valid JSON. If it returns `503`, check `DATABASE_URL` in `backend/.env` and that the Supabase project is not paused (see [Database](docs/database.md)).
 
 **API request fails**
 
@@ -435,7 +435,7 @@ At the time of the initial React–Flask integration, all five backend tests pas
 
 ### Frontend Verification
 
-The frontend has been manually tested for:
+At the time of the initial integration, the frontend was manually tested for:
 
 - Successful rendering of the Leaflet map.
 - Retrieval of mock risk areas from Flask.
@@ -520,11 +520,11 @@ The following components have been implemented and merged:
 
 The next development stages will focus on:
 
-1. Integrating actual wildfire risk-scoring results into the Flask API.
+1. ~~Integrating actual wildfire risk-scoring results into the Flask API.~~ Done (#44).
 2. Connecting the detection pipeline with input validation.
 3. Incorporating environmental and geospatial data sources.
-4. Displaying contributing environmental risk factors.
-5. Improving risk visualization beyond circular prototype regions.
+4. ~~Displaying contributing environmental risk factors.~~ Done (#45).
+5. Improving risk visualization beyond per-area markers and 50 km zones (a continuous heatmap would need data between the monitored areas).
 6. Strengthening missing-data and service-failure handling.
 7. Expanding automated testing and regression coverage.
 8. Refining the dashboard's usability and accessibility.
@@ -586,7 +586,7 @@ For collaboration practices, see:
 
 ## M3 and M4 Implementation Update
 
-The sections above document the original project goals, setup instructions, architecture, project links, and team workflow. The following updates clarify features added since that README was first written. **The three circles on the React map still come from mock data**, not live risk assessments.
+The sections above document the original project goals, setup instructions, architecture, project links, and team workflow. The following updates clarify features added since that README was first written. **The map now shows scores computed from stored data** (see the Sprint 3 notes below), but they come from a provisional model and are not live or validated risk assessments.
 
 ### Newly implemented backend and data components
 
@@ -676,6 +676,6 @@ Historical early-warning simulation (#55) remains optional stretch work. Sprint 
 
 ### Data provenance and limitations
 
-The displayed demonstration circles must not be described as verified live wildfire risk. The risk-scoring service, data-processing utilities, and database infrastructure are distinct from a validated end-to-end live ingestion-to-map workflow. The application remains a student development prototype and is **not** an emergency alert system.
+The displayed circles and risk zones must not be described as verified live wildfire risk. The risk-scoring service, data-processing utilities, and database infrastructure are distinct from a validated end-to-end live ingestion-to-map workflow. The application remains a student development prototype and is **not** an emergency alert system.
 
 For acceptance criteria and current implementation progress, see [requirements](docs/requirements.md), the [Kanban board](https://github.com/users/RianaMalhotra/projects/1), [issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls).
