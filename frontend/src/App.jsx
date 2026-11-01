@@ -23,7 +23,8 @@ import {
   riskState,
   riskStatusText,
 } from "./utils/riskFormat";
-import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Tooltip, useMap } from "react-leaflet";
+import { RISK_ZONE_RADIUS_M, riskZoneStyle } from "./utils/riskZone";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
 
@@ -255,6 +256,20 @@ function App() {
 
             <FitToAreas areas={riskAreas} />
 
+            {/* #44: zones are drawn first so the clickable markers stay on top.
+                Areas without a score get no fill (see riskZoneStyle). */}
+            {riskAreas
+              .filter((area) => Number.isFinite(area.latitude) && Number.isFinite(area.longitude))
+              .map((area) => (
+                <Circle
+                  key={`zone-${area.id}`}
+                  center={[area.latitude, area.longitude]}
+                  radius={RISK_ZONE_RADIUS_M}
+                  pathOptions={riskZoneStyle(area)}
+                  interactive={false}
+                />
+              ))}
+
             {riskAreas.map((area) => {
               // Pixel-sized markers stay visible at country-wide zoom levels.
               const { radius, ...pathOptions } = riskAreaStyle(area, selectedArea?.id === area.id);
@@ -313,6 +328,10 @@ function App() {
           })}
         </MapContainer>
         <RiskLegend />
+        <p style={{ fontSize: 14 }} aria-label="Risk zone legend">
+          Shaded zones show the 50 km area used for nearby fire history; stronger shading means a
+          higher score. Areas without a score have no shading.
+        </p>
         <p style={{ fontSize: 14 }} aria-label="Detection marker legend">
           Detection markers: solid red = meets confidence threshold; dashed grey = low confidence.
           Detection confidence reflects the observation, not the environmental wildfire risk score.
