@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
+import ReportFire from "./components/ReportFire";
+import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
 import {
@@ -100,6 +102,7 @@ function App() {
   }, [menuOpen]);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
   const [detectionLoading, setDetectionLoading] = useState(true);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
   // counters that re-run a load when the user presses "Try again".
@@ -197,6 +200,19 @@ function App() {
     <div className={`ew-app ew-view-${view}`}>
       <header className="ew-header"><div className="ew-header-left">{view !== "dashboard" && <button className="ew-nav-back" type="button" onClick={() => { if(view === "risk") {setView("information");setShowFullDetails(false);} else {setView("dashboard");setSelectedArea(null);} }}>← Back</button>}<div className="ew-brand"><span className="ew-brand-icon" aria-hidden="true">♨</span><span>EMBER<span className="ew-brand-accent">WATCH</span></span></div></div><div className="ew-menu-wrap" ref={menuRef}><button type="button" className="ew-menu-toggle" aria-label="Open navigation menu" aria-expanded={menuOpen} aria-controls="ew-navigation" onClick={() => setMenuOpen((open) => !open)}>☰</button>{menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Main navigation"><button type="button" onClick={() => { setView("dashboard"); setSelectedArea(null); setShowFullDetails(false); setMenuOpen(false); }}>Wildfire Dashboard</button><button type="button" disabled={!selectedArea} onClick={() => { setView("information"); setShowFullDetails(false); setMenuOpen(false); }}>Fire Information</button><button type="button" disabled={!selectedArea} onClick={() => { setView("risk"); setShowFullDetails(true); setMenuOpen(false); }}>Risk Details</button></nav>}</div></header>
       <main className="ew-main"><div className="ew-page-heading"><div><span className="ew-eyebrow">WILDFIRE MONITORING</span><h1>{view === "dashboard" ? "Wildfire Dashboard" : view === "information" ? "Fire Information" : "Risk Details"}</h1><p>{view === "dashboard" ? "Select a location to explore wildfire risk." : view === "information" ? "Fire information and environmental conditions" : "Risk factors and current conditions"}</p></div></div>
+
+      {/* #51: public fire reports. Not an emergency service. */}
+      {reporting ? (
+        <ReportFire onClose={() => setReporting(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setReporting(true)}
+          style={{ background: "#C2410C", color: "#fff", border: 0, borderRadius: 8, padding: "10px 16px", fontWeight: 600, marginBottom: 8 }}
+        >
+          {REPORTS_ENABLED ? "Report a Fire" : "Report a Fire (preview)"}
+        </button>
+      )}
 
       {loading && (
         <p>Loading wildfire risk data...</p>

@@ -23,6 +23,16 @@ Use the **archive** data, not near-real-time: only the archive includes the `typ
 python data-processing/firms_cleaning.py data-processing/data/fire_archive.csv data-processing/data/cleaned.csv
 ```
 
+## Validate stored detections (`validate_detections.py`, issue #46)
+
+Read-only checks on `public.detections` after a load: duplicates, future or malformed timestamps, confidence class vs. score, missing months, and non-wildfire FIRMS types. Exits with code 1 if an error check fails.
+
+```bash
+python data-processing/validate_detections.py
+```
+
+Source, load history and the latest results: [docs/detection-data-provenance.md](../docs/detection-data-provenance.md).
+
 ## Threshold backtest (`ml/backtest_threshold.py`, issue #19)
 
 ```bash
