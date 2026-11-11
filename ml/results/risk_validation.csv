@@ -1,0 +1,22 @@
+event,case,date,temperature_c,relative_humidity_pct,wind_speed_kmh,precipitation_mm,vegetation_index,slope_deg,nearby_detections,risk_score,risk_level,coverage,missing_inputs,model_version,weather_source
+Slave Lake,fire_day,2011-05-15,13.7,35.0,32.6,0.0,,0.16205650475852168,,58.5,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Slave Lake,prev_year,2010-05-15,19.4,27.0,0.4,0.0,,0.16205650475852168,,51.8,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Slave Lake,off_season,2011-01-15,-26.1,68.0,6.6,3.2,,0.16205650475852168,,19.2,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Fort McMurray,fire_day,2016-05-03,25.7,33.0,8.0,0.0,,0.16205650475852168,,57.3,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Fort McMurray,prev_year,2015-05-03,5.9,51.0,8.9,3.5,,0.16205650475852168,,28.6,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Fort McMurray,off_season,2016-01-15,-23.6,66.0,2.9,0.0,,0.16205650475852168,,23.4,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Lytton,fire_day,2021-06-30,39.4,29.0,6.6,0.0,,9.74966975948368,,68.2,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Lytton,prev_year,2020-06-30,17.1,83.0,2.4,9.0,,9.74966975948368,,14.4,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Lytton,off_season,2021-01-15,5.4,86.0,3.0,0.9,,9.74966975948368,,18.2,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Hay River,fire_day,2023-05-14,22.9,21.0,17.6,0.0,,0.16205650475852168,,65.3,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Hay River,prev_year,2022-05-14,12.2,67.0,13.3,0.0,,0.16205650475852168,,33.3,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Hay River,off_season,2023-01-15,-14.5,80.0,3.9,0.0,,0.16205650475852168,,17.2,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Yellowknife,fire_day,2023-08-16,17.9,49.0,9.7,0.0,,0.5729386976834859,,44.6,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Yellowknife,prev_year,2022-08-16,23.1,63.0,7.8,0.0,,0.5729386976834859,,41.1,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Yellowknife,off_season,2023-01-15,-19.0,83.0,6.4,1.5,,0.5729386976834859,,16.2,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Kelowna,fire_day,2023-08-17,35.0,21.0,12.8,0.0,,0.7247020051799652,,72.5,HIGH,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Kelowna,prev_year,2022-08-17,32.4,26.0,6.5,0.0,,0.7247020051799652,,65.2,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Kelowna,off_season,2023-01-15,3.3,92.0,4.3,1.7,,0.7247020051799652,,14.9,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Jasper,fire_day,2024-07-24,23.4,29.0,8.2,0.0,,1.336113489698003,,57.8,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Jasper,prev_year,2023-07-24,23.4,52.0,4.0,0.0,,1.336113489698003,,45.0,MODERATE,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
+Jasper,off_season,2024-01-15,-20.5,50.0,6.5,0.0,,1.336113489698003,,32.9,LOW,0.65,vegetation_index;nearby_detections,weighted-index-v1,open-meteo-archive
