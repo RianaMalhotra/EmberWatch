@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
@@ -26,6 +27,7 @@ import {
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
+import { lastUpdatedText, observationText } from "./utils/observationFormat";
 
 const factorUnits = {
   temperature_c: "°C",
@@ -166,8 +168,6 @@ function App() {
     setDetectionAttempt((n) => n + 1);
   }
 
-  const factors = selectedArea?.environmental_factors ?? {};
-
   return (
     <div>
       <h1>Wildfire Early Detection & Risk Assessment</h1>
@@ -204,6 +204,10 @@ function App() {
         </p>
       ))}
 
+      {!error && lastUpdatedText(riskAreas) && (
+        <p>{lastUpdatedText(riskAreas)}</p>
+      )}
+
       {dataSource === "mock" && !error && (
         <p>Demo data — not live wildfire risk</p>
       )}
@@ -234,6 +238,26 @@ function App() {
         </>
       )}
 
+      <ErrorBoundary label="map and area details" resetKeys={[riskAreas, detectionResult]}>
+        <MapSection
+          riskAreas={riskAreas}
+          detectionResult={detectionResult}
+          dataSource={dataSource}
+          selectedArea={selectedArea}
+          onSelectArea={setSelectedArea}
+        />
+      </ErrorBoundary>
+    </div>
+  );
+}
+
+// The map and the area-details panel. Kept in its own component so an
+// ErrorBoundary can contain a crash here (#49): an error thrown while drawing
+// the map must not take down the status messages or the Report a Fire panel.
+function MapSection({ riskAreas, detectionResult, dataSource, selectedArea, onSelectArea }) {
+  const factors = selectedArea?.environmental_factors ?? {};
+
+  return (
       <div 
         style={{
           display: "flex",
@@ -267,7 +291,7 @@ function App() {
                   pathOptions={pathOptions}
                   eventHandlers={{
                     click: () => { 
-                      setSelectedArea(area);
+                      onSelectArea(area);
                     },
                   }}
                 >
@@ -367,6 +391,16 @@ function App() {
                 </p>
               )}
 
+              <p>
+                <strong>Weather observed: </strong>
+                {observationText(selectedArea)}
+              </p>
+              {selectedArea.observation_stale === true && (
+                <p role="status">
+                  This weather data is old, so the risk estimate may not reflect current conditions.
+                </p>
+              )}
+
               <hr />
 
               <h3>Environmental Factors</h3>
@@ -412,14 +446,13 @@ function App() {
                 {selectedArea.is_complete ? "Yes" : "No"}
               </p>
 
-              <button onClick={() => setSelectedArea(null)}>
+              <button onClick={() => onSelectArea(null)}>
                 Clear selection
               </button>
             </>
           )}
         </aside>
       </div>
-    </div>
   );
 }
 

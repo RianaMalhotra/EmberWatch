@@ -1,10 +1,11 @@
 import math
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
-from config import get_cors_origins
+from config import get_cors_origins, get_stale_observation_days
 from db import check_database, get_connection
 
 from services.risk_scoring import (
@@ -120,6 +121,33 @@ def _is_coordinate(value):
     )
 
 
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _observation_freshness(observed_at, now=None):
+    """Describe how old an area's weather observation is (#49).
+
+    Returns ``(observed_at, age_hours, stale)``. ``observed_at`` is sent as ISO
+    text. All three are None when there is no observation or its time can't be
+    read: the UI then says so instead of showing a made-up time.
+    """
+    if isinstance(observed_at, datetime):
+        moment, text = observed_at, observed_at.isoformat()
+    elif isinstance(observed_at, str):
+        try:
+            moment, text = datetime.fromisoformat(observed_at.replace("Z", "+00:00")), observed_at
+        except ValueError:
+            return None, None, None
+    else:
+        return None, None, None
+
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)  # stored times are UTC
+    age_hours = round(((now or _utcnow()) - moment).total_seconds() / 3600, 1)
+    return text, age_hours, age_hours > get_stale_observation_days() * 24
+
+
 def _environmental_factors(area, nearby_detections):
     return {
         "temperature_c": area.get("temperature_c"),
@@ -145,7 +173,8 @@ def _unscored_risk():
     }
 
 
-def _risk_area_record(area, nearby_detections, risk, processing_error=False):
+def _risk_area_record(area, nearby_detections, risk, processing_error=False, now=None):
+    observed_at, age_hours, stale = _observation_freshness(area.get("observed_at"), now)
     record = {
         "id": area.get("id"),
         "name": area.get("name"),
@@ -162,7 +191,9 @@ def _risk_area_record(area, nearby_detections, risk, processing_error=False):
 
         "environmental_factors": _environmental_factors(area, nearby_detections),
 
-        "observed_at": area.get("observed_at"),
+        "observed_at": observed_at,
+        "observation_age_hours": age_hours,
+        "observation_stale": stale,
     }
     if processing_error:
         record["processing_error"] = True
@@ -182,6 +213,7 @@ def _build_risk_areas(conn, areas):
       unavailable" and the rest are still scored.
     """
     results = []
+    now = _utcnow()
     history_available = True
     skipped = 0
     scoring_failed = 0
@@ -215,12 +247,12 @@ def _build_risk_areas(conn, areas):
                 "slope_deg": area.get("slope_deg"),
                 "nearby_detections": nearby_detections,
             })
-            results.append(_risk_area_record(area, nearby_detections, risk))
+            results.append(_risk_area_record(area, nearby_detections, risk, now=now))
         except Exception:
             app.logger.exception("Risk model failed for area %s", area.get("id"))
             scoring_failed += 1
             results.append(_risk_area_record(
-                area, nearby_detections, _unscored_risk(), processing_error=True
+                area, nearby_detections, _unscored_risk(), processing_error=True, now=now
             ))
 
     warnings = []
@@ -235,6 +267,14 @@ def _build_risk_areas(conn, areas):
             "code": "scoring_failed",
             "count": scoring_failed,
             "message": f"Risk could not be calculated for {scoring_failed} area(s).",
+        })
+    stale = sum(1 for r in results if r["observation_stale"])
+    if stale:
+        warnings.append({
+            "code": "stale_observations",
+            "count": stale,
+            "message": f"Weather data for {stale} area(s) is more than "
+                       f"{get_stale_observation_days():g} days old, so risk may be out of date.",
         })
     if skipped:
         warnings.append({
