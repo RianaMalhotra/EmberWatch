@@ -1,10 +1,11 @@
 import math
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
-from config import get_cors_origins
+from config import get_cors_origins, get_report_hash_salt, get_report_rate_limit
 from db import check_database, get_connection
 
 from services.risk_scoring import (
@@ -14,6 +15,8 @@ from services.risk_scoring import (
     score_area,
 )
 from services.detection_pipeline import get_classified_detections
+from services.report_store import RateLimited, client_key, save_report
+from services.report_validation import validate_report
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -277,6 +280,64 @@ def get_risk_areas():
     if warnings:
         body["warnings"] = warnings
     return jsonify(body), 200
+
+
+# A report is a few hundred bytes; refuse anything far bigger.
+MAX_REPORT_BODY_BYTES = 10_000
+
+
+def _sender_ip():
+    """The sender's IP. On Render the app runs behind a proxy, so the first
+    X-Forwarded-For address is the browser; locally it is remote_addr."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    first = forwarded.split(",")[0].strip()
+    return first or request.remote_addr
+
+
+@app.route("/api/reports", methods=["POST"])
+def create_report():
+    """Store a public fire report from the Report a Fire form (#51, #52).
+
+    201 {"status": "success", "data": {"id", "review_status": "unverified",
+    "linked_report_id", "linked_detection_id"}}. 400 invalid input, 413 body
+    too large, 429 too many reports from this sender, 503 database problem
+    (nothing is stored). See docs/component-interfaces.md and docs/reports.md.
+    """
+    if request.content_length and request.content_length > MAX_REPORT_BODY_BYTES:
+        return jsonify({"status": "error", "message": "Report is too large"}), 413
+
+    report, errors = validate_report(
+        request.get_json(silent=True), now=datetime.now(timezone.utc)
+    )
+    if errors:
+        return jsonify({
+            "status": "error",
+            "message": "Report is not valid",
+            "errors": errors,
+        }), 400
+
+    try:
+        limit, window_minutes = get_report_rate_limit()
+        key = client_key(_sender_ip(), get_report_hash_salt())
+        with get_connection() as conn:
+            saved = save_report(conn, report, key, limit, window_minutes)
+    except RateLimited as error:
+        response = jsonify({
+            "status": "error",
+            "message": "Too many reports from this device. Please wait and try again.",
+        })
+        response.headers["Retry-After"] = str(error.retry_after_seconds)
+        return response, 429
+    except Exception:
+        # Database down, bad config, or a failure half way through: the
+        # transaction rolled back, so nothing was stored. Don't leak details.
+        app.logger.exception("Could not save fire report")
+        return jsonify({
+            "status": "unavailable",
+            "message": "The report could not be saved. Please try again.",
+        }), 503
+
+    return jsonify({"status": "success", "data": saved}), 201
 
 
 if __name__ == "__main__":
