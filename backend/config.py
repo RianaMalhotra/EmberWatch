@@ -49,3 +49,37 @@ def get_cors_origins():
         return list(DEFAULT_CORS_ORIGINS)
     origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
     return origins or list(DEFAULT_CORS_ORIGINS)
+
+
+# Public fire reports (#52): how many reports one sender (IP address) may send
+# in a time window. Defaults: 5 reports per 10 minutes. Override with
+# REPORT_RATE_LIMIT and REPORT_RATE_WINDOW_MINUTES.
+DEFAULT_REPORT_RATE_LIMIT = 5
+DEFAULT_REPORT_RATE_WINDOW_MINUTES = 10
+
+
+def _positive_int_env(name, default):
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ValueError(f"{name} must be a whole number, got {raw!r}")
+    if value < 1:
+        raise ValueError(f"{name} must be at least 1, got {value}")
+    return value
+
+
+def get_report_rate_limit():
+    """Return ``(limit, window_minutes)`` for public fire reports."""
+    return (
+        _positive_int_env("REPORT_RATE_LIMIT", DEFAULT_REPORT_RATE_LIMIT),
+        _positive_int_env("REPORT_RATE_WINDOW_MINUTES", DEFAULT_REPORT_RATE_WINDOW_MINUTES),
+    )
+
+
+def get_report_hash_salt():
+    """Secret mixed into the IP hash (REPORT_HASH_SALT), so stored keys can't be
+    reversed by hashing every possible IP. Empty string if not set."""
+    return os.environ.get("REPORT_HASH_SALT", "")
