@@ -80,3 +80,41 @@ export function areaBounds(areas) {
     .filter((a) => Number.isFinite(a.latitude) && Number.isFinite(a.longitude))
     .map((a) => [a.latitude, a.longitude]);
 }
+
+// #49: a risk area can only be drawn if it has an id and a real location.
+// Anything else is left out and counted, instead of crashing the whole map.
+export function isDisplayableRiskArea(area) {
+  return (
+    area !== null &&
+    typeof area === "object" &&
+    !Array.isArray(area) &&
+    area.id !== null &&
+    area.id !== undefined &&
+    Number.isFinite(area.latitude) &&
+    Number.isFinite(area.longitude) &&
+    Math.abs(area.latitude) <= 90 &&
+    Math.abs(area.longitude) <= 180
+  );
+}
+
+// Second line of defence after the backend's own checks (same idea as
+// sanitizeDetections). Adds an "area_unreadable" warning when records were dropped.
+export function sanitizeRiskAreas(result) {
+  const data = result.data.filter(isDisplayableRiskArea);
+  const dropped = result.data.length - data.length;
+  if (dropped === 0) return result;
+
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+  return {
+    ...result,
+    data,
+    warnings: [
+      ...warnings,
+      {
+        code: "area_unreadable",
+        count: dropped,
+        message: `${dropped} area(s) were left out because their data could not be read.`,
+      },
+    ],
+  };
+}

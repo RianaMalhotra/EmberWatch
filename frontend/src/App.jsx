@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
@@ -166,8 +167,6 @@ function App() {
     setDetectionAttempt((n) => n + 1);
   }
 
-  const factors = selectedArea?.environmental_factors ?? {};
-
   return (
     <div>
       <h1>Wildfire Early Detection & Risk Assessment</h1>
@@ -234,6 +233,26 @@ function App() {
         </>
       )}
 
+      <ErrorBoundary label="map and area details" resetKeys={[riskAreas, detectionResult]}>
+        <MapSection
+          riskAreas={riskAreas}
+          detectionResult={detectionResult}
+          dataSource={dataSource}
+          selectedArea={selectedArea}
+          onSelectArea={setSelectedArea}
+        />
+      </ErrorBoundary>
+    </div>
+  );
+}
+
+// The map and the area-details panel. Kept in its own component so an
+// ErrorBoundary can contain a crash here (#49): an error thrown while drawing
+// the map must not take down the status messages or the Report a Fire panel.
+function MapSection({ riskAreas, detectionResult, dataSource, selectedArea, onSelectArea }) {
+  const factors = selectedArea?.environmental_factors ?? {};
+
+  return (
       <div 
         style={{
           display: "flex",
@@ -267,7 +286,7 @@ function App() {
                   pathOptions={pathOptions}
                   eventHandlers={{
                     click: () => { 
-                      setSelectedArea(area);
+                      onSelectArea(area);
                     },
                   }}
                 >
@@ -412,14 +431,13 @@ function App() {
                 {selectedArea.is_complete ? "Yes" : "No"}
               </p>
 
-              <button onClick={() => setSelectedArea(null)}>
+              <button onClick={() => onSelectArea(null)}>
                 Clear selection
               </button>
             </>
           )}
         </aside>
       </div>
-    </div>
   );
 }
 

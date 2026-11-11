@@ -22,6 +22,7 @@ vi.mock("react-leaflet", async () => {
     Tooltip: ({ children }) =>
       React.createElement("span", { role: "tooltip" }, children),
     useMap: () => mockMap,
+    useMapEvents: () => mockMap,
 
     CircleMarker: ({ center, eventHandlers, pathOptions, children }) =>
       React.createElement(
@@ -422,5 +423,74 @@ describe("Sprint 3 detection dashboard integration (#43)", () => {
     expect(screen.getByText(/Below the 20% confidence/)).toBeInTheDocument();
     expect(screen.getByLabelText("Detection marker legend"))
       .toHaveTextContent("Detection confidence reflects the observation");
+  });
+});
+
+describe("Sprint 4 failure isolation (#49)", () => {
+  const emptyDetections = {
+    threshold: 20,
+    detections: [],
+    counts: { total: 0, shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+  };
+
+  it("keeps showing risk areas when the detections feed fails", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockRejectedValue(new Error("Failed to fetch detections: 503"));
+
+    render(<App />);
+
+    expect(await screen.findByText(/Detections unavailable:/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" }))
+      .toBeInTheDocument();
+    expect(screen.queryByText(/Risk data unavailable:/)).not.toBeInTheDocument();
+  });
+
+  it("keeps showing detections when the risk feed fails, without inventing risk areas", async () => {
+    fetchRiskAreas.mockRejectedValue(new Error("Failed to fetch risk data: 503"));
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [{ id: 1, latitude: 50.1, longitude: -120.3, timestamp: "2026-10-01T18:30:00Z",
+        confidence: 80, classification: "potential_wildfire", meets_threshold: true }],
+      counts: { total: 1, shown: 1, potential_wildfire: 1, low_confidence: 0, unavailable: 0 },
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Risk data unavailable:/)).toBeInTheDocument();
+    expect(await screen.findByText(/1 detections shown/)).toBeInTheDocument();
+    expect(screen.getByText("Potential wildfire")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select area at 43.6532, -79.3832" })).not.toBeInTheDocument();
+  });
+
+  it("shows both unavailable states, and Report a Fire still opens, when both feeds fail", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas.mockRejectedValue(new RequestTimeoutError(15000));
+    fetchDetections.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    render(<App />);
+
+    expect(await screen.findByText(/Risk data unavailable:/)).toHaveTextContent("took too long");
+    expect(await screen.findByText(/Detections unavailable:/)).toHaveTextContent("Can't reach the server");
+    expect(screen.queryByText(/detections shown/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Report a Fire/ }));
+    expect(screen.getByRole("dialog", { name: "Report a fire" })).toBeInTheDocument();
+  });
+
+  it("contains a rendering crash to the map, so the rest of the page keeps working", async () => {
+    const user = userEvent.setup();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    // The service is mocked here, so this malformed entry skips the API-layer sanitiser.
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [null] });
+    fetchDetections.mockResolvedValue(emptyDetections);
+
+    render(<App />);
+
+    expect(await screen.findByText(/map and area details could not be displayed/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(/No wildfire detections available/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Report a Fire/ }));
+    expect(screen.getByRole("dialog", { name: "Report a fire" })).toBeInTheDocument();
+    consoleError.mockRestore();
   });
 });
