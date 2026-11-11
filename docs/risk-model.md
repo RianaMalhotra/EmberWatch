@@ -125,9 +125,34 @@ python ml/validate_risk_model.py
 
 It uses the same Open-Meteo and elevation code as the app (`data-processing/load_environment_to_db.py`). **Fire history is deliberately left out.** The detections table covers 2023–2025, so for 2023–2024 events it would already contain the fire being tested (data leakage), and for 2011–2021 events it would be empty. Scores are therefore weather and terrain only (coverage 0.65, marked incomplete). Per-day results go to `ml/results/risk_validation.csv`.
 
+#### Results (run on 2026-11-11, `weighted-index-v1`)
+
+| Town | Fire day | Score (level) | Same day, year before | 15 January |
+|---|---|---|---|---|
+| Slave Lake | 2011-05-15 | 58.5 (MODERATE) | 51.8 (MODERATE) | 19.2 (LOW) |
+| Fort McMurray | 2016-05-03 | 57.3 (MODERATE) | 28.6 (LOW) | 23.4 (LOW) |
+| Lytton | 2021-06-30 | 68.2 (MODERATE) | 14.4 (LOW) | 18.2 (LOW) |
+| Hay River | 2023-05-14 | 65.3 (MODERATE) | 33.3 (LOW) | 17.2 (LOW) |
+| Yellowknife | 2023-08-16 | 44.6 (MODERATE) | 41.1 (MODERATE) | 16.2 (LOW) |
+| Kelowna | 2023-08-17 | 72.5 (HIGH) | 65.2 (MODERATE) | 14.9 (LOW) |
+| Jasper | 2024-07-24 | 57.8 (MODERATE) | 45.0 (MODERATE) | 32.9 (LOW) |
+| **Mean** | | **60.6** | **39.9** | **20.3** |
+
+Full inputs per day: [ml/results/risk_validation.csv](../ml/results/risk_validation.csv).
+
+**What this shows**
+
+- **The ranking works.** The fire day scored higher than the same day a year earlier at **7/7** towns and higher than mid-January at **7/7**. Winter days were always LOW. So the score moves in the right direction: hot, dry, rain-free days rank above ordinary ones.
+- **The levels are too cautious.** Only **1 of 7 fire days was rated HIGH** (Kelowna); the other 6 were MODERATE, including Lytton at 39.4 °C, the day the town burned (68.2, just under the HIGH line of 70). With the 70-point HIGH boundary, these weather-only scores rarely reach HIGH. In the live app fire history (25 % of the weight) is included, which raises scores at fire-prone towns, but this check suggests the HIGH boundary or the weights should be lowered.
+- **Some margins are small.** Yellowknife (+3.5) and Slave Lake (+6.7) barely beat their control days. Noon weather in Yellowknife that day was mild (17.9 °C, 49 % RH); the evacuation was driven by fires spreading toward the city over several days, which a single day's weather cannot capture. Slave Lake's fire day was driven by wind (32.6 km/h), but the control day was warmer and drier.
+- **Wind is underweighted for these events.** Most fire days had light noon wind (6–18 km/h) in this data, yet extreme fire spread is often wind-driven in the afternoon. Noon values and a ~9–25 km grid cell miss gusts and local conditions.
+
+**Next step:** lower the HIGH boundary or refit the weights on a larger set of fire and non-fire days (see limitations), and record the new values under a new `model_version`.
+
 ## Limitations and next steps
 
 - Weights and ranges are expert-set, not learned. Mild conditions can still reach MODERATE (e.g. Toronto above), so the level boundaries and weights should be tuned.
+- **The historical check found the levels too cautious** (1/7 fire days HIGH, see results above), even though the ranking was right 7/7.
 - **Validation is a small sanity check, not an evaluation.** Seven hand-picked famous fires with one control day each cannot measure accuracy, false-alarm rate or calibration. A real evaluation needs many fire and non-fire days (for example, every FIRMS fire start vs. random days and places) and ideally burned-area maps.
 - **Selection bias:** the events are fires big enough to make the news, which usually happened in extreme weather, so they are the easiest cases for the model.
 - Weights should be fitted to data (for example, logistic regression on past weather vs. where FIRMS fires started) once there is enough labelled data.
