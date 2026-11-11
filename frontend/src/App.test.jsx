@@ -494,3 +494,42 @@ describe("Sprint 4 failure isolation (#49)", () => {
     consoleError.mockRestore();
   });
 });
+
+describe("Weather observation time (#49)", () => {
+  const emptyDetections = {
+    threshold: 20, detections: [],
+    counts: { total: 0, shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+  };
+
+  it("shows when the weather was last updated and flags an old observation", async () => {
+    const user = userEvent.setup();
+    fetchDetections.mockResolvedValue(emptyDetections);
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [{ ...mockArea, observed_at: "2020-01-01T12:00:00Z", observation_stale: true }],
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Weather data last updated: .*2020/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" }));
+    expect(screen.getByText(/Weather observed:/).parentElement).toHaveTextContent(/2020/);
+    expect(screen.getByText(/This weather data is old/)).toBeInTheDocument();
+  });
+
+  it("says so when an area has no observation, instead of showing a time", async () => {
+    const user = userEvent.setup();
+    fetchDetections.mockResolvedValue(emptyDetections);
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [{ ...mockArea, observed_at: null, observation_stale: null }],
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
+    expect(screen.getByText("No weather observation on record")).toBeInTheDocument();
+    expect(screen.queryByText(/Weather data last updated/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/This weather data is old/)).not.toBeInTheDocument();
+  });
+});

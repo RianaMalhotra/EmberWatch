@@ -27,6 +27,7 @@ import {
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
+import { lastUpdatedText, observationText } from "./utils/observationFormat";
 
 const factorUnits = {
   temperature_c: "°C",
@@ -202,6 +203,10 @@ function App() {
           Notice: {warning.message}
         </p>
       ))}
+
+      {!error && lastUpdatedText(riskAreas) && (
+        <p>{lastUpdatedText(riskAreas)}</p>
+      )}
 
       {dataSource === "mock" && !error && (
         <p>Demo data — not live wildfire risk</p>
@@ -383,6 +388,16 @@ function MapSection({ riskAreas, detectionResult, dataSource, selectedArea, onSe
                   {selectedArea.processing_error
                     ? "The risk score could not be calculated for this area. Try again later."
                     : "Not enough input data to calculate a risk score for this area."}
+                </p>
+              )}
+
+              <p>
+                <strong>Weather observed: </strong>
+                {observationText(selectedArea)}
+              </p>
+              {selectedArea.observation_stale === true && (
+                <p role="status">
+                  This weather data is old, so the risk estimate may not reflect current conditions.
                 </p>
               )}
 

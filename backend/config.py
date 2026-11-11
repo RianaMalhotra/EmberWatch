@@ -49,3 +49,18 @@ def get_cors_origins():
         return list(DEFAULT_CORS_ORIGINS)
     origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
     return origins or list(DEFAULT_CORS_ORIGINS)
+
+
+# Weather observations older than this many days are flagged as stale (#49).
+# Override with STALE_OBSERVATION_DAYS; a bad value falls back to the default
+# because a freshness label should never stop the API from answering.
+DEFAULT_STALE_OBSERVATION_DAYS = 3.0
+
+
+def get_stale_observation_days():
+    raw = os.environ.get("STALE_OBSERVATION_DAYS", "").strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        return DEFAULT_STALE_OBSERVATION_DAYS
+    return value if value > 0 else DEFAULT_STALE_OBSERVATION_DAYS
