@@ -94,7 +94,7 @@ def warn(message):
     print(f"WARNING: {message}", file=sys.stderr)
 
 
-# ---------- areas ----------
+#areas
 
 def load_areas(path=AREAS_CSV):
     """Read areas.csv into dicts with numeric coordinates."""
@@ -109,7 +109,7 @@ def load_areas(path=AREAS_CSV):
     return areas
 
 
-# ---------- validation ----------
+#validation
 
 def checked(field, value, label=""):
     """Return value if it is a number inside its allowed range, else None (+ warning)."""
@@ -127,7 +127,7 @@ def checked(field, value, label=""):
     return number
 
 
-# ---------- terrain ----------
+#terrain
 
 def terrain_points(lat, lon, distance_m=SLOPE_SAMPLE_DISTANCE_M):
     """Centre, north, south, east and west points `distance_m` metres apart."""
@@ -175,7 +175,7 @@ def terrain_rows(areas, elevations, retrieved_at):
     return rows
 
 
-# ---------- weather ----------
+#weather
 
 def weather_request(area, day, today):
     """URL and source label for the hours needed to describe `day` at noon."""
@@ -259,7 +259,7 @@ def observation_row(area_id, observation, source):
     )
 
 
-# ---------- network ----------
+#network
 
 def fetch_json(url, timeout=30):
     """GET a JSON object from Open-Meteo.
@@ -282,8 +282,7 @@ def fetch_json(url, timeout=30):
     return body
 
 
-# ---------- database ----------
-
+#database
 def upsert_areas(conn, areas):
     """Insert or update the areas; returns {name: id}."""
     with conn.cursor() as cur:
@@ -316,7 +315,7 @@ def insert_observations(conn, rows):
     return inserted
 
 
-# ---------- main ----------
+#main
 
 def collect(areas, days, today, fetch=fetch_json, skip_terrain=False):
     """Fetch everything first, so a network failure never leaves half-written data."""

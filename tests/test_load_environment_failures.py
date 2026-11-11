@@ -35,7 +35,7 @@ def serve(monkeypatch, body=None, error=None):
     monkeypatch.setattr(loader.urllib.request, "urlopen", fake_urlopen)
 
 
-# ---- API timeout / unreachable -------------------------------------------------
+# API timeout / unreachable
 
 @pytest.mark.parametrize("error", [
     socket.timeout("timed out"),
@@ -62,14 +62,14 @@ def test_fetch_passes_the_timeout_to_urlopen(monkeypatch):
     assert seen["timeout"] == 7
 
 
-# ---- malformed response --------------------------------------------------------
+#malformed response
 
 @pytest.mark.parametrize("body", [
     b"<html>502 Bad Gateway</html>",
     b"",
-    b'{"hourly": {"time": [',          # cut off mid-reply
+    b'{"hourly": {"time": [', # cut off mid-reply
     b"\xff\xfe not utf-8",
-    b"[1, 2, 3]",                      # JSON, but not an object
+    b"[1, 2, 3]", # JSON, but not an object
     b"null",
     b'{"error": true, "reason": "Cannot initialize WeatherVariable"}',
 ])
@@ -92,10 +92,10 @@ def test_non_object_weather_reply_is_rejected(bad):
 
 
 @pytest.mark.parametrize("elevation_reply", [
-    {},                                  # no "elevation" key
+    {},# no "elevation" key
     {"elevation": "oops"},
     {"elevation": [1.0, "x", 3.0, 4.0, 5.0]},
-    {"elevation": [1.0, 2.0]},           # wrong count for one area
+    {"elevation": [1.0, 2.0]},# wrong count for one area
 ])
 def test_malformed_elevation_reply_stops_the_run(elevation_reply):
     with pytest.raises(DataSourceError):
@@ -133,7 +133,7 @@ def test_main_exits_cleanly_and_writes_nothing_on_malformed_reply(monkeypatch, n
     assert "Nothing was written" in str(stopped.value)
 
 
-# ---- missing environmental inputs ---------------------------------------------
+#missing environmental inputs
 
 def test_missing_variable_series_become_null_not_zero():
     response = hourly_response()
@@ -144,8 +144,8 @@ def test_missing_variable_series_become_null_not_zero():
 
     assert observation["wind_speed_kmh"] is None
     assert observation["relative_humidity_pct"] is None
-    assert observation["temperature_c"] == 31.5           # the rest is still real
-    assert observation["vegetation_index"] is None         # no NDVI source
+    assert observation["temperature_c"] == 31.5 # the rest is still real
+    assert observation["vegetation_index"] is None # no NDVI source
 
 
 @pytest.mark.parametrize("response", [
