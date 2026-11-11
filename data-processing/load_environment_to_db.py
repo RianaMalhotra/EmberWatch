@@ -23,6 +23,7 @@ with a warning. Re-running is safe: existing observations are skipped.
 
 import argparse
 import csv
+import http.client
 import json
 import math
 import os
@@ -78,6 +79,15 @@ INSERT_OBSERVATION_SQL = """
     values (%s, %s, %s, %s, %s, %s, %s, %s)
     on conflict (area_id, observed_at, source) do nothing
 """
+
+
+class DataSourceError(Exception):
+    """Open-Meteo answered, but not with data this script can safely use (#49).
+
+    Network failures and timeouts are OSError (URLError, TimeoutError, HTTPError);
+    this covers a reply that arrived but is malformed. Either way nothing is
+    written to the database.
+    """
 
 
 def warn(message):
@@ -185,15 +195,25 @@ def weather_request(area, day, today):
     return f"{base}?{urllib.parse.urlencode(query, safe=',')}", source
 
 
+def _is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def noon_observation(response, day, label=""):
     """Pick the FWI-style values for `day` out of an Open-Meteo hourly response.
 
     Hourly precipitation is the total for the preceding hour, so the 24 hours
     ending at noon are the hours labelled 13:00 the day before through 12:00.
-    Returns None if the noon hour is not in the response.
+    Returns None if the noon hour is not in the response. A response that is not
+    a JSON object, or has no usable UTC offset, raises DataSourceError / returns
+    None instead of guessing (a wrong offset would shift ``observed_at``).
     """
-    hourly = response.get("hourly") or {}
-    times = hourly.get("time") or []
+    if not isinstance(response, dict):
+        raise DataSourceError(f"{label}weather reply is not a JSON object")
+    hourly = response.get("hourly")
+    hourly = hourly if isinstance(hourly, dict) else {}
+    times = hourly.get("time")
+    times = times if isinstance(times, list) else []
     index = {t: i for i, t in enumerate(times)}
     noon = f"{day.isoformat()}T12:00"
     if noon not in index:
@@ -201,7 +221,8 @@ def noon_observation(response, day, label=""):
         return None
 
     def value(variable, i):
-        series = hourly.get(variable) or []
+        series = hourly.get(variable)
+        series = series if isinstance(series, list) else []
         return series[i] if i < len(series) else None
 
     i = index[noon]
@@ -214,7 +235,11 @@ def noon_observation(response, day, label=""):
     else:
         precipitation = round(sum(rain), 2)
 
-    offset = timedelta(seconds=response.get("utc_offset_seconds", 0))
+    utc_offset = response.get("utc_offset_seconds", 0)
+    if not _is_number(utc_offset):
+        warn(f"{label}no valid UTC offset in the reply; skipped")
+        return None
+    offset = timedelta(seconds=utc_offset)
     observed_at = (datetime.fromisoformat(noon) - offset).replace(tzinfo=timezone.utc)
     return {
         "observed_at": observed_at.isoformat(),
@@ -237,9 +262,24 @@ def observation_row(area_id, observation, source):
 # ---------- network ----------
 
 def fetch_json(url, timeout=30):
+    """GET a JSON object from Open-Meteo.
+
+    Raises OSError (timeout, unreachable, HTTP error) or DataSourceError (the
+    reply is not JSON, not an object, or an Open-Meteo ``{"error": true}``).
+    """
     request = urllib.request.Request(url, headers={"User-Agent": "EmberWatch-ECE444/1.0"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            body = json.load(response)
+    except (ValueError, http.client.HTTPException) as error:
+        # JSONDecodeError and UnicodeDecodeError are ValueErrors; IncompleteRead
+        # (connection cut mid-reply) is an HTTPException, not an OSError.
+        raise DataSourceError(f"reply was not valid JSON ({type(error).__name__})") from error
+    if not isinstance(body, dict):
+        raise DataSourceError("reply was not a JSON object")
+    if body.get("error"):
+        raise DataSourceError(f"service reported an error: {body.get('reason', 'no reason given')}")
+    return body
 
 
 # ---------- database ----------
@@ -283,7 +323,11 @@ def collect(areas, days, today, fetch=fetch_json, skip_terrain=False):
     terrain = None
     if not skip_terrain:
         points = [p for a in areas for p in terrain_points(a["latitude"], a["longitude"])]
-        elevations = fetch(elevation_url(points)).get("elevation") or []
+        elevations = fetch(elevation_url(points)).get("elevation")
+        if not isinstance(elevations, list) or any(v is not None and not _is_number(v) for v in elevations):
+            raise DataSourceError("elevation reply is missing or contains non-numeric values")
+        if len(elevations) != 5 * len(areas):
+            raise DataSourceError(f"expected {5 * len(areas)} elevations, got {len(elevations)}")
         terrain = terrain_rows(areas, elevations, datetime.now(timezone.utc).isoformat())
 
     observations = []  # (area name, observation dict, source)
@@ -321,6 +365,8 @@ def main(argv=None):
 
     try:
         terrain, observations = collect(areas, days, today, skip_terrain=args.skip_terrain)
+    except DataSourceError as error:
+        sys.exit(f"Open-Meteo returned unusable data ({error}). Nothing was written; try again later.")
     except OSError as error:  # URLError, timeouts, HTTP errors
         sys.exit(f"Could not reach Open-Meteo ({error}). Nothing was written; check your internet and try again.")
 
