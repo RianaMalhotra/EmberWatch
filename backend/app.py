@@ -14,6 +14,7 @@ from services.risk_scoring import (
     score_area,
 )
 from services.detection_pipeline import get_classified_detections
+from services.detection_history import get_historical_detections, history_params
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -107,6 +108,27 @@ def get_detections():
         # Don't leak connection details; the frontend only needs "unavailable".
         app.logger.exception("Could not load detections")
         return jsonify({"status": "unavailable", "message": "Detection data is unavailable"}), 503
+
+    return jsonify({"status": "success", "source": "database", **result}), 200
+
+
+@app.route("/api/detections/history", methods=["GET"])
+def get_detection_history():
+    """Historical detections filtered by geographic bounds and UTC time range."""
+    try:
+        history_params(request.args)
+    except ValueError as error:
+        return jsonify({"status": "error", "message": str(error)}), 400
+
+    try:
+        with get_connection() as conn:
+            result = get_historical_detections(conn, request.args)
+    except ValueError as error:
+        app.logger.error("Invalid history configuration: %s", error)
+        return jsonify({"status": "error", "message": str(error)}), 500
+    except Exception:
+        app.logger.exception("Could not load historical detections")
+        return jsonify({"status": "unavailable", "message": "Historical detection data is unavailable"}), 503
 
     return jsonify({"status": "success", "source": "database", **result}), 200
 
