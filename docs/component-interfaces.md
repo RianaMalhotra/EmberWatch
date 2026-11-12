@@ -73,6 +73,19 @@ A detection includes `id`, `latitude`, `longitude`, `timestamp` (UTC ISO 8601), 
 
 **200:** `{"status":"success","data":{"risk_score":number|null,"risk_level":string|null,"is_complete":boolean,"missing_inputs":string[],"coverage":number,"factor_scores":object,"model_version":string}}`. **400:** `{"status":"error","message":"Request body must be a JSON object"}` for non-object bodies. Missing/invalid factors are reported, not invented. Database lookup failures for optional nearby history result in a missing factor rather than a fabricated count.
 
+### POST /api/reports (proposed for #52, used by the #51 form)
+
+Not built yet. This is the contract the Report a Fire form (#51) expects, so #52 can be built to match. Change both together if it changes.
+
+**Input:** JSON from `buildReportPayload` in `frontend/src/utils/reportForm.js`:
+`{"latitude":number,"longitude":number,"location_source":"gps"|"map","observed_type":"flames"|"smoke"|"both","observed_at":string (UTC ISO 8601),"description":string|null}`. `description` is at most 500 characters.
+
+**201:** `{"status":"success","data":{"id":integer,"review_status":"unverified"}}`. Every new public report starts as `unverified` until staff review it (#53). The form treats any other 2xx body (missing `id`, missing or different `review_status`, not JSON) as a failed save and asks the user to try again; it never assumes the report was stored.
+
+**400:** `{"status":"error","message":string}` for invalid input. **429:** rate limited. **5xx/503:** not saved. The form shows the error and keeps the user's answers.
+
+**Feature flag:** the form only sends reports when the frontend is built with `VITE_ENABLE_REPORTS=true`. Without it, the form runs as a labelled preview and nothing is sent. Turn it on once this endpoint is merged.
+
 ## Internal Python interfaces and ownership
 
 - `score_area(inputs)`: pure risk-scoring operation in `services/risk_scoring.py`. Input keys and output contract above. Null/invalid/out-of-range inputs count as missing; coverage below 0.5 yields null risk score and level.

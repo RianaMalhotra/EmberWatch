@@ -18,7 +18,7 @@ vi.mock("react-leaflet", async () => {
       React.createElement("div", { "data-testid": "map" }, children),
 
     TileLayer: () => null,
-    Popup: () => null,
+    Popup: ({ children }) => React.createElement("div", { "data-testid": "leaflet-popup" }, children),
     Tooltip: ({ children }) =>
       React.createElement("span", { role: "tooltip" }, children),
     useMap: () => mockMap,
@@ -370,5 +370,57 @@ describe("Wildfire risk map", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/could not be calculated for this area/i);
     expect(screen.queryByText(/Not enough input data/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Missing inputs:/)).not.toBeInTheDocument();
+  });
+});
+
+describe("Sprint 3 detection dashboard integration (#43)", () => {
+  it("shows a detection-specific loading state while the request is pending", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockReturnValue(new Promise(() => {}));
+
+    render(<App />);
+    expect(screen.getByText("Loading wildfire detections...")).toBeInTheDocument();
+    expect(screen.getByLabelText("Detection marker legend"))
+      .toHaveTextContent("not the environmental wildfire risk score");
+  });
+
+  it("shows an explicit empty state independently of the risk map", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [],
+      counts: { total: 0, shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+    });
+
+    render(<App />);
+    expect(await screen.findByText(/No wildfire detections available for the latest observations/))
+      .toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" }))
+      .toBeInTheDocument();
+    expect(screen.queryByText("Loading wildfire detections...")).not.toBeInTheDocument();
+  });
+
+  it("shows classified detections with location, timestamp, and confidence", async () => {
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [
+        { id: 101, latitude: 50.1, longitude: -120.3, timestamp: "2025-07-01T18:30:00Z",
+          confidence: 80, classification: "potential_wildfire", meets_threshold: true },
+        { id: 102, latitude: 51.2, longitude: -121.4, timestamp: "2025-07-02T18:30:00Z",
+          confidence: 10, classification: "low_confidence", meets_threshold: false },
+      ],
+      counts: { total: 2, shown: 2, potential_wildfire: 1, low_confidence: 1, unavailable: 0 },
+    });
+
+    render(<App />);
+    expect(await screen.findByText(/2 detections shown/)).toBeInTheDocument();
+    expect(screen.getByText("Potential wildfire")).toBeInTheDocument();
+    expect(screen.getByText("Low confidence detection")).toBeInTheDocument();
+    expect(screen.getByText(/Location: 50.100, -120.300/)).toBeInTheDocument();
+    expect(screen.getByText(/Confidence: 80%/)).toBeInTheDocument();
+    expect(screen.getByText(/Below the 20% confidence/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Detection marker legend"))
+      .toHaveTextContent("Detection confidence reflects the observation");
   });
 });
