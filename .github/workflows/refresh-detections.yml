@@ -1,0 +1,90 @@
+name: Refresh fire detections
+
+# Loads new NASA FIRMS near-real-time fire detections for Canada into Supabase
+# every 3 hours, so the map shows current satellite detections, not only the
+# 2023-2025 archive (see docs/detection-data-provenance.md).
+# Needs two repository secrets:
+#   FIRMS_MAP_KEY  free key from https://firms.modaps.eosdis.nasa.gov/api/map_key/
+#   DATABASE_URL   Supabase "Session pooler" connection string (runners have no IPv6)
+
+on:
+  schedule:
+    # Every 3 hours at minute 41. FIRMS publishes each pass within ~3 hours.
+    - cron: "41 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days to fetch, ending today (1-10; use more to catch up after a gap)"
+        required: false
+        default: "2"
+
+concurrency:
+  group: refresh-detections
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Load FIRMS detections into Supabase
+    # Don't run on forks, which have no secrets.
+    if: github.repository == 'RianaMalhotra/EmberWatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "psycopg[binary]" python-dotenv
+
+      - name: Check settings
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DAYS: ${{ inputs.days || '2' }}
+        run: |
+          missing=""
+          [ -z "$FIRMS_MAP_KEY" ] && missing="$missing FIRMS_MAP_KEY"
+          [ -z "$DATABASE_URL" ] && missing="$missing DATABASE_URL"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          case "$DAYS" in
+            ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 1 ;;
+          esac
+          if [ "$DAYS" -lt 1 ] || [ "$DAYS" -gt 10 ]; then
+            echo "::error::days must be between 1 and 10, got $DAYS"
+            exit 1
+          fi
+
+      - name: Fetch and load detections
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DAYS: ${{ inputs.days || '2' }}
+        # Fetching 2 days every 3 hours overlaps on purpose; rows already
+        # stored are skipped, so nothing is lost if a run fails.
+        run: python data-processing/fetch_firms_nrt.py --days "$DAYS"
+
+      - name: Check stored detections
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        # Read-only checks from #46 (duplicates, future timestamps, ...).
+        # Skipped until the #46 validation script is on main.
+        run: |
+          if [ -f data-processing/validate_detections.py ]; then
+            python data-processing/validate_detections.py
+          else
+            echo "validate_detections.py not on this branch yet; skipping checks."
+          fi
