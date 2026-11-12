@@ -5,6 +5,7 @@ import ReportFire from "./components/ReportFire";
 import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
+import DataFreshness from "./components/DataFreshness";
 import {
   classificationLabel,
   detectionStyle,
@@ -221,6 +222,8 @@ function App() {
           </button>
         </p>
       )}
+
+      <DataFreshness areas={riskAreas} detections={detectionResult?.detections} />
 
       {detectionResult && !detectionLoading && (
         <>
