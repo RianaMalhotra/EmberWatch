@@ -13,11 +13,14 @@ import csv
 import os
 import sys
 
+# Where a row came from, stored in detections.source (#46 provenance).
+ARCHIVE_SOURCE = "NASA FIRMS"
+
 INSERT_SQL = """
     insert into public.detections
         (latitude, longitude, detected_at, confidence, confidence_class,
-         instrument, satellite, frp, daynight, fire_type)
-    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         instrument, satellite, frp, daynight, fire_type, source)
+    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     on conflict on constraint detections_unique do nothing
 """
 
@@ -29,8 +32,8 @@ def _optional(value, convert=str):
     return convert(value)
 
 
-def build_rows(cleaned_rows):
-    """Turn cleaned CSV rows (dicts) into tuples for INSERT_SQL."""
+def build_rows(cleaned_rows, source=ARCHIVE_SOURCE):
+    """Turn cleaned rows (dicts) into tuples for INSERT_SQL."""
     return [
         (
             float(row["latitude"]),
@@ -43,6 +46,7 @@ def build_rows(cleaned_rows):
             _optional(row.get("frp"), float),
             _optional(row.get("daynight")),
             _optional(row.get("type"), int),
+            source,
         )
         for row in cleaned_rows
     ]
