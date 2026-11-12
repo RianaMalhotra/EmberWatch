@@ -54,6 +54,25 @@ python data-processing/load_environment_to_db.py --dry-run
 python data-processing/load_environment_to_db.py
 ```
 
+## Recent fire detections (`fetch_firms_nrt.py`)
+
+Keeps the map current with NASA FIRMS **near-real-time** (NRT) detections, which FIRMS publishes within about 3 hours of each satellite pass. Uses the same cleaning and loading as the archive, so timestamps, confidence classes and duplicate handling match.
+
+```bash
+python data-processing/fetch_firms_nrt.py --dry-run     # fetch and print, write nothing
+python data-processing/fetch_firms_nrt.py               # last 2 days, MODIS, Canada only
+python data-processing/fetch_firms_nrt.py --days 10     # catch up after a gap (max 10)
+```
+
+- Needs a free map key in `FIRMS_MAP_KEY` (https://firms.modaps.eosdis.nasa.gov/api/map_key/), plus `DATABASE_URL`. Both can go in `backend/.env`.
+- Fetches a box around Canada, then keeps only points inside Canada using `canada_border.py`, a simplified border (to within a few km along the 49th parallel and in the Arctic; up to ~10–15 km off around the Great Lakes and St. Lawrence). The box alone would include the northern US, the Alaska panhandle and western Greenland. FIRMS's country API would clip exactly, but it answers "Invalid API call" to every request. `--keep-outside-canada` keeps everything in the box.
+- Default product is `MODIS_NRT`, the same instrument as the stored archive and the #19 threshold backtest. `--source VIIRS_SNPP_NRT` (or NOAA-20/21) is supported.
+- Each row's `source` column says which feed it came from, e.g. `NASA FIRMS MODIS_NRT` (archive rows: `NASA FIRMS`).
+- NRT rows have no FIRMS `type`, so they can't be checked for non-wildfire heat sources the way archive rows can.
+- FIRMS later reprocesses NRT data into the standard archive with slightly different positions. If that archive period is loaded later, the same fire can appear twice (once per source); filter by `source` if that matters.
+
+`.github/workflows/refresh-detections.yml` runs this every 3 hours (2-day window, so a failed run is covered by the next). It needs repository secrets `FIRMS_MAP_KEY` and `DATABASE_URL` (Session pooler). Catch up by hand: *Actions → Refresh fire detections → Run workflow*.
+
 ## Tests
 
 ```bash
