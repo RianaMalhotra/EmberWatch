@@ -23,6 +23,16 @@ vi.mock("react-leaflet", async () => {
       React.createElement("span", { role: "tooltip" }, children),
     useMap: () => mockMap,
 
+    // #44: risk zone overlay
+    Circle: ({ center, radius, pathOptions }) =>
+      React.createElement("div", {
+        "data-testid": "risk-zone",
+        "data-center": center.join(", "),
+        "data-radius": String(radius),
+        "data-fill-opacity": String(pathOptions?.fillOpacity),
+        "data-dashed": pathOptions?.dashArray ? "yes" : "no",
+      }),
+
     CircleMarker: ({ center, eventHandlers, pathOptions, children }) =>
       React.createElement(
         "button",
@@ -211,6 +221,46 @@ describe("Wildfire risk map", () => {
 
     expect(screen.getByLabelText("Map legend")).toHaveTextContent("incomplete");
     expect(mockMap.fitBounds).toHaveBeenCalled();
+  });
+
+  it("shades a risk zone only around areas that have a score (#44)", async () => {
+    const scored = { ...mockArea, id: 2, latitude: 49.888, longitude: -119.496,
+      is_complete: true, missing_inputs: [] };
+    const unscored = { ...mockArea, id: 3, latitude: 62.454, longitude: -114.372,
+      risk_score: null, risk_level: null, is_complete: false,
+      missing_inputs: ["temperature_c", "relative_humidity_pct", "wind_speed_kmh", "vegetation_index"] };
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea, scored, unscored] });
+
+    render(<App />);
+
+    const zones = await screen.findAllByTestId("risk-zone");
+    expect(zones).toHaveLength(3);
+    const zoneAt = (center) => zones.find((zone) => zone.dataset.center === center);
+
+    // same 50 km footprint the model uses for nearby fire history
+    zones.forEach((zone) => expect(zone).toHaveAttribute("data-radius", "50000"));
+
+    // scored areas are shaded; incomplete ones are dashed, complete ones solid
+    expect(Number(zoneAt("49.888, -119.496").dataset.fillOpacity)).toBeGreaterThan(0);
+    expect(zoneAt("49.888, -119.496")).toHaveAttribute("data-dashed", "no");
+    expect(Number(zoneAt("43.6532, -79.3832").dataset.fillOpacity)).toBeGreaterThan(0);
+    expect(zoneAt("43.6532, -79.3832")).toHaveAttribute("data-dashed", "yes");
+
+    // no score, no shading: nothing is invented for this area
+    expect(zoneAt("62.454, -114.372")).toHaveAttribute("data-fill-opacity", "0");
+  });
+
+  it("lets the user hide the risk zones (#44)", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+
+    render(<App />);
+
+    expect(await screen.findAllByTestId("risk-zone")).toHaveLength(1);
+    await user.click(screen.getByRole("checkbox", { name: /show 50 km risk zones/i }));
+    expect(screen.queryAllByTestId("risk-zone")).toHaveLength(0);
+    // the clickable area markers are unaffected
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
   });
 
   it("does not present a stale risk level when the score is missing", async () => {
