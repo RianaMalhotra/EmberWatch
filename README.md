@@ -681,3 +681,107 @@ Historical early-warning simulation (#55) remains optional stretch work. Sprint 
 The displayed demonstration circles must not be described as verified live wildfire risk. The risk-scoring service, data-processing utilities, and database infrastructure are distinct from a validated end-to-end live ingestion-to-map workflow. The application remains a student development prototype and is **not** an emergency alert system.
 
 For acceptance criteria and current implementation progress, see [requirements](docs/requirements.md), the [Kanban board](https://github.com/users/RianaMalhotra/projects/1), [issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls).
+
+
+---
+
+## P1M5 — Sprint 3 Implementation and Milestone 6 Outlook (November 2026)
+
+### Project overview and intended users
+
+**EmberWatch** is an educational wildfire early-detection and geographic risk-monitoring dashboard for people exploring wildfire observations, environmental risk factors, and data quality. It brings map-based risk information and satellite-derived detections into a single interface. It is intended for demonstration and exploration, **not** emergency response or operational safety decisions.
+
+**Try the dashboard:** [EmberWatch live application](https://ember-watch-xi.vercel.app/). Select a monitored area on the map to inspect available risk information, and use the detection display to explore wildfire observations and their reported confidence. Risk level and detection confidence represent different concepts and should not be interpreted interchangeably.
+
+### Sprint 3 implementation highlights
+
+Sprint 3 focused on connecting previously developed components into a deployed application and strengthening its reliability.
+
+| Area | Sprint 3 progress |
+| --- | --- |
+| Wildfire detections (#43) | Integrated NASA FIRMS-derived detections into the Flask API/dashboard flow, with location, timestamp, and confidence information |
+| Risk dashboard | Connected frontend views to backend data for monitored areas and detections; risk scores and detection confidence are presented as distinct information |
+| Persistence | Used Supabase PostgreSQL/PostGIS for geographic and observation data; cleaned orphan observations during integration |
+| Deployment | Deployed the React/Vite frontend on Vercel and Flask/Gunicorn backend on Render; configured the frontend API base URL |
+| Reliability | Improved loading, empty, missing-data, and error states; worked on consistent JSON API errors and retry behavior |
+| Verification | Added or reviewed API/frontend integration and regression checks; backend CI enforces an 80% coverage threshold |
+
+The deployment verification checklist included the Render health endpoint, database connection, frontend environment configuration, redeployment, and loading **13 monitored areas** with detections. These are sprint verification targets/results, not a guarantee that external services or data feeds are continuously available.
+
+**Feature highlight — wildfire detections:** Open the [live dashboard](https://ember-watch-xi.vercel.app/) to explore mapped wildfire information. The detection feature uses NASA FIRMS-derived records; a detection's confidence concerns the observation, whereas an area's wildfire risk concerns environmental conditions and the scoring model. Satellite observations may be delayed, incomplete, or uncertain.
+
+### Architecture and data flow
+
+```mermaid
+flowchart LR
+    FIRMS[NASA FIRMS observations] --> CLEAN[Cleaning and validation]
+    CLEAN --> DB[(Supabase PostgreSQL / PostGIS)]
+    DB --> API[Flask API on Render]
+    API --> UI[React / Vite on Vercel]
+    UI --> MAP[Leaflet map and detection views]
+    ENV[Environmental observations] --> DB
+    API --> ERR[JSON errors and availability states]
+```
+
+The diagram describes the integrated application at a high level; it does not imply a continuously verified real-time feed, validated prediction model, or emergency alert capability.
+
+### Quick start, configuration, and tests
+
+Prerequisites: Git, Python 3, Node.js, npm, and access to the required environment variables for database-backed features.
+
+```bash
+git clone https://github.com/RianaMalhotra/EmberWatch.git
+cd EmberWatch
+cd backend
+python -m venv .venv
+# Activate .venv for your shell (see Getting Started above)
+python -m pip install -r requirements.txt
+# Copy backend/.env.example to backend/.env and configure required values
+python app.py
+```
+
+In a second terminal:
+
+```bash
+cd EmberWatch/frontend
+npm install
+# Set VITE_API_BASE_URL to your Flask API URL when needed
+npm run dev
+```
+
+For a local backend, use its local address (typically `http://127.0.0.1:5000`) as the API base URL. For deployed frontend builds, configure `VITE_API_BASE_URL` in Vercel and redeploy after changes. Database-backed functionality requires a valid Supabase connection string; see [database setup](docs/database.md) and `backend/.env.example`. **Never commit secrets or .env files.**
+
+Run verification checks:
+
+```bash
+# From backend/
+python -m pytest -q
+python -m pytest --cov=. --cov-fail-under=80
+
+# From frontend/
+npm run build
+npm run lint
+```
+
+Consult `frontend/package.json` for the current frontend test script, and [GitHub Actions](.github/workflows) for CI checks. Unit tests using mocked services do not substitute for a live database/API smoke test.
+
+### Project management tools and links
+
+| Tool / service | Purpose | Link |
+| --- | --- | --- |
+| GitHub repository | Source code and documentation | [EmberWatch](https://github.com/RianaMalhotra/EmberWatch) |
+| GitHub Projects | Prioritized backlog, sprint Kanban board and task tracking | [Project board](https://github.com/users/RianaMalhotra/projects/1) |
+| GitHub Issues | User stories, defects, acceptance criteria | [Issues](https://github.com/RianaMalhotra/EmberWatch/issues) |
+| GitHub Pull Requests | Code reviews and integration history | [Pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls) |
+| GitHub Actions | Automated build and test checks | [Workflows](https://github.com/RianaMalhotra/EmberWatch/actions) |
+| Vercel | Hosted frontend | [Live dashboard](https://ember-watch-xi.vercel.app/) |
+| Render | Hosted Flask backend | [Render](https://render.com/) |
+| Supabase | PostgreSQL/PostGIS data storage | [Supabase](https://supabase.com/) |
+| NASA FIRMS | Satellite-derived fire observations | [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/) |
+| Open-Meteo | Environmental observation data source | [Open-Meteo](https://open-meteo.com/) |
+
+### Remaining work toward Milestone 6
+
+The final sprint will prioritize verifying the full detection-to-dashboard and risk-scoring-to-map flows, improving explainable risk factors and interface polish, checking error/empty states, validating deployments and database connectivity, and completing regression testing. The team will also prepare the final report, presentation, and demonstration. See the [prioritized GitHub Project backlog](https://github.com/users/RianaMalhotra/projects/1) for ownership and live task status.
+
+**Limitations:** EmberWatch is a course project. FIRMS observations are not instantaneous, confidence mappings and risk-scoring thresholds may be provisional, and unavailable inputs can reduce completeness. Neither detections nor risk categories should be used as official alerts or evacuation guidance.
