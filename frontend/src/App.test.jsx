@@ -114,8 +114,8 @@ describe("Wildfire risk map", () => {
       screen.getByRole("heading", { name: "Toronto Test Area" }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/Risk: HIGH/)).toBeInTheDocument();
-    expect(screen.getByText(/75\.0 \/ 100/)).toBeInTheDocument();
+    expect(screen.getByText("Risk level").parentElement).toHaveTextContent("HIGH");
+    expect(screen.getAllByText(/75\.0 \/ 100/).length).toBeGreaterThan(0);
 
     expect(screen.getByText(/Temperature:/).parentElement)
       .toHaveTextContent("32 °C");
@@ -221,8 +221,8 @@ describe("Wildfire risk map", () => {
     const marker = await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
     expect(marker).toHaveAttribute("data-color", "#6b7280");
     await user.click(marker);
-    expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
-    expect(screen.getByText(/Risk Score:/).parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk level").parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk score").parentElement).toHaveTextContent("Unavailable");
   });
 
   it("explains when an area has no risk score", async () => {
@@ -236,8 +236,8 @@ describe("Wildfire risk map", () => {
 
     await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
 
-    expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
-    expect(screen.getByText(/Risk Score:/).parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk level").parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk score").parentElement).toHaveTextContent("Unavailable");
     expect(screen.getByRole("status")).toHaveTextContent(/Not enough input data/i);
     expect(screen.getByText(/Missing inputs:/).parentElement)
       .toHaveTextContent("Temperature, Vegetation Index");
