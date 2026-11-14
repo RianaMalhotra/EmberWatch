@@ -1,6 +1,8 @@
 """Report moderation: all writes run on the backend with staff authorization."""
 import os
-import hmac
+import json
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 from flask import Blueprint, jsonify, request
 from db import get_connection
 
@@ -9,12 +11,29 @@ STATUSES = frozenset({"unverified", "confirmed", "rejected", "out_of_control", "
 ACTIVE = tuple(sorted(STATUSES - {"rejected", "out"}))
 
 def _staff():
-    """Validate a server-configured bearer token; never trust a client-supplied role."""
-    expected = os.environ.get("REPORTS_STAFF_TOKEN", "")
+    """Verify a Supabase access token with Supabase Auth and allowlist its user ID.
+
+    Never trust client-supplied roles, IDs, or unverified JWT claims.
+    Fail closed if Auth is unavailable or not configured.
+    """
     auth = request.headers.get("Authorization", "")
-    if not expected or not auth.startswith("Bearer "):
-        return False
-    return hmac.compare_digest(auth[7:], expected)
+    token = auth[7:].strip() if auth.startswith("Bearer ") else ""
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    anon_key = os.environ.get("SUPABASE_ANON_KEY", "")
+    allowed = {uid.strip() for uid in os.environ.get("REPORTS_STAFF_USER_IDS", "").split(",") if uid.strip()}
+    if not (token and base.startswith("https://") and anon_key and allowed):
+        return None
+    try:
+        req = Request(
+            base + "/auth/v1/user",
+            headers={"Authorization": "Bearer " + token, "apikey": anon_key},
+        )
+        with urlopen(req, timeout=5) as response:
+            user = json.load(response)
+        uid = user.get("id") if isinstance(user, dict) else None
+        return uid if isinstance(uid, str) and uid in allowed else None
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError):
+        return None
 
 @reports_bp.get("/api/reports")
 def active_reports():
@@ -34,13 +53,13 @@ def active_reports():
 
 @reports_bp.patch("/api/reports/<int:report_id>/status")
 def moderate_report(report_id):
-    if not _staff():
+    staff_id = _staff()
+    if not staff_id:
         return jsonify({"status": "error", "message": "Staff authorization required"}), 403
     body = request.get_json(silent=True)
     status = body.get("status") if isinstance(body, dict) else None
     if status not in STATUSES or status == "unverified":
         return jsonify({"status": "error", "message": "Invalid moderation status"}), 400
-    staff_id = os.environ.get("REPORTS_STAFF_ID", "staff")
     try:
         with get_connection() as conn:
             row = conn.execute("select review_status from public.fire_reports where id=%s for update", (report_id,)).fetchone()
