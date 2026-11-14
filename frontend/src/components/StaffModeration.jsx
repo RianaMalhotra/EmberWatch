@@ -27,8 +27,8 @@ export default function StaffModeration({ reports, onUpdated }) {
   }
   return <section aria-label="Staff report moderation" style={{ padding: 16, background: "#f7f3fc", color: "#252033", borderRadius: 12 }}>
     <h2>Staff moderation</h2>
-    <p>Authorized staff only. Public reports are not confirmed satellite detections.</p>
-    <label>Staff access token <input aria-label="Staff access token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} /></label>
+    <p>Authorized Supabase staff accounts only. Sign in with Supabase Auth and paste your current access token; the server verifies your identity and staff allowlist. Public reports are not confirmed satellite detections.</p>
+    <label>Supabase staff access token <input aria-label="Supabase staff access token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} /></label>
     {error && <p role="alert">{error}</p>}
     {reports.length === 0 && <p>No active public reports available.</p>}
     {reports.map((report) => <article key={report.id} style={{ borderTop: "1px solid #bbb", padding: 10 }}>
