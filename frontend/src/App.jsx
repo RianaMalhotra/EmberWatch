@@ -378,7 +378,7 @@ function App() {
         <span className="ew-report-disclaimer">For emergencies, call local emergency services.</span>
       </div>
       {reporting && <div className="ew-report-panel"><ReportFire onClose={() => setReporting(false)} onSubmitted={() => setReportAttempt((n) => n + 1)} /></div>}
-      <div className="ew-report-tools"><button type="button" onClick={() => setModerating((v) => !v)}>{moderating ? "Close staff moderation" : "Staff moderation"}</button> <button type="button" onClick={() => setReportAttempt((n) => n + 1)}>Refresh public reports</button>{reportError && <span role="status">{reportError}</span>}</div>
+      <div className="ew-report-tools"><button type="button" onClick={() => setModerating((v) => !v)}>{moderating ? "Close staff moderation" : "Staff moderation"}</button> <button type="button" onClick={() => setReportAttempt((n) => n + 1)}>Refresh public reports</button>{reportError && <span className="ew-report-error" aria-label="Public reports error">{reportError}</span>}</div>
       {moderating && <StaffModeration reports={publicReports} onUpdated={() => setReportAttempt((n) => n + 1)} />}
 
       {loading && (
