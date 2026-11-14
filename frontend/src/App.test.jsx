@@ -23,6 +23,15 @@ vi.mock("react-leaflet", async () => {
       React.createElement("span", { role: "tooltip" }, children),
     useMap: () => mockMap,
 
+    Circle: ({ center, radius, pathOptions }) =>
+      React.createElement("div", {
+        "data-testid": "risk-zone",
+        "data-center": center.join(", "),
+        "data-radius": String(radius),
+        "data-fill-opacity": String(pathOptions?.fillOpacity),
+        "data-dashed": pathOptions?.dashArray ? "yes" : "no",
+      }),
+
     CircleMarker: ({ center, eventHandlers, pathOptions, children }) =>
       React.createElement(
         "button",
@@ -39,7 +48,7 @@ vi.mock("react-leaflet", async () => {
   };
 });
 
-const mockMap = vi.hoisted(() => ({ fitBounds: vi.fn() }));
+const mockMap = vi.hoisted(() => ({ fitBounds: vi.fn(), panTo: vi.fn(), getBounds: () => ({ contains: () => true }) }));
 
 vi.mock("./services/detectionApi", () => ({
   fetchDetections: vi.fn().mockRejectedValue(new Error("not under test")),
@@ -114,8 +123,8 @@ describe("Wildfire risk map", () => {
       screen.getByRole("heading", { name: "Toronto Test Area" }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/Risk: HIGH/)).toBeInTheDocument();
-    expect(screen.getByText(/75\.0 \/ 100/)).toBeInTheDocument();
+    expect(screen.getByText("Risk level").parentElement).toHaveTextContent("HIGH");
+    expect(screen.getAllByText(/75\.0 \/ 100/).length).toBeGreaterThan(0);
 
     expect(screen.getByText(/Temperature:/).parentElement)
       .toHaveTextContent("32 °C");
@@ -213,6 +222,38 @@ describe("Wildfire risk map", () => {
     expect(mockMap.fitBounds).toHaveBeenCalled();
   });
 
+  it("shades valid risk zones without fabricating values for unscored areas (#44)", async () => {
+    const scored = { ...mockArea, id: 2, latitude: 49.888, longitude: -119.496,
+      is_complete: true, missing_inputs: [] };
+    const unscored = { ...mockArea, id: 3, latitude: 62.454, longitude: -114.372,
+      risk_score: null, risk_level: null, is_complete: false,
+      missing_inputs: ["temperature_c", "vegetation_index"] };
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea, scored, unscored] });
+
+    render(<App />);
+
+    const zones = await screen.findAllByTestId("risk-zone");
+    expect(zones).toHaveLength(3);
+    const zoneAt = (center) => zones.find((zone) => zone.dataset.center === center);
+    zones.forEach((zone) => expect(zone).toHaveAttribute("data-radius", "50000"));
+    expect(Number(zoneAt("49.888, -119.496").dataset.fillOpacity)).toBeGreaterThan(0);
+    expect(zoneAt("49.888, -119.496")).toHaveAttribute("data-dashed", "no");
+    expect(Number(zoneAt("43.6532, -79.3832").dataset.fillOpacity)).toBeGreaterThan(0);
+    expect(zoneAt("43.6532, -79.3832")).toHaveAttribute("data-dashed", "yes");
+    expect(zoneAt("62.454, -114.372")).toHaveAttribute("data-fill-opacity", "0");
+  });
+
+  it("toggles risk zones while preserving clickable markers (#44)", async () => {
+    const user = userEvent.setup();
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+
+    render(<App />);
+    expect(await screen.findAllByTestId("risk-zone")).toHaveLength(1);
+    await user.click(screen.getByRole("checkbox", { name: /show 50 km risk zones/i }));
+    expect(screen.queryAllByTestId("risk-zone")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Select area at 43.6532, -79.3832" })).toBeInTheDocument();
+  });
+
   it("does not present a stale risk level when the score is missing", async () => {
     const user = userEvent.setup();
     const inconsistent = { ...mockArea, risk_score: null, risk_level: "HIGH" };
@@ -221,8 +262,8 @@ describe("Wildfire risk map", () => {
     const marker = await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" });
     expect(marker).toHaveAttribute("data-color", "#6b7280");
     await user.click(marker);
-    expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
-    expect(screen.getByText(/Risk Score:/).parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk level").parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk score").parentElement).toHaveTextContent("Unavailable");
   });
 
   it("explains when an area has no risk score", async () => {
@@ -236,8 +277,8 @@ describe("Wildfire risk map", () => {
 
     await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
 
-    expect(screen.getByText(/Risk: Unavailable/)).toBeInTheDocument();
-    expect(screen.getByText(/Risk Score:/).parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk level").parentElement).toHaveTextContent("Unavailable");
+    expect(screen.getByText("Risk score").parentElement).toHaveTextContent("Unavailable");
     expect(screen.getByRole("status")).toHaveTextContent(/Not enough input data/i);
     expect(screen.getByText(/Missing inputs:/).parentElement)
       .toHaveTextContent("Temperature, Vegetation Index");
@@ -415,7 +456,7 @@ describe("Sprint 3 detection dashboard integration (#43)", () => {
 
     render(<App />);
     expect(await screen.findByText(/2 detections shown/)).toBeInTheDocument();
-    expect(screen.getByText("Potential wildfire")).toBeInTheDocument();
+    expect(screen.getAllByText("Potential wildfire").length).toBeGreaterThan(0);
     expect(screen.getByText("Low confidence detection")).toBeInTheDocument();
     expect(screen.getByText(/Location: 50.100, -120.300/)).toBeInTheDocument();
     expect(screen.getByText(/Confidence: 80%/)).toBeInTheDocument();

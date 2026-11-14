@@ -59,7 +59,7 @@ All JSON API responses include a `status` field. Successful data requests return
 | `environmental_factors` | object | Raw temperature, humidity, wind, precipitation, vegetation, slope, nearby detections |
 | `observed_at` | timestamp or null | Time of latest observation, when available |
 
-**503:** `{"status":"error","message":"Unable to retrieve wildfire risk data"}`. The UI must show an unavailable state; do not silently substitute mock or live-looking values. **Current limitation:** `slope_deg` is set to null in this route because slope data is not yet integrated. Database contents and risk model are not validated real-time wildfire warnings.
+**503:** `{"status":"error","message":"Unable to retrieve wildfire risk data"}`. The UI must show an unavailable state; do not silently substitute mock or live-looking values. `slope_deg` is supplied by `areas.slope_deg` where terrain data has been loaded; it can be null for areas without terrain observations. The map draws separate 50 km risk zones from valid score/level values and no fill for unavailable scores. Database contents and risk model are not validated real-time wildfire warnings.
 
 ### GET /api/detections?limit=N
 

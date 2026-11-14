@@ -45,3 +45,7 @@ With Flask running, request `http://127.0.0.1:5000/api/health/db`:
 - [ ] API failure displays an error, not fabricated risk data
 - [ ] Supabase health check passes with the team's actual credentials
 - [ ] Sprint board and merged PRs reflect the agreed Sprint 1 scope
+
+## Later implementation update: risk zones (#44)
+
+This document records the original Sprint 1 workflow. The current dashboard consumes database-backed risk areas and uses the same weighted risk-scoring service as the backend route. The overlay added in #44 displays an optional 50 km zone for each area, with score-based shading and a dashed outline for incomplete input data. Unscored areas receive no shading; these circles are not interpolated, validated forecasts, or operational wildfire alerts. Refer to `docs/component-interfaces.md` and `docs/environmental-data.md` for current behavior and database setup.

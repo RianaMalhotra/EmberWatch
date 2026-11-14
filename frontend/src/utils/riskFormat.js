@@ -80,3 +80,13 @@ export function areaBounds(areas) {
     .filter((a) => Number.isFinite(a.latitude) && Number.isFinite(a.longitude))
     .map((a) => [a.latitude, a.longitude]);
 }
+
+// Highest risk first; areas without a valid score go last; ties by name.
+export function sortAreasByRisk(areas) {
+  return [...areas].sort((a, b) => {
+    const sa = validRiskScore(a) ? a.risk_score : -1;
+    const sb = validRiskScore(b) ? b.risk_score : -1;
+    if (sb !== sa) return sb - sa;
+    return String(a.name ?? "").localeCompare(String(b.name ?? ""));
+  });
+}
