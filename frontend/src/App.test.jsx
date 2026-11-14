@@ -441,7 +441,53 @@ describe("Wildfire risk map", () => {
 });
 
 describe("Sprint 3 detection dashboard integration (#43)", () => {
- 
+  
+  it("keeps the risk map usable when the detections API fails", async () => {
+    const user = userEvent.setup();
+
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+    });
+
+    fetchDetections.mockRejectedValue(
+      new Error("Failed to fetch detections: 503"),
+    );
+
+    render(<App />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Explore map" }),
+    );
+
+    // The detection failure should be reported.
+    expect(await screen.findByText(/Detections unavailable:/))
+      .toHaveTextContent("The data service is temporarily unavailable.");
+
+    // The map and risk area should remain available.
+    expect(screen.getByTestId("map")).toBeInTheDocument();
+
+    const areaMarker = screen.getByRole("button", {
+      name: "Select area at 43.6532, -79.3832",
+    });
+
+    expect(areaMarker).toBeInTheDocument();
+
+    // Users should still be able to inspect the area's risk information.
+    await user.click(areaMarker);
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText("Risk level").parentElement)
+      .toHaveTextContent("HIGH");
+
+    // A detection failure must not trigger another risk-data request.
+    expect(fetchRiskAreas).toHaveBeenCalledTimes(1);
+    expect(fetchDetections).toHaveBeenCalledTimes(1);
+  });
+
   it("supports the complete wildfire monitoring workflow", async () => {
     const user = userEvent.setup();
 
