@@ -1541,3 +1541,12 @@
     min-height:38px; flex-shrink:0; touch-action:manipulation;
   }
 }
+
+
+/* Risk explanation is revealed only by View Risk Details, never duplicated beneath it. */
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-side-panel .ew-collapsed-details {
+  display:none!important;
+}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-side-panel .ew-expanded-details {
+  display:block!important;
+}

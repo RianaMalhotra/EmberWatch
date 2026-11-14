@@ -14,8 +14,8 @@ vi.mock("react-leaflet", async () => {
   const React = await import("react");
 
   return {
-    MapContainer: ({ children }) =>
-      React.createElement("div", { "data-testid": "map" }, children),
+    MapContainer: ({ children, center, zoom }) =>
+      React.createElement("div", { "data-testid": "map", "data-center": center.join(","), "data-zoom": String(zoom) }, children),
 
     TileLayer: () => null,
     Popup: ({ children }) => React.createElement("div", { "data-testid": "leaflet-popup" }, children),
@@ -151,10 +151,14 @@ describe("Wildfire risk map", () => {
     expect(screen.getByText(/Nearby Fire Detections:/).parentElement)
       .toHaveTextContent("2");
 
+    expect(screen.queryByRole("heading", { name: "How the risk estimate is calculated" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /View Risk Details/i }));
     expect(screen.getByRole("heading", { name: "How the risk estimate is calculated" })).toBeInTheDocument();
     expect(screen.getByLabelText("Risk factor explanations")).toHaveTextContent("Slope (5% base weight): Unavailable");
     expect(screen.getByLabelText("Risk factor explanations")).toHaveTextContent("Nearby Fire Detections (25% base weight)");
     expect(screen.getByText(/not a validated real-time fire forecast/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Back to Fire Information/i }));
+    expect(screen.queryByRole("heading", { name: "How the risk estimate is calculated" })).not.toBeInTheDocument();
 
     expect(screen.getByText(/Some inputs are missing/i))
       .toBeInTheDocument();
@@ -227,6 +231,8 @@ describe("Wildfire risk map", () => {
 
     expect(screen.getByLabelText("Map legend")).toHaveTextContent("incomplete");
     expect(screen.getByRole("button", { name: /close map layers and legend/i })).toBeInTheDocument();
+    expect(screen.getByTestId("map")).toHaveAttribute("data-center", "54.5,-119");
+    expect(screen.getByTestId("map")).toHaveAttribute("data-zoom", "6");
     expect(screen.getByText("Map legend").closest("details")).toHaveAttribute("open");
   });
 

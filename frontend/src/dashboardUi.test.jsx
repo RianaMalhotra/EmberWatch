@@ -183,10 +183,11 @@ describe("details panel and legend", () => {
     if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Lytton/ }));
 
-    const explanation = screen.getByLabelText("Risk factor explanations").closest(".ew-collapsed-details");
-    expect(explanation).toBeInTheDocument();
+    expect(screen.queryByLabelText("Risk factor explanations")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /View Risk Details/ }));
     expect(screen.getByLabelText("Risk factor explanations").closest(".ew-expanded-details")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Back to Fire Information/ }));
+    expect(screen.queryByLabelText("Risk factor explanations")).not.toBeInTheDocument();
   });
 
   it("explains detection markers as well as risk areas", async () => {
