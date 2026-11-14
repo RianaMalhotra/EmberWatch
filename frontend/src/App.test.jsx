@@ -442,6 +442,245 @@ describe("Wildfire risk map", () => {
 });
 
 describe("Sprint 3 detection dashboard integration (#43)", () => {
+  
+  it("opens the selected detection details when a satellite marker is clicked", async () => {
+    const user = userEvent.setup();
+
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+    });
+
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [
+        {
+          id: 201,
+          latitude: 50.1,
+          longitude: -120.3,
+          timestamp: "2025-07-01T18:30:00Z",
+          confidence: 85,
+          classification: "potential_wildfire",
+          meets_threshold: true,
+        },
+      ],
+      counts: {
+        total: 1,
+        shown: 1,
+        potential_wildfire: 1,
+        low_confidence: 0,
+        unavailable: 0,
+      },
+    });
+
+    render(<App />);
+
+    // Open the map.
+    await user.click(
+      await screen.findByRole("button", { name: "Explore map" }),
+    );
+
+    // Select an area first.
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Select area at 43.6532, -79.3832",
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    // Click the individual satellite detection marker.
+    await user.click(
+      screen.getByRole("button", {
+        name: "Fire at 50.1, -120.3",
+      }),
+    );
+
+    // Detection details should replace the area assessment.
+    expect(
+      screen.getByRole("region", {
+        name: "Satellite detection details",
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: /Potential wildfire/i }),
+    ).toBeInTheDocument();
+
+    const detectionDetails = screen.getByRole("region", {
+      name: "Satellite detection details",
+    });
+
+    expect(detectionDetails).toHaveTextContent("Jul 1, 2025");
+    expect(detectionDetails).toHaveTextContent("50.100, -120.300");
+    expect(detectionDetails).toHaveTextContent("85%");
+
+    expect(
+      screen.queryByRole("heading", { name: "Toronto Test Area" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the risk map usable when the detections API fails", async () => {
+    const user = userEvent.setup();
+
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+    });
+
+    fetchDetections.mockRejectedValue(
+      new Error("Failed to fetch detections: 503"),
+    );
+
+    render(<App />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Explore map" }),
+    );
+
+    // The detection failure should be reported.
+    expect(await screen.findByText(/Detections unavailable:/))
+      .toHaveTextContent("The data service is temporarily unavailable.");
+
+    // The map and risk area should remain available.
+    expect(screen.getByTestId("map")).toBeInTheDocument();
+
+    const areaMarker = screen.getByRole("button", {
+      name: "Select area at 43.6532, -79.3832",
+    });
+
+    expect(areaMarker).toBeInTheDocument();
+
+    // Users should still be able to inspect the area's risk information.
+    await user.click(areaMarker);
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText("Risk level").parentElement)
+      .toHaveTextContent("HIGH");
+
+    // A detection failure must not trigger another risk-data request.
+    expect(fetchRiskAreas).toHaveBeenCalledTimes(1);
+    expect(fetchDetections).toHaveBeenCalledTimes(1);
+  });
+
+  it("supports the complete wildfire monitoring workflow", async () => {
+    const user = userEvent.setup();
+
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+    });
+
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [
+        {
+          id: 101,
+          latitude: 50.1,
+          longitude: -120.3,
+          timestamp: "2025-07-01T18:30:00Z",
+          confidence: 80,
+          classification: "potential_wildfire",
+          meets_threshold: true,
+        },
+        {
+          id: 102,
+          latitude: 51.2,
+          longitude: -121.4,
+          timestamp: "2025-07-02T18:30:00Z",
+          confidence: 10,
+          classification: "low_confidence",
+          meets_threshold: false,
+        },
+      ],
+      counts: {
+        total: 2,
+        shown: 2,
+        potential_wildfire: 1,
+        low_confidence: 1,
+        unavailable: 0,
+      },
+    });
+
+    render(<App />);
+
+    // 1. Open the wildfire map.
+    await user.click(
+      await screen.findByRole("button", { name: "Explore map" }),
+    );
+
+    expect(await screen.findByTestId("map")).toBeInTheDocument();
+
+    // 2. Select a monitored area.
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Select area at 43.6532, -79.3832",
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    // 3. Inspect the risk score and environmental factors.
+    expect(screen.getByText("Risk level").parentElement)
+      .toHaveTextContent("HIGH");
+
+    expect(screen.getByText(/Temperature:/).parentElement)
+      .toHaveTextContent("32 °C");
+
+    expect(screen.getByText(/Relative Humidity:/).parentElement)
+      .toHaveTextContent("25 %");
+
+    // 4. Open the risk explanation.
+    await user.click(
+      screen.getByRole("button", { name: /View Risk Details/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "How the risk estimate is calculated",
+      }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByLabelText("Risk factor explanations"))
+      .toHaveTextContent("Slope (5% base weight): Unavailable");
+
+    // 5. Return to the fire information.
+    await user.click(
+      screen.getByRole("button", { name: /Back to Fire Information/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    // 6. Inspect satellite detection details.
+    await user.click(
+      screen.getByRole("button", { name: /Data dates & details/i }),
+    );
+
+    expect(await screen.findByText(/2 detections shown/))
+      .toBeInTheDocument();
+
+    expect(screen.getByText("Potential wildfire"))
+      .toBeInTheDocument();
+
+    expect(screen.getByText("Low confidence detection"))
+      .toBeInTheDocument();
+
+    expect(screen.getByText(/Location: 50.100, -120.300/))
+      .toBeInTheDocument();
+
+    expect(screen.getByText(/Confidence: 80%/))
+      .toBeInTheDocument();
+  });
+
   it("shows a detection-specific loading state while the request is pending", async () => {
     fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
     fetchDetections.mockReturnValue(new Promise(() => {}));
