@@ -6,6 +6,7 @@ import {
   riskAreaStyle,
   riskState,
   riskStatusText,
+  weatherObservedText,
 } from "./riskFormat";
 
 const complete = { risk_score: 85, risk_level: "HIGH", is_complete: true, missing_inputs: [] };
@@ -63,5 +64,20 @@ describe("riskStatusText for a model failure (#26)", () => {
     expect(riskState(failed)).toBe("unavailable");
     expect(riskAreaStyle(failed).color).toBe(UNAVAILABLE_COLOR);
     expect(riskAreaStyle(failed).dashArray).toBeTruthy();
+  });
+});
+
+describe("weatherObservedText (#49)", () => {
+  it("shows the observation time when there is one", () => {
+    expect(weatherObservedText({ observed_at: "2026-10-23T19:00:00Z" })).toMatch(/^Weather observed .*2026/);
+  });
+
+  it.each([undefined, null, "", "not a date"])("says the time is unavailable for %s", (value) => {
+    expect(weatherObservedText({ observed_at: value })).toBe("Weather observation time unavailable");
+  });
+
+  it("does not turn a missing time into the 1970 epoch", () => {
+    expect(weatherObservedText({ observed_at: null })).not.toMatch(/1970/);
+    expect(weatherObservedText(null)).toBe("Weather observation time unavailable");
   });
 });

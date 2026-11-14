@@ -25,6 +25,7 @@ import {
   riskColor,
   riskState,
   riskStatusText,
+  weatherObservedText,
 } from "./utils/riskFormat";
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Tooltip, useMap } from "react-leaflet";
 import { RISK_ZONE_RADIUS_M, riskZoneStyle } from "./utils/riskZone";
@@ -486,7 +487,7 @@ function Workspace({
                 <hr />
 
               <h3>Environmental Factors</h3>
-              {selectedArea.observed_at && <p>Weather observed {formatDetectionTime(selectedArea.observed_at)}</p>}
+              <p>{weatherObservedText(selectedArea)}</p>
               <p>These factors contribute to a weighted risk estimate, not a confirmed wildfire detection. Higher factor scores mean higher modeled risk; missing factors are excluded and the remaining weights are normalized.</p>
 
               {Object.entries(factorLabels).map(([key, label]) => {

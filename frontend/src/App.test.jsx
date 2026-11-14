@@ -535,3 +535,23 @@ describe("Sprint 4 failure isolation (#49)", () => {
     consoleError.mockRestore();
   });
 });
+
+describe("Weather observation time (#49)", () => {
+  it("says so when an area has no weather observation, instead of showing nothing", async () => {
+    const user = userEvent.setup();
+    fetchDetections.mockResolvedValue({
+      threshold: 20, detections: [],
+      counts: { total: 0, shown: 0, potential_wildfire: 0, low_confidence: 0, unavailable: 0 },
+    });
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [{ ...mockArea, observed_at: null }],
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
+    expect(screen.getByText("Weather observation time unavailable")).toBeInTheDocument();
+    expect(screen.queryByText(/Weather observed/)).not.toBeInTheDocument();
+  });
+});

@@ -1,3 +1,5 @@
+import { formatDetectionTime } from "./detectionFormat";
+
 // #28: wording and styling helpers for risk areas, so an incomplete or
 // unscored assessment never looks the same as a complete one.
 // Kept out of App.jsx so they can be unit tested without a browser.
@@ -127,4 +129,16 @@ export function sanitizeRiskAreas(result) {
       },
     ],
   };
+}
+
+// #49: when the area's weather was observed, or an explicit "unavailable" if
+// there is no readable time (never a blank line, and never the 1970 epoch that
+// new Date(null) would give).
+export function weatherObservedText(area) {
+  const value = area?.observed_at;
+  const readable =
+    value !== null && value !== undefined && value !== "" && !Number.isNaN(new Date(value).getTime());
+  return readable
+    ? `Weather observed ${formatDetectionTime(value)}`
+    : "Weather observation time unavailable";
 }
