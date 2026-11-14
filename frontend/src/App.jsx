@@ -84,12 +84,15 @@ function FocusSelected({ area }) {
   return null;
 }
 
-function RefreshMapLayout({ active }) {
+function RefreshMapLayout({ active, hasSelection }) {
   const map = useMap();
   useEffect(() => {
     if (active) {
       map.invalidateSize?.();
-      const frame = requestAnimationFrame(() => map.invalidateSize?.());
+      const frame = requestAnimationFrame(() => {
+        map.invalidateSize?.();
+        if (!hasSelection) map.setView?.([54.5, -119], 6, { animate: false });
+      });
       return () => cancelAnimationFrame(frame);
     }
   }, [map, active]);
@@ -116,7 +119,14 @@ function AppContent() {
   const [showAreaList, setShowAreaList] = useState(false);
   const [mapLayer, setMapLayer] = useState("both");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
-  const [mapZoom, setMapZoom] = useState(7);
+  const [legendOpen, setLegendOpen] = useState(true);
+  const [mapZoom, setMapZoom] = useState(6);
+  useEffect(() => {
+    if (page === "explore") {
+      setMapControlsOpen(true);
+      setLegendOpen(true);
+    }
+  }, [page]);
   const [clusterZoomTarget, setClusterZoomTarget] = useState(null);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(true);
@@ -280,6 +290,7 @@ function AppContent() {
   const filteredAreas = sortAreasByRisk(riskAreas)
     .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
   function navigateTo(nextPage) {
+    if (nextPage === "explore") { setMapControlsOpen(true); setLegendOpen(true); }
     setPage(nextPage);
     setReporting(false);
     setMenuOpen(false);
@@ -412,7 +423,7 @@ function AppContent() {
             minZoom={3}
             style={{ height: "100%", width: "100%" }}
           >
-            <RefreshMapLayout active={page === "explore"} />
+            <RefreshMapLayout active={page === "explore"} hasSelection={Boolean(searchedPlace || selectedArea)} />
             <MapZoomObserver onZoom={setMapZoom} zoomTarget={clusterZoomTarget} />
             <FocusSelected area={searchedPlace ?? selectedArea} />
             <TileLayer
@@ -500,7 +511,7 @@ function AppContent() {
           />{" "}
           Show 50 km risk zones
         </label>
-        <details className="ew-legend-disclosure" open><summary>Map legend</summary><RiskLegend /></details>
+        <details className="ew-legend-disclosure" open={legendOpen} onToggle={(event) => setLegendOpen(event.currentTarget.open)}><summary>Map legend</summary><RiskLegend /></details>
         <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Bright flame icons meet the satellite confidence threshold; faded flame icons do not. Detection confidence is not the same as wildfire risk.</p></details>
         </div></div></div>
         <div className="ew-map-side-window" aria-label="Location search and details">
