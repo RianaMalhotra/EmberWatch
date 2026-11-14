@@ -1,7 +1,6 @@
 """Report moderation: all writes run on the backend with staff authorization."""
 import os
 import hmac
-from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from db import get_connection
 
@@ -31,7 +30,6 @@ def active_reports():
             for row in rows
         ]}), 200
     except Exception:
-        reports_bp.logger if False else None
         return jsonify({"status": "unavailable", "message": "Reports unavailable"}), 503
 
 @reports_bp.patch("/api/reports/<int:report_id>/status")
