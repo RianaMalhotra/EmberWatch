@@ -106,21 +106,46 @@ Apply the relevant migrations in `supabase/migrations/` before running loaders. 
 
 ## Tests and verification
 
-```bash
-# From backend/
-python -m pytest -q
-python -m pytest --cov=. --cov-fail-under=80
+Run the following commands from the indicated directories.
 
-# From frontend/
+**Backend tests and coverage** (from `backend/`):
+
+```bash
+python -m pytest -q
+python -m pytest -q \
+  --cov=services.detection_pipeline \
+  --cov=services.detection_validation \
+  --cov=services.detection_filter \
+  --cov=services.risk_scoring \
+  --cov-report=term-missing \
+  --cov-fail-under=80
+```
+
+The CI coverage gate requires at least **80% statement coverage** across these four critical backend modules.
+
+**Data-processing tests** (from the repository root):
+
+```bash
+python -m pytest tests -q
+```
+
+**Frontend tests, linting, and production build** (from `frontend/`):
+
+```bash
 npm test -- --run
 npm run lint
 npm run build
+```
 
-# From the repository root: historical model validation (requires internet)
+**Historical model validation** (from the repository root; requires internet):
+
+```bash
 python ml/validate_risk_model.py
 ```
 
-See [GitHub Actions](https://github.com/RianaMalhotra/EmberWatch/actions) for current CI status. Unit tests and mocked service tests **do not** prove live Supabase connectivity or deployed data freshness. For a deployment smoke check, verify `/api/health`, `/api/health/db`, populated `/api/risk-areas`, and `/api/detections`, then confirm the map handles successful, empty, and failed responses. Data loader instructions are in [Environmental data](docs/environmental-data.md) and [Detection provenance](docs/detection-data-provenance.md).
+GitHub Actions runs backend, data-processing, and frontend checks on pull requests targeting `main`. See [GitHub Actions](https://github.com/RianaMalhotra/EmberWatch/actions) for current CI status.
+
+Unit tests and mocked service tests **do not** prove live Supabase connectivity or deployed data freshness. For a deployment smoke check, verify `/api/health`, `/api/health/db`, populated `/api/risk-areas`, and `/api/detections`, then confirm the map handles successful, empty, and failed responses. Data loader instructions are in [Environmental data](https://github.com/RianaMalhotra/EmberWatch/blob/main/docs/environmental-data.md) and [Detection provenance](https://github.com/RianaMalhotra/EmberWatch/blob/main/docs/detection-data-provenance.md).
 
 ## Repository layout
 
