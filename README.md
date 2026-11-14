@@ -143,9 +143,11 @@ tests/            Cross-component and data-processing tests
 - Scheduled data refresh, live database connectivity, and deployment health require ongoing verification.
 - Further model calibration, broader unbiased evaluation, public-report workflow integration, and reliability hardening remain follow-up work.
 
-## Milestone 5 implementations — Sprint 3 and Sprint 4
+## Milestone 5 — Sprint 3 review and final-milestone plan
 
-This section records **merged implementation work** for the third sprint and subsequent Sprint 4 progress. The authoritative current state is the [GitHub project board](https://github.com/users/RianaMalhotra/projects/1), [issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [merged PR history](https://github.com/RianaMalhotra/EmberWatch/pulls?q=is%3Apr+is%3Amerged). Milestone 5's separate group report contains individual task estimates, actual hours, backlog screenshots, and Milestone 6 planning tables.
+**Sprint labels and course milestones are separate planning units.** The team originally planned seven development sprints. For Milestone 5, we report the completed Sprint 3 work, acknowledge implementation progress made after Sprint 3, and plan the remaining scope leading to the final course submission (Milestone 6). We are **not retroactively renaming original Sprints 3–5 as “Sprint 3” or Sprints 6–7 as “Sprint 4”**: issue, PR, and historical sprint labels remain unchanged for traceability. The remaining scope can be reprioritized or consolidated within the time available without rewriting completed work's history.
+
+The authoritative current state is the [GitHub project board](https://github.com/users/RianaMalhotra/projects/1), [issues](https://github.com/RianaMalhotra/EmberWatch/issues), and [merged PR history](https://github.com/RianaMalhotra/EmberWatch/pulls?q=is%3Apr+is%3Amerged). Milestone 5's separate group report contains individual task estimates, actual hours, backlog screenshots, and Milestone 6 planning tables.
 
 ### Sprint 3 — detection integration, explainable risk, and deployment
 
@@ -159,7 +161,7 @@ This section records **merged implementation work** for the third sprint and sub
 
 **Sprint 3 outcome:** The project advanced beyond a three-circle mock map to database-backed monitored areas, satellite-derived detection views, historical retrieval, and environmental-factor explanations. This is an educational integration milestone, not evidence of continuous live-feed availability or validated wildfire prediction.
 
-### Sprint 4 — integrated risk zones, freshness, testing, and validation
+### Additional progress after Sprint 3 — Sprint 4 work already implemented
 
 | Workstream | Implemented outcome | Evidence |
 | --- | --- | --- |
@@ -170,13 +172,13 @@ This section records **merged implementation work** for the third sprint and sub
 | Model explainability and historical validation (#57) | Checked deterministic scoring, missing-data boundaries, factor weights and provenance; compared seven selected fire days with control dates | [PR #102](https://github.com/RianaMalhotra/EmberWatch/pull/102), [validation documentation](docs/risk-model.md) |
 | Public reporting interface (#51) | Added a frontend Report a Fire form; server-side report persistence remains separate work | [PR #76](https://github.com/RianaMalhotra/EmberWatch/pull/76) |
 
-**Not yet implemented on `main` as of this update:** [PR #100](https://github.com/RianaMalhotra/EmberWatch/pull/100) (additional external-source and model-failure hardening) and [PR #101](https://github.com/RianaMalhotra/EmberWatch/pull/101) (validated, rate-limited public-report storage) remain open. These should not be described as completed Sprint 4 deliverables.
+**Outstanding at the time of this update (check live PR status):** [PR #100](https://github.com/RianaMalhotra/EmberWatch/pull/100) (additional external-source and model-failure hardening) and [PR #101](https://github.com/RianaMalhotra/EmberWatch/pull/101) (validated, rate-limited public-report storage) remain open. These should not be described as completed deliverables until merged and verified.
 
-### Verification and remaining deliverables
+### Remaining planned work toward Milestone 6
 
 The merged implementation is supported by backend Pytest coverage checks, frontend Vitest contracts, lint/build checks, and data/model validation scripts. To reproduce them, use the [Tests and verification](#tests-and-verification) commands above and review [GitHub Actions](https://github.com/RianaMalhotra/EmberWatch/actions). Tests with mocks do not establish that the deployed API, Supabase database, or scheduled feeds are currently healthy.
 
-For the final milestone, the team should verify end-to-end deployed behavior, reconcile and review outstanding PRs, confirm database migrations and data freshness, address model calibration and incomplete NDVI inputs, and prepare the final demonstration, presentation, and report. See the [prioritized backlog](https://github.com/users/RianaMalhotra/projects/1) for up-to-date ownership and status.
+The original Sprint 5–7 backlog remains useful as a record of the initial plan, **not a claim that three additional course milestones or sprint submissions exist**. The team will consolidate and prioritize its unfinished items for the remaining development period before Milestone 6: verify end-to-end deployed behavior, reconcile and review outstanding PRs, confirm database migrations and data freshness, address model calibration and incomplete NDVI inputs, and prepare the final demonstration, presentation, and report. This is a revised delivery plan, not a retroactive rewrite of sprint completion dates. See the [prioritized backlog](https://github.com/users/RianaMalhotra/projects/1) for up-to-date ownership and status.
 
 ## Project tools and links
 
