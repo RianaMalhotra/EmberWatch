@@ -1,6 +1,7 @@
 
 import { API_BASE_URL } from "./apiConfig.js";
 import { readJson, withTimeout } from "./requestHelpers.js";
+import { sanitizeRiskAreas } from "../utils/riskFormat.js";
 
 export async function fetchRiskAreas() {
   const response = await withTimeout(
@@ -19,5 +20,5 @@ export async function fetchRiskAreas() {
     throw new Error("Invalid risk data received");
   }
 
-  return result;
+  return sanitizeRiskAreas(result);
 }

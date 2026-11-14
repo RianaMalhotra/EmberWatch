@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { REPORTS_ENABLED } from "./services/reportApi";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
@@ -179,9 +180,6 @@ function App() {
     setDetectionAttempt((n) => n + 1);
   }
 
-  const factors = selectedArea?.environmental_factors ?? {};
-  const filteredAreas = sortAreasByRisk(riskAreas)
-    .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
   function selectArea(area) {
     setSelectedArea(area);
     setShowFullDetails(false);
@@ -287,6 +285,42 @@ function App() {
         </>
       )}
 
+      <ErrorBoundary label="map and area details" resetKeys={[riskAreas, detectionResult]}>
+        <Workspace
+          view={view}
+          riskAreas={riskAreas}
+          selectedArea={selectedArea}
+          showZones={showZones}
+          setShowZones={setShowZones}
+          detectionResult={detectionResult}
+          search={search}
+          setSearch={setSearch}
+          detailsRef={detailsRef}
+          showFullDetails={showFullDetails}
+          setShowFullDetails={setShowFullDetails}
+          setView={setView}
+          setSelectedArea={setSelectedArea}
+          selectArea={selectArea}
+        />
+      </ErrorBoundary>
+      </main>
+    </div>
+  );
+}
+
+// The map, area list and area details. Kept in its own component so an
+// ErrorBoundary can contain a crash here (#49): an error thrown while drawing
+// the map or the details must not take down the header, the status messages or
+// the Report a Fire panel.
+function Workspace({
+  view, riskAreas, selectedArea, showZones, setShowZones, detectionResult, search, setSearch,
+  detailsRef, showFullDetails, setShowFullDetails, setView, setSelectedArea, selectArea,
+}) {
+  const factors = selectedArea?.environmental_factors ?? {};
+  const filteredAreas = sortAreasByRisk(riskAreas)
+    .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
+
+  return (
       <div className="ew-workspace">
         <div className="ew-map-column"><div className="ew-section-heading"><div><span className="ew-overline">GEOGRAPHIC OVERVIEW</span><h2>{view === "dashboard" ? "Wildfire map" : "Selected area map"}</h2></div><span className="ew-section-meta">{riskAreas.length} monitored areas</span></div><div className="ew-map-frame">
           <MapContainer
@@ -502,8 +536,7 @@ function App() {
             </>
           )}
         </div></aside>
-      </div></main>
-    </div>
+      </div>
   );
 }
 
