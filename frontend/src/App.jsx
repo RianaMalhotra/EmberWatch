@@ -10,7 +10,6 @@ import { describeLoadError } from "./utils/loadError";
 import DataFreshness from "./components/DataFreshness";
 import {
   classificationLabel,
-  detectionStyle,
   detectionSummary,
   formatConfidence,
   formatCoordinates,
@@ -27,12 +26,23 @@ import {
   riskStatusText,
   weatherObservedText,
 } from "./utils/riskFormat";
-import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Circle, Marker, Popup, Tooltip, useMap } from "react-leaflet";
+import { divIcon } from "leaflet";
 import { RISK_ZONE_RADIUS_M, riskZoneStyle } from "./utils/riskZone";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
 import { sortAreasByRisk } from "./utils/riskFormat";
 import RiskLegend from "./components/RiskLegend";
+import AshDetective from "./components/AshDetective";
+import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
+
+const fireMarkerIcon = (lowConfidence) => divIcon({
+  className: "ew-fire-marker-wrap",
+  html: `<span class="ew-fire-marker ${lowConfidence ? "ew-fire-marker-low" : "ew-fire-marker-likely"}" aria-hidden="true">🔥</span>`,
+  iconSize: [26, 30],
+  iconAnchor: [13, 25],
+  popupAnchor: [0, -23],
+});
 
 const factorUnits = {
   temperature_c: "°C",
@@ -42,7 +52,7 @@ const factorUnits = {
   slope_deg: "°",
 };
 
-// Zoom the map to the monitored areas once they load (#68 areas span Canada).
+// Fit the initial map to Canada rather than only the currently monitored areas.
 function FitToAreas({ areas }) {
   const map = useMap();
   const points = areaBounds(areas);
@@ -50,7 +60,7 @@ function FitToAreas({ areas }) {
 
   useEffect(() => {
     if (points.length > 0) {
-      map.fitBounds(points, { padding: [30, 30], maxZoom: 8 });
+      map.fitBounds([[42, -141], [83, -52]], { padding: [18, 18], maxZoom: 5 });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, key]);
@@ -86,18 +96,30 @@ function RefreshMapLayout({ active }) {
   return null;
 }
 
-function App() {
+function AppContent() {
   const [riskAreas, setRiskAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
   const [showZones, setShowZones] = useState(false);
   const [search, setSearch] = useState("");
+  const [placeMatches, setPlaceMatches] = useState([]);
+  const [placeLoading, setPlaceLoading] = useState(false);
+  const [placeError, setPlaceError] = useState("");
+  const [searchedPlace, setSearchedPlace] = useState(null);
+  const [selectedDetection, setSelectedDetection] = useState(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [view, setView] = useState("dashboard");
   const [page, setPage] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDataNotes, setShowDataNotes] = useState(false);
+  const [showAreaList, setShowAreaList] = useState(false);
+  const [mapLayer, setMapLayer] = useState("both");
+  const [mapControlsOpen, setMapControlsOpen] = useState(true);
+  const [mapZoom, setMapZoom] = useState(7);
+  const [clusterZoomTarget, setClusterZoomTarget] = useState(null);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(true);
   const menuRef = useRef(null);
   const detailsRef = useRef(null);
 
@@ -188,6 +210,60 @@ function App() {
     };
   }, [riskAttempt]);
 
+  // Open-Meteo's Canadian geocoding search supports autocomplete beyond the monitored-area list.
+  useEffect(() => {
+    const query = search.trim();
+    if (query.length < 2 || (searchedPlace && query === searchedPlace.name)) {
+      setPlaceMatches([]);
+      setPlaceLoading(false);
+      setPlaceError("");
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setPlaceLoading(true);
+      setPlaceError("");
+      try {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json&countryCode=CA`;
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error("Location search is unavailable");
+        const data = await response.json();
+        if (!controller.signal.aborted) {
+          setPlaceMatches((Array.isArray(data.results) ? data.results : []).filter(
+            (place) => place.country_code === "CA" && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)
+          ).slice(0, 6));
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) { setPlaceMatches([]); setPlaceError("Location suggestions are unavailable. Try again."); }
+      } finally {
+        if (!controller.signal.aborted) setPlaceLoading(false);
+      }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [search, searchedPlace]);
+
+  function choosePlace(place) {
+    const name = [place.name, place.admin1].filter(Boolean).join(", ");
+    const monitored = riskAreas.find((area) => (area.name ?? "").toLowerCase() === place.name.toLowerCase());
+    setSearch(name);
+    setPlaceMatches([]);
+    setSearchedPlace({ name, latitude: place.latitude, longitude: place.longitude });
+    setSelectedDetection(null);
+    setDetailsExpanded(false);
+    if (monitored) selectArea(monitored);
+    else { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); }
+    setPage("explore");
+  }
+
+  const nearbyDetections = searchedPlace && detectionResult?.detections
+    ? detectionResult.detections.filter((d) => {
+        const lat = (d.latitude - searchedPlace.latitude) * Math.PI / 180;
+        const lon = (d.longitude - searchedPlace.longitude) * Math.PI / 180;
+        const a = Math.sin(lat / 2) ** 2 + Math.cos(searchedPlace.latitude * Math.PI / 180) * Math.cos(d.latitude * Math.PI / 180) * Math.sin(lon / 2) ** 2;
+        return 12742 * Math.asin(Math.min(1, Math.sqrt(a))) <= 50;
+      })
+    : [];
+
   function retryRiskAreas() {
     setLoading(true);
     setError(null);
@@ -200,7 +276,9 @@ function App() {
     setDetectionAttempt((n) => n + 1);
   }
 
-
+  const factors = selectedArea?.environmental_factors ?? {};
+  const filteredAreas = sortAreasByRisk(riskAreas)
+    .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
   function navigateTo(nextPage) {
     setPage(nextPage);
     setReporting(false);
@@ -210,6 +288,9 @@ function App() {
   function selectArea(area) {
     setPage("explore");
     setSelectedArea(area);
+    setDetailsExpanded(false);
+    setSelectedDetection(null);
+    setSearchedPlace(null);
     setShowFullDetails(false);
     setView("information");
     if (window.matchMedia?.("(max-width: 860px)").matches) {
@@ -224,7 +305,7 @@ function App() {
     <div className={`ew-app ew-view-${view}`}>
       <header className="ew-header">
         <div className="ew-header-left">
-        {page === "explore" && view !== "dashboard" && <button className="ew-nav-back" type="button" onClick={() => { if(view === "risk") {setView("information");setShowFullDetails(false);} else {setView("dashboard");setSelectedArea(null);} }}>← Back</button>}
+        {page === "explore" && view !== "dashboard" && <button className="ew-nav-back" type="button" onClick={() => { if(view === "risk") {setView("information");setShowFullDetails(false);} else {setView("dashboard");setSelectedArea(null);setSelectedDetection(null);} }}>← Back</button>}
         <button type="button" className="ew-brand ew-brand-button" aria-label="Go to EmberWatch home" onClick={() => {navigateTo("home");setView("dashboard");}}>
         <span className="ew-brand-icon" aria-hidden="true">🔥</span>
         <span>EMBER<span className="ew-brand-accent">WATCH</span>
@@ -258,7 +339,7 @@ function App() {
       <div className={page === "explore" ? "ew-explore-page" : "ew-page-hidden"}>
         <div className="ew-page-heading">
         <div>
-        <span className="ew-eyebrow"><span className="ew-live-ember" aria-hidden="true" /> WILDFIRE INTELLIGENCE · CANADA</span>
+        <span className="ew-eyebrow"><span className="ew-live-ember" aria-hidden="true" /> CANADA · WILDFIRE EXPLORER</span>
         <h1>
         {view === "dashboard" ? "Explore the map" : "Area assessment"}
         </h1>
@@ -320,63 +401,30 @@ function App() {
         </div>
       )}
 
-      <ErrorBoundary label="map and area details" resetKeys={[riskAreas, detectionResult]}>
-        <Workspace
-          page={page}
-          view={view}
-          riskAreas={riskAreas}
-          selectedArea={selectedArea}
-          showZones={showZones}
-          setShowZones={setShowZones}
-          detectionResult={detectionResult}
-          search={search}
-          setSearch={setSearch}
-          detailsRef={detailsRef}
-          showFullDetails={showFullDetails}
-          setShowFullDetails={setShowFullDetails}
-          setView={setView}
-          setSelectedArea={setSelectedArea}
-          selectArea={selectArea}
-        />
-      </ErrorBoundary>
-      </div>
-      </main>
-    </div>
-  );
-}
-
-// The map, area list and area details. Kept in its own component so an
-// ErrorBoundary can contain a crash here (#49): an error thrown while drawing
-// the map or the details must not take down the header, the status messages or
-// the Report a Fire panel.
-function Workspace({
-  page, view, riskAreas, selectedArea, showZones, setShowZones, detectionResult, search, setSearch,
-  detailsRef, showFullDetails, setShowFullDetails, setView, setSelectedArea, selectArea,
-}) {
-  const factors = selectedArea?.environmental_factors ?? {};
-  const filteredAreas = sortAreasByRisk(riskAreas)
-    .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
-
-  return (
-      <div className="ew-workspace">
+      <div className="ew-workspace ew-map-first">
         <div className="ew-ember-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
-        <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> MAP EXPLORER <span className="ew-map-title-caption">MONITORED REGIONS</span></div><div className="ew-map-frame">
+        <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> MAP <span className="ew-map-title-caption">Explore locations and satellite observations</span></div><div className="ew-map-frame">
           <MapContainer
-            center={[45.4, -77.5]}
-            zoom={7}
+            center={[54.5, -119]}
+            zoom={6}
+            maxBounds={[[40, -143], [85, -50]]}
+            maxBoundsViscosity={1}
+            minZoom={3}
             style={{ height: "100%", width: "100%" }}
           >
             <RefreshMapLayout active={page === "explore"} />
-            <FocusSelected area={selectedArea} />
+            <MapZoomObserver onZoom={setMapZoom} zoomTarget={clusterZoomTarget} />
+            <FocusSelected area={searchedPlace ?? selectedArea} />
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            <FitToAreas areas={riskAreas} />
 
+
+            {searchedPlace && <CircleMarker center={[searchedPlace.latitude, searchedPlace.longitude]} radius={11} pathOptions={{color:"#ffb36c",fillColor:"#ff7843",fillOpacity:0.8,weight:3}}><Tooltip permanent direction="top"><strong>{searchedPlace.name}</strong><br />Selected location</Tooltip></CircleMarker>}
             {/* Draw non-interactive risk zones below clickable area and detection markers. */}
-            {showZones && riskAreas
+            {mapLayer !== "detections" && showZones && riskAreas
               .filter((area) => Number.isFinite(area.latitude) && Number.isFinite(area.longitude))
               .map((area) => (
                 <Circle
@@ -388,7 +436,7 @@ function Workspace({
                 />
               ))}
 
-            {riskAreas.map((area) => {
+            {mapLayer !== "detections" && riskAreas.map((area) => {
               // Pixel-sized markers stay visible at country-wide zoom levels.
               const { radius, ...pathOptions } = riskAreaStyle(area, selectedArea?.id === area.id);
 
@@ -411,38 +459,40 @@ function Workspace({
              );
            })}
            
-          {detectionResult?.detections.map((detection) => {
-            const { radius, ...pathOptions } = detectionStyle(detection);
-
+          {mapLayer !== "risk" && clusterDetections(detectionResult?.detections ?? [], mapZoom).map((cluster) => {
+            const detection = cluster.items[0];
+            const clustered = cluster.items.length > 1;
+            const icon = clustered ? divIcon({
+              className: "ew-fire-cluster-wrap",
+              html: `<span class="ew-fire-cluster" aria-hidden="true">🔥 <b>${cluster.items.length}</b></span>`,
+              iconSize: [48, 36], iconAnchor: [24, 18],
+            }) : fireMarkerIcon(detection.classification === "low_confidence");
             return (
-              <CircleMarker
-                key={`detection-${detection.id}`}
-                center={[detection.latitude, detection.longitude]}
-                radius={radius}
-                pathOptions={pathOptions}
+              <Marker
+                key={`detection-${cluster.key}`}
+                position={[cluster.latitude, cluster.longitude]}
+                icon={icon}
+                eventHandlers={{ click: () => {
+                  if (clustered) { setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude }); setMapZoom(8); setSelectedDetection(null); return; }
+                  setSelectedDetection(detection); setSelectedArea(null); setSearchedPlace(null);
+                  setDetailsExpanded(false); setView("information"); setShowFullDetails(false);
+                  if (window.matchMedia?.("(max-width: 860px)").matches) requestAnimationFrame(() => detailsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+                } }}
               >
                 <Popup>
-                  <strong>{classificationLabel(detection)}</strong>
-                  <p>
-                    Location: {formatCoordinates(detection.latitude, detection.longitude)}
-                    <br />
-                    Detected: {formatDetectionTime(detection.timestamp)}
-                    <br />
-                    Confidence: {formatConfidence(detection.confidence)}
-                  </p>
-
-                  {!detection.meets_threshold && (
-                    <p>
-                      Below the {detectionResult.threshold}% confidence
-                      threshold. Treat with caution.
-                    </p>
-                  )}
+                  {clustered ? <><strong>{cluster.items.length} satellite observations</strong><p>Zoom in to see individual hotspots. These may be historical.</p></> : <>
+                    <strong>{classificationLabel(detection)}</strong>
+                    <p>Location: {formatCoordinates(detection.latitude, detection.longitude)}
+                    <br />Detected: {formatDetectionTime(detection.timestamp)}
+                    <br />Confidence: {formatConfidence(detection.confidence)}</p>
+                    {!detection.meets_threshold && <p>Below the {detectionResult.threshold}% confidence threshold. Treat with caution.</p>}
+                  </>}
                 </Popup>
-              </CircleMarker>
+              </Marker>
             );
           })}
         </MapContainer></div>
-        <div className="ew-map-controls"><label className="ew-zone-toggle">
+        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button><div id="ew-map-controls-content" className="ew-map-controls-content" hidden={!mapControlsOpen}><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
@@ -450,18 +500,21 @@ function Workspace({
           />{" "}
           Show 50 km risk zones
         </label>
-        <details className="ew-legend-disclosure"><summary>Map legend</summary><RiskLegend /></details>
-        <details className="ew-map-help"><summary>About this map</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Detection markers: solid red = meets confidence threshold; dashed grey = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Red detection markers meet the satellite confidence threshold; grey markers do not. Detection confidence is not the same as wildfire risk.</p></details>
-        </div>
-      </div>
-      
-        <aside className="ew-side-panel">
-          <div className="ew-panel-top">
-          <div className="ew-locations-heading"><h2>Find a place</h2><span className="ew-section-meta">{riskAreas.length} areas</span></div>
-          <label className="ew-search-label" htmlFor="ew-area-search">Search the monitored locations</label>
-          <input id="ew-area-search" type="search" placeholder="Search city or monitored area..." value={search} onChange={(event) => { setSearch(event.target.value); if (view !== "dashboard") setView("dashboard"); }} onKeyDown={(event) => { if (event.key === "Enter" && filteredAreas.length > 0) selectArea(filteredAreas[0]); }} />
-          {search.trim() && <p className="ew-search-count">{filteredAreas.length} matching monitored {filteredAreas.length === 1 ? "area" : "areas"} · Press Enter to zoom to first result</p>}
-          <nav className="ew-area-list" aria-label="Monitored areas">
+        <details className="ew-legend-disclosure" open><summary>Map legend</summary><RiskLegend /></details>
+        <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Bright flame icons meet the satellite confidence threshold; faded flame icons do not. Detection confidence is not the same as wildfire risk.</p></details>
+        </div></div></div>
+        <div className="ew-map-side-window" aria-label="Location search and details">
+        <aside className={`ew-side-panel ${selectedArea || selectedDetection || searchedPlace ? "ew-has-selection" : ""} ${detailsExpanded ? "ew-sheet-expanded" : ""}`}>
+          <div className="ew-panel-top"><button type="button" className="ew-search-collapse" aria-expanded={searchExpanded} onClick={() => setSearchExpanded((v) => !v)}>{searchExpanded ? "− Hide search" : "⌕ Search places"}</button><div className={searchExpanded ? "ew-search-body" : "ew-search-body ew-search-body-hidden"}>
+          <div className="ew-locations-heading"><h2>Find a place</h2><span className="ew-section-meta">Canada</span></div>
+          <label className="ew-search-label" htmlFor="ew-area-search">Search across Canada</label>
+          <input id="ew-area-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded={placeMatches.length > 0} aria-controls="ew-place-suggestions" placeholder="Search anywhere in Canada..." value={search} onChange={(event) => { setSearch(event.target.value); setSearchedPlace(null); if (view !== "dashboard") setView("dashboard"); }} onKeyDown={(event) => { if (event.key === "Enter") { if (placeMatches.length > 0) choosePlace(placeMatches[0]); else if (filteredAreas.length > 0) selectArea(filteredAreas[0]); } }} />
+          {placeLoading && <p className="ew-search-count" role="status">Finding places...</p>}
+          {placeError && <p className="ew-search-count" role="status">{placeError}</p>}
+          {placeMatches.length > 0 && <div id="ew-place-suggestions" className="ew-place-suggestions" role="listbox" aria-label="Canadian place suggestions">{placeMatches.map((place) => <button type="button" role="option" aria-selected={false} key={place.id} onClick={() => choosePlace(place)}>{place.name}{place.admin1 ? `, ${place.admin1}` : ""}<span>↗</span></button>)}</div>}
+          {search.trim() && !placeLoading && placeMatches.length === 0 && !placeError && <p className="ew-search-count">Choose a monitored area below, or try another Canadian place name.</p>}
+          <button type="button" className="ew-area-list-toggle" aria-expanded={showAreaList || Boolean(search.trim())} onClick={() => setShowAreaList((open) => !open)}>{showAreaList || search.trim() ? "Hide monitored areas" : `Browse ${riskAreas.length} monitored areas`} <span aria-hidden="true">{showAreaList || search.trim() ? "−" : "+"}</span></button>
+          {(showAreaList || Boolean(search.trim())) && <nav className="ew-area-list" aria-label="Monitored areas">
           {filteredAreas.map((area) => <button type="button" aria-pressed={selectedArea?.id === area.id} className={`ew-area-row ${selectedArea?.id === area.id ? "is-selected" : ""}`} key={area.id} onClick={() => selectArea(area)}>
           <span className="ew-area-name">
           {area.name ?? `Area ${area.id}`}
@@ -471,11 +524,21 @@ function Workspace({
           </span>
           <span aria-hidden="true">›</span>
           </button>)}{filteredAreas.length === 0 && <p className="ew-empty-search">No matching monitored areas.</p>}
-          </nav>
-          <details className="ew-search-footnote"><summary>Why only these places?</summary><p>Risk estimates are currently available for monitored areas only. Searching does not generate new predictions.</p></details>
-          </div>
-          <div ref={detailsRef} tabIndex={-1} className="ew-detail-panel" aria-label="Area details">
-          {!selectedArea ? (
+          </nav>}
+          <details className="ew-search-footnote"><summary>Where does the information come from?</summary><p>Search uses Open-Meteo geocoding for Canadian places. Model risk scores are only available for monitored areas; other locations show nearby detections from the loaded dataset, not a new risk estimate.</p></details>
+          </div></div>
+          {searchedPlace && <section className="ew-searched-place" aria-label="Searched place fire information"><h2>{searchedPlace.name}</h2><p>Location: {searchedPlace.latitude.toFixed(3)}, {searchedPlace.longitude.toFixed(3)}</p><p><strong>Risk score: Not available</strong> — this location is outside the currently monitored risk assessments.</p><p><strong>{nearbyDetections.length} nearby satellite detections</strong> within 50 km in the loaded records (up to 200 latest records nationwide).</p><p>These records may be historical and are not a live fire status. No nearby records does not mean no fires.</p><button type="button" onClick={() => { setSearchedPlace(null); setSearch(""); }}>Clear location</button></section>}
+          <div ref={detailsRef} tabIndex={-1} className="ew-detail-panel" aria-label="Area details">{(selectedArea || selectedDetection || searchedPlace) && <button type="button" className="ew-sheet-handle" aria-expanded={detailsExpanded} onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? "Show less −" : "Expand details +"}</button>}
+          {selectedDetection ? (
+            <section className="ew-detection-details" aria-label="Satellite detection details">
+              <div className="ew-detail-heading"><div><span className="ew-overline">SATELLITE FIRE OBSERVATION</span><h2>🔥 {classificationLabel(selectedDetection)}</h2></div><button type="button" className="ew-back-button" onClick={() => { setSelectedDetection(null); setView("dashboard"); }}>← Back</button></div>
+              <p><strong>Detected:</strong> {formatDetectionTime(selectedDetection.timestamp)}</p>
+              <p><strong>Location:</strong> {formatCoordinates(selectedDetection.latitude, selectedDetection.longitude)}</p>
+              <p><strong>Confidence:</strong> {formatConfidence(selectedDetection.confidence)}</p>
+              <p>This is a satellite hotspot observation, not a confirmed wildfire or an environmental risk score.</p>
+              <p>Environmental risk for this exact point is not calculated. Select a monitored risk circle to view its modeled risk score and factors.</p>
+            </section>
+          ) : !selectedArea ? (
             <>
               <h2>Pick a place</h2>
               <p>Tap a location to see its risk score and what goes into it.</p>
@@ -549,8 +612,21 @@ function Workspace({
               </div><button type="button" className="ew-clear-selection" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); }}>Clear selection</button>
             </>
           )}
-        </div></aside>
-      </div>
+        </div></aside></div>
+      </div></div></main>
+      <AshDetective areas={riskAreas} detections={detectionResult?.detections ?? []} selectedArea={selectedArea} searchedPlace={searchedPlace} />
+    </div>
+  );
+}
+
+// #49: if something in the page throws while rendering (for example a risk
+// record the API layer did not catch), show a recovery message with a Try again
+// button instead of a blank page.
+function App() {
+  return (
+    <ErrorBoundary label="page" note="Reloading the page may help.">
+      <AppContent />
+    </ErrorBoundary>
   );
 }
 

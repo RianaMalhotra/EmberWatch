@@ -1,9 +1,9 @@
 import { Component } from "react";
 
-// #49: if drawing one part of the page throws (for example a malformed record
-// that got past the API checks), show a message for that part instead of
-// blanking the whole app. The header, status messages and Report a Fire panel
-// sit outside the boundary, so they keep working.
+// #49: if drawing part of the page throws (for example a malformed record that
+// got past the API checks), show a message with a Try again button instead of
+// a blank page. `note` is the sentence after the message; wrap a small part of
+// the page to keep the default, or wrap everything and pass a different note.
 function sameKeys(a = [], b = []) {
   return a.length === b.length && a.every((value, i) => Object.is(value, b[i]));
 }
@@ -33,7 +33,7 @@ export default class ErrorBoundary extends Component {
 
     return (
       <div role="alert" style={{ color: "red", margin: "8px 0" }}>
-        The {this.props.label ?? "section"} could not be displayed. The rest of the page still works.{" "}
+        The {this.props.label ?? "section"} could not be displayed. {this.props.note ?? "The rest of the page still works."}{" "}
         <button type="button" onClick={() => this.setState({ failed: false })}>
           Try again
         </button>

@@ -14,6 +14,14 @@ function Bomb({ explode }) {
 }
 
 describe("ErrorBoundary (#49)", () => {
+  it("can replace the default sentence, for a boundary around the whole page", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<ErrorBoundary label="page" note="Reloading the page may help."><Bomb explode /></ErrorBoundary>);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("The page could not be displayed. Reloading the page may help.");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("rest of the page still works");
+  });
+
   it("renders its children when nothing fails", () => {
     render(<ErrorBoundary label="map"><Bomb explode={false} /></ErrorBoundary>);
     expect(screen.getByText("All good")).toBeInTheDocument();

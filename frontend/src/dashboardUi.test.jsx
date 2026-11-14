@@ -27,6 +27,7 @@ vi.mock("react-leaflet", async () => {
     Popup: () => null,
     Tooltip: () => null,
     Circle: () => null,
+    Marker: () => null,
     useMap: () => mockMap,
     CircleMarker: ({ center, eventHandlers }) => React.createElement(
       "button",
@@ -76,6 +77,9 @@ afterEach(() => {
 describe("area list", () => {
   it("lists every area, highest risk first and unscored last", async () => {
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
     const list = await screen.findByRole("navigation", { name: "Monitored areas" });
     const names = within(list).getAllByRole("button").map((b) => b.querySelector(".ew-area-name")?.textContent);
     // name and status are separate lines in the chip
@@ -91,6 +95,9 @@ describe("area list", () => {
   it("selects an area from the list without touching the map", async () => {
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
     const lytton = await screen.findByRole("button", { name: /^Lytton/ });
 
     await user.click(lytton);
@@ -105,6 +112,9 @@ describe("area list", () => {
     mockMap.bounds = { contains: () => false };
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
 
     await user.click(await screen.findByRole("button", { name: /^Ottawa/ }));
 
@@ -114,6 +124,9 @@ describe("area list", () => {
   it("does not move the map when the area is already visible", async () => {
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Ottawa/ }));
     expect(mockMap.panTo).not.toHaveBeenCalled();
   });
@@ -131,6 +144,9 @@ describe("phone layout", () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
 
     await user.click(await screen.findByRole("button", { name: "Marker at 51, -118" }));
 
@@ -147,6 +163,9 @@ describe("phone layout", () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
 
     await user.click(await screen.findByRole("button", { name: "Marker at 51, -118" }));
 
@@ -159,6 +178,9 @@ describe("details panel and legend", () => {
   it("keeps the model explanation collapsed until asked for", async () => {
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Lytton/ }));
 
     const explanation = screen.getByLabelText("Risk factor explanations").closest(".ew-collapsed-details");
@@ -169,19 +191,25 @@ describe("details panel and legend", () => {
 
   it("explains detection markers as well as risk areas", async () => {
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
     const legend = await screen.findByLabelText("Map legend");
     expect(legend).toHaveTextContent("Risk areas");
     expect(legend).toHaveTextContent("Satellite detections");
     expect(legend).toHaveTextContent("Potential wildfire");
-    expect(legend).toHaveTextContent("Low confidence");
+    expect(legend).toHaveTextContent(/Low.confidence/i);
   });
 
   it("clears the selection and returns to the hint", async () => {
     const user = userEvent.setup();
     render(<App />);
+    (await screen.findByRole("button", { name: "Explore map" })).click();
+    const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
+    if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Kelowna/ }));
     await user.click(screen.getByRole("button", { name: "Clear selection" }));
-    expect(screen.getByText(/Click a colored circle on the map/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tap a location to see its risk score/i)).toBeInTheDocument();
   });
 });
 

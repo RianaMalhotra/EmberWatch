@@ -1,5 +1,4 @@
 import { RISK_COLORS, UNAVAILABLE_COLOR } from "../utils/riskFormat";
-import { detectionStyle } from "../utils/detectionFormat";
 
 // #28 / #43: explains every kind of marker drawn on the map.
 // Risk areas and satellite detections are listed separately so a detection
@@ -20,8 +19,6 @@ function Dot({ fill, stroke, dashed = false, size = 14 }) {
 }
 
 export default function RiskLegend() {
-  const likely = detectionStyle({ classification: "potential_wildfire" });
-  const low = detectionStyle({ classification: "low_confidence" });
 
   return (
     <div aria-label="Map legend" className="legend">
@@ -35,8 +32,8 @@ export default function RiskLegend() {
       </div>
       <div className="legend-group">
         <span className="legend-title">Satellite detections</span>
-        <span className="legend-item"><Dot fill={likely.fillColor} stroke={likely.color} size={10} />Potential wildfire</span>
-        <span className="legend-item"><Dot fill={low.fillColor} stroke={low.color} dashed size={10} />Low confidence</span>
+        <span className="legend-item"><span className="ew-legend-flame" aria-hidden="true">🔥</span> Potential wildfire (satellite hotspot)</span>
+        <span className="legend-item"><span className="ew-legend-flame ew-legend-flame-low" aria-hidden="true">🔥</span> Low-confidence hotspot</span>
       </div>
     </div>
   );

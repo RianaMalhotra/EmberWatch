@@ -15,7 +15,7 @@ Rule for every layer: **if data is missing or a service fails, say so. Never sho
 | Backend slow or silent | Browser gives up after 15 s | "The server took too long to respond" + retry | `failureHandling.test.js` |
 | Reply is not JSON / wrong shape | n/a | "Invalid … data received" | `failureHandling.test.js` |
 | One malformed record in a valid reply | n/a | Record dropped; notice "N area(s) were left out" | `failureHandling.test.js` |
-| Rendering crash in the map or details panel | n/a | "The map and area details could not be displayed" with **Try again**; header, status messages and Report a Fire keep working | `ErrorBoundary.test.jsx`, `App.test.jsx` |
+| Rendering crash anywhere in the page | n/a | "The page could not be displayed. Reloading the page may help." with **Try again**, instead of a blank page | `ErrorBoundary.test.jsx`, `App.test.jsx` |
 
 The risk-area and detection requests are independent: either can fail while the other still shows (`App.test.jsx`, "Sprint 4 failure isolation").
 
