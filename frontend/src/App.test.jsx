@@ -442,6 +442,85 @@ describe("Wildfire risk map", () => {
 
 describe("Sprint 3 detection dashboard integration (#43)", () => {
   
+  it("opens the selected detection details when a satellite marker is clicked", async () => {
+    const user = userEvent.setup();
+
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+    });
+
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [
+        {
+          id: 201,
+          latitude: 50.1,
+          longitude: -120.3,
+          timestamp: "2025-07-01T18:30:00Z",
+          confidence: 85,
+          classification: "potential_wildfire",
+          meets_threshold: true,
+        },
+      ],
+      counts: {
+        total: 1,
+        shown: 1,
+        potential_wildfire: 1,
+        low_confidence: 0,
+        unavailable: 0,
+      },
+    });
+
+    render(<App />);
+
+    // Open the map.
+    await user.click(
+      await screen.findByRole("button", { name: "Explore map" }),
+    );
+
+    // Select an area first.
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Select area at 43.6532, -79.3832",
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    // Click the individual satellite detection marker.
+    await user.click(
+      screen.getByRole("button", {
+        name: "Fire at 50.1, -120.3",
+      }),
+    );
+
+    // Detection details should replace the area assessment.
+    expect(
+      screen.getByRole("region", {
+        name: "Satellite detection details",
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: /Potential wildfire/i }),
+    ).toBeInTheDocument();
+
+    const detectionDetails = screen.getByRole("region", {
+      name: "Satellite detection details",
+    });
+
+    expect(detectionDetails).toHaveTextContent("Jul 1, 2025");
+    expect(detectionDetails).toHaveTextContent("50.100, -120.300");
+    expect(detectionDetails).toHaveTextContent("85%");
+
+    expect(
+      screen.queryByRole("heading", { name: "Toronto Test Area" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps the risk map usable when the detections API fails", async () => {
     const user = userEvent.setup();
 
