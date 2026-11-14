@@ -134,7 +134,9 @@ def _usable(name, value):
     """True if the value is a real number inside the valid range."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
-    if isinstance(value, float) and math.isnan(value):
+    # NaN and infinity are not measurements (#57: an infinite detection count
+    # used to pass the open-ended range check and score 100).
+    if not math.isfinite(value):
         return False
     low, high = VALID_RANGES[name]
     return low <= value <= high
