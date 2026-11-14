@@ -441,6 +441,120 @@ describe("Wildfire risk map", () => {
 });
 
 describe("Sprint 3 detection dashboard integration (#43)", () => {
+ 
+  it("supports the complete wildfire monitoring workflow", async () => {
+    const user = userEvent.setup();
+
+    fetchRiskAreas.mockResolvedValue({
+      source: "supabase",
+      data: [mockArea],
+    });
+
+    fetchDetections.mockResolvedValue({
+      threshold: 20,
+      detections: [
+        {
+          id: 101,
+          latitude: 50.1,
+          longitude: -120.3,
+          timestamp: "2025-07-01T18:30:00Z",
+          confidence: 80,
+          classification: "potential_wildfire",
+          meets_threshold: true,
+        },
+        {
+          id: 102,
+          latitude: 51.2,
+          longitude: -121.4,
+          timestamp: "2025-07-02T18:30:00Z",
+          confidence: 10,
+          classification: "low_confidence",
+          meets_threshold: false,
+        },
+      ],
+      counts: {
+        total: 2,
+        shown: 2,
+        potential_wildfire: 1,
+        low_confidence: 1,
+        unavailable: 0,
+      },
+    });
+
+    render(<App />);
+
+    // 1. Open the wildfire map.
+    await user.click(
+      await screen.findByRole("button", { name: "Explore map" }),
+    );
+
+    expect(await screen.findByTestId("map")).toBeInTheDocument();
+
+    // 2. Select a monitored area.
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Select area at 43.6532, -79.3832",
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    // 3. Inspect the risk score and environmental factors.
+    expect(screen.getByText("Risk level").parentElement)
+      .toHaveTextContent("HIGH");
+
+    expect(screen.getByText(/Temperature:/).parentElement)
+      .toHaveTextContent("32 °C");
+
+    expect(screen.getByText(/Relative Humidity:/).parentElement)
+      .toHaveTextContent("25 %");
+
+    // 4. Open the risk explanation.
+    await user.click(
+      screen.getByRole("button", { name: /View Risk Details/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "How the risk estimate is calculated",
+      }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByLabelText("Risk factor explanations"))
+      .toHaveTextContent("Slope (5% base weight): Unavailable");
+
+    // 5. Return to the fire information.
+    await user.click(
+      screen.getByRole("button", { name: /Back to Fire Information/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Toronto Test Area" }),
+    ).toBeInTheDocument();
+
+    // 6. Inspect satellite detection details.
+    await user.click(
+      screen.getByRole("button", { name: /Data dates & details/i }),
+    );
+
+    expect(await screen.findByText(/2 detections shown/))
+      .toBeInTheDocument();
+
+    expect(screen.getByText("Potential wildfire"))
+      .toBeInTheDocument();
+
+    expect(screen.getByText("Low confidence detection"))
+      .toBeInTheDocument();
+
+    expect(screen.getByText(/Location: 50.100, -120.300/))
+      .toBeInTheDocument();
+
+    expect(screen.getByText(/Confidence: 80%/))
+      .toBeInTheDocument();
+  });
+
   it("shows a detection-specific loading state while the request is pending", async () => {
     fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
     fetchDetections.mockReturnValue(new Promise(() => {}));
