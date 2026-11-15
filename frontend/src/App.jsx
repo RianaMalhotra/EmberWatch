@@ -412,6 +412,9 @@ function AppContent() {
         </div>
       )}
 
+      {/* #49: a rendering error in the map or details panel is contained here, so the
+          status messages, search and Report a fire stay usable. */}
+      <ErrorBoundary label="map and details" resetKeys={[riskAreas, detectionResult]}>
       <div className="ew-workspace ew-map-first">
         <div className="ew-ember-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
         <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> MAP <span className="ew-map-title-caption">Explore locations and satellite observations</span></div><div className="ew-map-frame">
@@ -624,15 +627,17 @@ function AppContent() {
             </>
           )}
         </div></aside></div>
-      </div></div></main>
+      </div>
+      </ErrorBoundary>
+      </div></main>
       <AshDetective areas={riskAreas} detections={detectionResult?.detections ?? []} selectedArea={selectedArea} searchedPlace={searchedPlace} />
     </div>
   );
 }
 
-// #49: if something in the page throws while rendering (for example a risk
-// record the API layer did not catch), show a recovery message with a Try again
-// button instead of a blank page.
+// #49: last-resort boundary for errors outside the map/details section (for
+// example a risk record the API layer did not catch), so the page is never blank.
+// The map and details have their own boundary inside AppContent.
 function App() {
   return (
     <ErrorBoundary label="page" note="Reloading the page may help.">

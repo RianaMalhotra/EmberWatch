@@ -14,8 +14,11 @@ vi.mock("react-leaflet", async () => {
   const React = await import("react");
 
   return {
-    MapContainer: ({ children, center, zoom }) =>
-      React.createElement("div", { "data-testid": "map", "data-center": center.join(","), "data-zoom": String(zoom) }, children),
+    MapContainer: ({ children, center, zoom, maxBounds }) => {
+      // Only the dashboard map (the one with maxBounds) fails; the Report a fire map keeps working.
+      if (mapFailure.explode && maxBounds) throw new Error("map exploded");
+      return React.createElement("div", { "data-testid": "map", "data-center": center.join(","), "data-zoom": String(zoom) }, children);
+    },
 
     TileLayer: () => null,
     Popup: ({ children }) => React.createElement("div", { "data-testid": "leaflet-popup" }, children),
@@ -50,6 +53,7 @@ vi.mock("react-leaflet", async () => {
   };
 });
 
+const mapFailure = vi.hoisted(() => ({ explode: false }));
 const mockMap = vi.hoisted(() => ({ fitBounds: vi.fn(), panTo: vi.fn(), getBounds: () => ({ contains: () => true }) }));
 
 vi.mock("./services/detectionApi", () => ({
@@ -82,6 +86,7 @@ const mockArea = {
 
 afterEach(() => {
   cleanup();
+  mapFailure.explode = false;
   vi.clearAllMocks();
 });
 
@@ -800,6 +805,38 @@ describe("Sprint 4 failure isolation (#49)", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/page could not be displayed/);
     expect(within(alert).getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    consoleError.mockRestore();
+  });
+
+  it("keeps the rest of the page usable when the map section crashes while rendering", async () => {
+    const user = userEvent.setup();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mapFailure.explode = true;
+    fetchRiskAreas.mockResolvedValue({ source: "supabase", data: [mockArea] });
+    fetchDetections.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    render(<App />);
+
+    // Only the map and details are replaced, with a retry button.
+    // (Re-queried each time: the boundary retries when new data arrives, which replaces the element.)
+    await screen.findByText(/map and details could not be displayed/i);
+    const mapAlert = () => screen.getByText(/map and details could not be displayed/i).closest('[role="alert"]');
+    expect(mapAlert()).toHaveTextContent("The rest of the page still works.");
+    expect(within(mapAlert()).getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByText(/The page could not be displayed/)).not.toBeInTheDocument();
+    const dashboardMap = () => screen.queryAllByTestId("map").find((el) => el.dataset.zoom === "6");
+    expect(dashboardMap()).toBeUndefined();
+
+    // Status messages and Report a fire are still on the page and working.
+    expect(await screen.findByText(/Detections unavailable:/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Report a fire/i }));
+    expect(screen.getByRole("dialog", { name: "Report a fire" })).toBeInTheDocument();
+
+    // Once the map works again, "Try again" brings it back.
+    mapFailure.explode = false;
+    await user.click(within(mapAlert()).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(dashboardMap()).toBeDefined());
+    expect(screen.queryByText(/map and details could not be displayed/i)).not.toBeInTheDocument();
     consoleError.mockRestore();
   });
 });
