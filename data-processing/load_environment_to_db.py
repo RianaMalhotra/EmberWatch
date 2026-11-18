@@ -28,6 +28,8 @@ import json
 import math
 import os
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
@@ -284,6 +286,34 @@ def fetch_json(url, timeout=30):
     return body
 
 
+# Open-Meteo from GitHub Actions sometimes times out during the TLS handshake
+# (shared runner IPs, busy servers). Those failures are temporary, so retry a
+# couple of times before giving up instead of losing the whole daily run.
+RETRY_DELAYS_S = (5, 20)
+
+
+def _is_temporary(error):
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code == 429 or error.code >= 500
+    return isinstance(error, (TimeoutError, ConnectionError, urllib.error.URLError))
+
+
+def fetch_json_with_retry(url, timeout=30, delays=None, sleep=time.sleep):
+    """fetch_json, retried after temporary network failures (timeouts,
+    connection errors, HTTP 429/5xx). Other errors, and the last failure
+    after all retries, are raised unchanged."""
+    delays = RETRY_DELAYS_S if delays is None else delays
+    for attempt, delay in enumerate((*delays, None)):
+        try:
+            return fetch_json(url, timeout=timeout)
+        except OSError as error:
+            if delay is None or not _is_temporary(error):
+                raise
+            print(f"Open-Meteo request failed ({error}); retrying in {delay} s "
+                  f"(attempt {attempt + 2} of {len(delays) + 1})", file=sys.stderr)
+            sleep(delay)
+
+
 #database
 def upsert_areas(conn, areas):
     """Insert or update the areas; returns {name: id}."""
@@ -319,7 +349,7 @@ def insert_observations(conn, rows):
 
 #main
 
-def collect(areas, days, today, fetch=fetch_json, skip_terrain=False):
+def collect(areas, days, today, fetch=fetch_json_with_retry, skip_terrain=False):
     """Fetch everything first, so a network failure never leaves half-written data."""
     terrain = None
     if not skip_terrain:
