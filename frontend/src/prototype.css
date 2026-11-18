@@ -1550,3 +1550,38 @@
 .ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-side-panel .ew-expanded-details {
   display:block!important;
 }
+
+
+/* EmberWatch interaction polish: red-to-gold blaze, scoped to actionable buttons. */
+.ew-app button:not(:disabled) {
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease,
+    box-shadow .25s ease, transform .2s ease, filter .2s ease;
+}
+@media (hover: hover) {
+  .ew-app button:not(:disabled):hover {
+    background-image: linear-gradient(115deg, #8f211c 0%, #cb3d24 38%, #ef812c 72%, #f7bc58 100%);
+    background-color: #b73420;
+    color: #fff8ed;
+    border-color: #f6ad4c;
+    box-shadow: 0 0 0 1px rgba(255, 190, 83, .35),
+      0 5px 18px rgba(219, 58, 24, .32),
+      0 0 25px rgba(255, 169, 54, .23);
+    transform: translateY(-1px);
+  }
+}
+.ew-app button:not(:disabled):active {
+  background-image: linear-gradient(115deg, #791a19 0%, #b42c1e 40%, #e66a26 75%, #e8a842 100%);
+  background-color: #a52a1b;
+  color: #fff8ed;
+  border-color: #ffcd6b;
+  box-shadow: inset 0 2px 8px rgba(57, 12, 7, .35), 0 0 18px rgba(244, 121, 37, .42);
+  transform: translateY(1px) scale(.985);
+}
+.ew-app button:not(:disabled):focus-visible {
+  outline: 2px solid #ffd16f;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(236, 91, 30, .25);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ew-app button { transition: none !important; transform: none !important; }
+}
