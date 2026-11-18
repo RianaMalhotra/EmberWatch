@@ -1688,3 +1688,34 @@
 .ew-home-motion-off .ew-home-flame,.ew-home-motion-off .ew-home-fire-halo,.ew-home-motion-off .ew-home-status-dot,.ew-home-motion-off .ew-home-radar-sweep,.ew-home-motion-off .ew-home-radar-points i,.ew-home-motion-off .ew-home-hero::before{animation:none!important}
 @media(max-width:550px){.ew-home-intelligence{grid-template-columns:1fr}.ew-home-intelligence>div{padding:12px 15px}.ew-home-motion-toggle{margin-bottom:14px}}
 @media(prefers-reduced-motion:reduce){.ew-home-inferno .ew-home-radar-sweep,.ew-home-inferno .ew-home-radar-points i,.ew-home-inferno .ew-home-hero::before{animation:none!important}.ew-home-inferno .ew-feature-tiles button,.ew-home-inferno .ew-feature-tiles button::before{transition:none!important}}
+
+
+/* Inferno Command Center — dark CARTO map with accessible ember controls.
+   All styles are scoped to Explore Map and preserve existing risk marker colors. */
+.ew-map-column{background:linear-gradient(155deg,#24191e,#17151c 78%)!important;border:1px solid #9d573c!important;box-shadow:0 20px 65px #0d080b77,0 0 40px #dc502014!important}
+.ew-map-title{color:#ffe3c6!important}
+.ew-map-title-caption{color:#d8ac94!important}
+.ew-map-title-dot{background:#ffab58!important;box-shadow:0 0 13px #f77637!important}
+.ew-map-frame{position:relative;background:#141820!important;border:1px solid #a35b3c!important;border-radius:15px!important;box-shadow:inset 0 0 0 1px #ffb76b1c,0 12px 36px #09080d66!important}
+.ew-map-frame::after{content:"";position:absolute;inset:0;z-index:401;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 42px #d7472017}
+.ew-map-frame .leaflet-container{background:#15191f!important;color:#ffe8d4}
+.ew-map-frame .leaflet-control-zoom{border:1px solid #b7754e!important;border-radius:11px!important;overflow:hidden;box-shadow:0 5px 22px #0009!important}
+.ew-map-frame .leaflet-bar a,.ew-map-frame .leaflet-bar a:focus{background:#291c21!important;color:#ffd29c!important;border-color:#654034!important;font-weight:800!important}
+.ew-map-frame .leaflet-bar a:hover{background:linear-gradient(130deg,#a62c21,#e16c31,#f3b052)!important;color:#fff!important}
+.ew-map-frame .leaflet-bar a:focus-visible{outline:3px solid #ffd17e;outline-offset:-3px}
+.ew-map-frame .leaflet-control-attribution{background:#17171ddc!important;color:#e3bda6!important;border-radius:8px 0 0 0;padding:4px 7px!important;font-size:10px!important}
+.ew-map-frame .leaflet-control-attribution a{color:#ffcd91!important;text-decoration:underline}
+.ew-map-frame .leaflet-popup-content-wrapper{background:linear-gradient(140deg,#302026,#201a21)!important;border:1px solid #a96a4b!important;border-radius:13px!important;color:#fff0e3!important;box-shadow:0 12px 32px #000a,0 0 22px #f36b241b!important}
+.ew-map-frame .leaflet-popup-tip{background:#302026!important}
+.ew-map-frame .leaflet-popup-content{line-height:1.55}
+.ew-map-frame .leaflet-popup-content strong{color:#ffd09a}
+.ew-map-frame .leaflet-popup-close-button{color:#ffcb99!important}
+.ew-map-frame .leaflet-popup-close-button:focus-visible{outline:2px solid #ffd17e}
+.ew-map-frame .leaflet-tooltip{background:#281e24!important;border:1px solid #ac704f!important;border-radius:8px!important;color:#ffead8!important;box-shadow:0 5px 18px #0009!important}
+.ew-map-frame .leaflet-tooltip::before{border-top-color:#ac704f!important}
+.ew-map-frame .ew-fire-marker-likely{filter:drop-shadow(0 0 6px #f44b24) drop-shadow(0 0 12px #ff9c36)}
+.ew-map-frame .ew-fire-marker-low{filter:drop-shadow(0 0 3px #e78c43)}
+.ew-map-controls{background:linear-gradient(145deg,rgba(47,28,31,.95),rgba(21,20,27,.96))!important;border:1px solid #ac6745!important;box-shadow:0 12px 38px #000a,0 0 22px #dc56221c!important;color:#ffe9d8!important}
+.ew-map-controls button:focus-visible,.ew-map-controls summary:focus-visible{outline:2px solid #ffd17e;outline-offset:3px}
+.ew-map-controls [aria-label="Map legend"],.ew-map-controls .legend{color:#f2d9c8!important}
+@media(prefers-reduced-motion:reduce){.ew-map-frame .ew-fire-marker-likely,.ew-map-frame .ew-fire-marker-low{animation:none!important}}
