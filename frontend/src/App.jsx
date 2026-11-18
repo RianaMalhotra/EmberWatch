@@ -344,11 +344,33 @@ function AppContent() {
         </div>
         </header>
       <main className="ew-main">
-      {page === "home" && <section className="ew-home" aria-label="EmberWatch home">
-        <div className="ew-home-hero"><span className="ew-eyebrow">EXPLORE WILDFIRES IN CANADA</span><h1>See what’s<br /><em>happening.</em></h1><p>Curious about wildfire activity? Explore the map, check monitored areas, and see what the data tells us.</p><div className="ew-home-actions"><button type="button" onClick={() => navigateTo("explore")}>Explore the map <span aria-hidden="true">→</span></button><button type="button" className="ew-secondary-action" onClick={() => setPage("learn")}>How it works</button></div><p className="ew-home-caution">Educational prototype · Not an emergency alert or evacuation service</p></div>
-        <div className="ew-home-preview" aria-label="Explore features"><div className="ew-home-orbit"><span>🔥</span></div><p className="ew-overline">WHAT CAN YOU DO?</p><h2>Start exploring.</h2><div className="ew-feature-tiles"><button type="button" onClick={() => navigateTo("explore")}><strong>Explore the map</strong><span>Search monitored regions and zoom to their risk assessments.</span><span aria-hidden="true">↗</span></button><button type="button" onClick={() => navigateTo("explore")}><strong>Spot fire activity</strong><span>Inspect satellite hotspots, timestamps and confidence.</span><span aria-hidden="true">↗</span></button><button type="button" onClick={() => setPage("learn")}><strong>Understand risk</strong><span>Learn what the scores mean and where data is missing.</span><span aria-hidden="true">↗</span></button></div></div>
+      {page === "home" && <section className="ew-home ew-home-inferno" aria-label="EmberWatch home">
+        <div className="ew-home-spark-field" aria-hidden="true">{Array.from({length:28},(_,i)=><i key={i} style={{"--spark-x":`${(i*37+13)%100}%`,"--spark-delay":`${-(i*0.73)%11}s`,"--spark-duration":`${4+(i%6)*.9}s`,"--spark-drift":`${(i%2?1:-1)*(20+i%5*18)}px`,"--spark-size":`${2+(i%4)}px`}} />)}</div>
+        <div className="ew-home-hero">
+          <div className="ew-home-status"><span className="ew-home-status-dot" /> WILDFIRE INTELLIGENCE PLATFORM <span className="ew-home-status-divider">/</span> CANADA</div>
+          <span className="ew-home-edition">SATELLITE OBSERVATIONS <span>✦</span> ENVIRONMENTAL INSIGHTS <span>✦</span> ML RESEARCH</span>
+          <h1>WATCH THE <em>WILDFIRE.</em><br /><span>READ THE SIGNALS.</span></h1>
+          <p>From satellite hotspots to environmental risk and experimental machine learning—explore the data behind Canada's changing wildfire landscape.</p>
+          <div className="ew-home-actions"><button type="button" onClick={() => navigateTo("explore")}>Explore wildfire map <span aria-hidden="true">↗</span></button><button type="button" className="ew-secondary-action" onClick={() => navigateTo("forecast")}>Explore ML outlook <span aria-hidden="true">→</span></button></div>
+          <div className="ew-home-trust"><span><b>01</b> SATELLITE DETECTIONS</span><span><b>02</b> RISK ASSESSMENTS</span><span><b>03</b> EXPERIMENTAL ML</span></div>
+          <p className="ew-home-caution">Research and educational prototype · Not an emergency alert or evacuation service</p>
+        </div>
+        <div className="ew-home-preview" aria-label="EmberWatch features">
+          <div className="ew-home-visual" aria-hidden="true">
+            <div className="ew-home-fire-halo ew-home-fire-halo-outer"/><div className="ew-home-fire-halo ew-home-fire-halo-inner"/>
+            <div className="ew-home-flame"><span className="ew-home-flame-back"/><span className="ew-home-flame-main"/><span className="ew-home-flame-core"/></div>
+            <div className="ew-home-fire-sparks">{Array.from({length:16},(_,i)=><i key={i} style={{"--fire-x":`${(i*31+17)%100}%`,"--fire-delay":`${-i*.41}s`,"--fire-drift":`${(i%2?1:-1)*(12+i%5*9)}px`}} />)}</div>
+            <span className="ew-home-visual-tag tag-left">LIVE DATA PIPELINE</span><span className="ew-home-visual-tag tag-right">FIRE / SIGNAL / INSIGHT</span>
+          </div>
+          <div className="ew-home-preview-heading"><div><p className="ew-overline">YOUR COMMAND CENTER</p><h2>Find the signal.</h2></div><span className="ew-home-preview-count">03 / TOOLS</span></div>
+          <div className="ew-feature-tiles">
+            <button type="button" onClick={() => navigateTo("explore")}><strong><span className="ew-home-tile-icon">⌖</span> Explore the map</strong><span>Navigate monitored regions and satellite hotspot observations.</span><span aria-hidden="true">↗</span></button>
+            <button type="button" onClick={() => navigateTo("forecast")}><strong><span className="ew-home-tile-icon">✦</span> ML weather outlook</strong><span>Explore historical fire-day weather similarity across four days.</span><span aria-hidden="true">↗</span></button>
+            <button type="button" onClick={() => navigateTo("learn")}><strong><span className="ew-home-tile-icon">◈</span> Understand risk</strong><span>Discover how risk scores, confidence and data freshness work.</span><span aria-hidden="true">↗</span></button>
+          </div>
+        </div>
       </section>}
-      {page === "forecast" && <ForecastPage areas={riskAreas} />}
+            {page === "forecast" && <ForecastPage areas={riskAreas} />}
       {page === "learn" && <section className="ew-learn" aria-label="Understanding wildfire risk"><button type="button" className="ew-text-back" onClick={() => setPage("home")}>← Back to home</button><span className="ew-eyebrow">DATA, NOT PREDICTIONS</span><h1>Know what you’re looking at.</h1><p className="ew-learn-intro">EmberWatch combines environmental observations and satellite detections. These are different kinds of information, with different limitations.</p><div className="ew-learn-grid"><article><span>01 / AREA RISK</span><h2>Environmental risk</h2><p>A provisional 0–100 model score derived from available weather, terrain and nearby detection history. It is not a forecast of where a fire will spread.</p></article><article><span>02 / SATELLITE SIGNAL</span><h2>Detection confidence</h2><p>Confidence describes an individual satellite hotspot observation, not the overall wildfire risk of a region. Hotspots are not necessarily confirmed wildfires.</p></article><article><span>03 / DATA QUALITY</span><h2>Freshness matters</h2><p>Older observations may not reflect current conditions. Check the dates, missing inputs and warnings before interpreting any risk assessment.</p></article></div><button type="button" className="ew-primary-action" onClick={() => navigateTo("explore")}>Explore monitored areas →</button><p className="ew-home-caution">For emergencies, follow official local authorities and emergency services.</p></section>}
       <div className={page === "explore" ? "ew-explore-page" : "ew-page-hidden"}>
         <div className="ew-page-heading">
