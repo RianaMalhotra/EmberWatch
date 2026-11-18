@@ -71,6 +71,27 @@ export default function ForecastPage({ areas = [] }) {
         </aside>
       </div><div className="ew-fc-provenance">WEATHER: OPEN-METEO · TIME ZONE: {state.data.timezone||"UNKNOWN"} · RETRIEVED {new Date(state.data.retrieved).toLocaleString()}</div></>}
     </div>
-    <div className="ew-fc-bottom"><article><span>01 / MACHINE LEARNING</span><h3>A real trained model</h3><p>Regularized logistic regression learns weights from temperature, humidity, wind and precipitation instead of using hand-selected risk weights.</p></article><article><span>02 / VALIDATION</span><h3>Early research, not proven forecasting</h3><p>In leave-one-event-out comparisons, fire days ranked above both selected controls in {MODEL.group_holdout_fire_above_both_controls}/{MODEL.group_holdout_events} events. This small, biased evaluation cannot establish accuracy.</p></article><article><span>03 / SAFETY</span><h3>Know the limitations</h3><p>Weather similarity is not ignition likelihood, spread prediction or a public warning. For emergencies, rely on official wildfire authorities.</p></article></div>
+    <section className="ew-fc-fieldnotes" aria-labelledby="ew-fc-fieldnotes-title">
+      <div className="ew-fc-fieldnotes-intro">
+        <span className="ew-fc-fieldnotes-eyebrow">FIELD NOTES <span aria-hidden="true">/</span> THE METHOD</span>
+        <h2 id="ew-fc-fieldnotes-title">What this forecast<br/><em>actually tells you.</em></h2>
+        <p>A closer look at the data, the comparison and the boundaries of this experiment.</p>
+        <span className="ew-fc-fieldnotes-rule" aria-hidden="true"/>
+      </div>
+      <div className="ew-fc-fieldnotes-details">
+        <div className="ew-fc-fieldnote">
+          <span className="ew-fc-fieldnote-index">I.</span>
+          <div><h3>Built from weather records</h3><p>The model learns relationships between temperature, humidity, wind and precipitation from selected historical examples. It is a regularized logistic regression classifier, not a hand-tuned index.</p></div>
+        </div>
+        <div className="ew-fc-fieldnote">
+          <span className="ew-fc-fieldnote-index">II.</span>
+          <div><h3>A promising comparison, with caveats</h3><p>Fire-event days scored above both chosen comparison dates in {MODEL.group_holdout_fire_above_both_controls} of {MODEL.group_holdout_events} held-out events. With so few, selectively sampled examples, that result does not establish forecasting accuracy.</p></div>
+        </div>
+        <div className="ew-fc-fieldnote">
+          <span className="ew-fc-fieldnote-index">III.</span>
+          <div><h3>Not an emergency forecast</h3><p>These scores describe similarity to past weather conditions—not the likelihood of ignition, fire spread or an active threat. Always use official wildfire alerts for safety decisions.</p></div>
+        </div>
+      </div>
+    </section>
   </section>;
 }
