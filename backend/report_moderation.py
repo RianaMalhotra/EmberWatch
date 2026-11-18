@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, request
 from db import get_connection
 
 reports_bp = Blueprint("reports", __name__)
-STATUSES = frozenset({"unverified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"})
+STATUSES = frozenset({"unverified", "verified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"})
 ACTIVE = tuple(sorted(STATUSES - {"rejected", "out"}))
 
 def _staff():
@@ -40,12 +40,12 @@ def active_reports():
     try:
         with get_connection() as conn:
             rows = conn.execute(
-                "select id,latitude,longitude,sighting,observed_at,review_status,created_at "
+                "select id,latitude,longitude,observed_type,description,observed_at,review_status,created_at "
                 "from public.fire_reports where review_status = any(%s) order by created_at desc limit 500",
                 (list(ACTIVE),),
             ).fetchall()
         return jsonify({"status": "success", "data": [
-            dict(zip(("id","latitude","longitude","sighting","observed_at","review_status","created_at"), row))
+            dict(zip(("id","latitude","longitude","observed_type","description","observed_at","review_status","created_at"), row))
             for row in rows
         ]}), 200
     except Exception:
