@@ -69,7 +69,7 @@ export default function StaffModeration({ reports, onUpdated }) {
       {reports.length === 0 && <p>No active public reports available.</p>}
       {reports.map((report) => <article key={report.id} style={{ borderTop: "1px solid #bbb", padding: 10 }}>
         <strong>Report #{report.id} — {report.review_status}</strong>
-        <p>{report.sighting} · {report.latitude}, {report.longitude}</p>
+        <p>{[report.observed_type, report.description].filter(Boolean).join(" — ")} · {report.latitude}, {report.longitude}</p>
         <label>New status <select aria-label={`Status for report ${report.id}`} value={status[report.id] || "confirmed"} onChange={(e) => setStatus((prev) => ({ ...prev, [report.id]: e.target.value }))}>
           {STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll("_", " ")}</option>)}
         </select></label>
