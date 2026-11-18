@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { weatherOutlook, summarizeDay } from "./ForecastPage";
+import { predictWeatherPattern as weatherOutlook, summarizeDay } from "../utils/weatherClassifier";
 describe("experimental weather outlook", () => {
   it("never manufactures scores from missing inputs", () => {
     expect(weatherOutlook({ temperature_2m: 25, relative_humidity_2m: null, wind_speed_10m: 15, precipitation: 0 })).toBeNull();
