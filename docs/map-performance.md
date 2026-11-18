@@ -34,6 +34,29 @@ react-leaflet compares the `icon` prop by reference, so each new object made it 
 
 Behaviour is unchanged: the same markers, clusters, popups, cluster zoom and detection details as before, with all existing tests passing.
 
+## Second bottleneck: rendering and painting (found in the browser)
+
+After the marker fix, Edge's live metrics still showed slow interactions, so a Performance recording was taken on the **production build** (`npm run build && npm run preview`, Microsoft Edge, 4× CPU slowdown, 16.6 s of clicking areas and flames and typing in the search box):
+
+| Category | Time | Share |
+|---|---|---|
+| Rendering (style and layout) | 4,583 ms | 28 % |
+| Painting | 3,108 ms | 19 % |
+| System | 2,041 ms | 12 % |
+| **Scripting (React and Leaflet JavaScript)** | **1,745 ms** | **11 %** |
+
+So after the marker fix, most of the remaining cost is **drawing**, not JavaScript. The timeline also kept painting while nothing was being clicked. The causes are decorative CSS effects in the dashboard theme:
+
+1. **`backdrop-filter: blur(...)`** on the panels that sit over the map (side panel, map controls, map title). Anything that changes underneath, such as panning, a tile loading or an ember moving, forces the browser to recompute the blur. These panels are already 85–95 % opaque, so the blur is barely visible.
+2. **The `ew-pulse` animation changes `box-shadow`**, which cannot be done by the GPU, so the page repaints on every frame forever.
+3. **The rising embers** each drew a large blurred `box-shadow` while moving.
+
+**Fix** (end of `frontend/src/prototype.css`): the blur is removed from the map overlays; the pulse animates only `opacity`; and the embers use a radial-gradient glow instead of a box-shadow. Now only `opacity` and `transform` animate, which the GPU handles without repainting the page. The look stays the same, and `prefers-reduced-motion` still turns the animations off.
+
+### Development server vs production build
+
+Measured on the development server first (`npm run dev`, Edge, 4× CPU, after the marker fix), Edge's live metrics showed LCP 1.39 s (good), CLS 0.04 (good) and INP **3,504 ms** (poor). Typing in the search box took 1.1–2.2 s per key, and clicking a risk circle took 0.8–2.1 s. React's development mode adds extra checks and double renders, so these numbers are exaggerated. On the production build the same kind of session gave INP **343 ms**. All further results use the production build.
+
 ## Measurement A: automated, reproducible (wasted marker work)
 
 ```
@@ -73,9 +96,9 @@ Each timing stops two animation frames after React updates, so it includes the b
 
 Protocol:
 
-1. Run the backend (`cd backend && python app.py`) and frontend (`cd frontend && npm run dev`) with the Supabase database.
-2. Open Chrome → DevTools → **Performance** panel → CPU: **4× slowdown** (simulates a mid-range phone). Leave network unthrottled, so the numbers measure the map rather than the connection.
-3. **Desktop:** window about 1366 × 768. Open `http://localhost:5173/?perf=1`, go to **Explore map**, and wait for the flames. Click 5 different risk circles and 5 flame markers (zoom in first), and type a place name in the search box. Reload and repeat 3 times.
+1. Run the backend (`cd backend && python app.py`) and the **production build** of the frontend (`cd frontend && npm run build && npm run preview`, port 4173) with the Supabase database. Don't measure `npm run dev`: React's development mode is several times slower.
+2. Open Chrome or Edge → DevTools → **Performance** panel → CPU: **4× slowdown** (simulates a mid-range phone). Leave network unthrottled, so the numbers measure the map rather than the connection.
+3. **Desktop:** window about 1366 × 768. Open `http://localhost:4173/?perf=1`, go to **Explore map**, and wait for the flames. Click 5 different risk circles and 5 flame markers (zoom in first), and type a place name in the search box. Reload and repeat 3 times.
 4. **Mobile:** DevTools device toolbar → **iPhone 12 Pro**. Same steps, tapping instead of clicking.
 5. Repeat steps 3–4 with `?perf=1&detections=1000`.
 6. In the console, run `copy(JSON.stringify(window.__mapPerf))`, then put the medians in the table below.
