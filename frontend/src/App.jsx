@@ -102,7 +102,7 @@ function RefreshMapLayout({ active, hasSelection }) {
 
 function AppContent() {
   const [riskAreas, setRiskAreas] = useState([]);
-  const [homeMotion, setHomeMotion] = useState(() => typeof window === "undefined" ? false : !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [homeMotion, setHomeMotion] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" ? !window.matchMedia("(prefers-reduced-motion: reduce)").matches : false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
