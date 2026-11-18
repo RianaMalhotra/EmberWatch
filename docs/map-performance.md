@@ -53,6 +53,17 @@ So after the marker fix, most of the remaining cost is **drawing**, not JavaScri
 
 **Fix** (end of `frontend/src/prototype.css`): the blur is removed from the map overlays; the pulse animates only `opacity`; and the embers use a radial-gradient glow instead of a box-shadow. Now only `opacity` and `transform` animate, which the GPU handles without repainting the page. The look stays the same, and `prefers-reduced-motion` still turns the animations off.
 
+**Result** (same setup: production build, Edge, 4× CPU, a similar session of clicking areas and flames and typing in search). The two recordings had different lengths (16.6 s vs 10.3 s), so the times are compared per second of recording:
+
+| | Before the CSS fix | After | Change |
+|---|---|---|---|
+| **INP** (worst interaction) | 343 ms (needs improvement) | **125 ms (good)** | −64 % |
+| Rendering per second | 277 ms | 74 ms | −73 % |
+| Painting per second | 188 ms | 31 ms | −83 % |
+| Scripting per second | 105 ms | 65 ms | −38 % |
+
+The slowest interaction after the fix broke down as 1 ms input delay, 56 ms processing (JavaScript) and 68 ms presentation delay (drawing). Its 125 ms is under Google's 200 ms "good" INP threshold, and close to the 100 ms "feels instant" target. The sessions were done by hand, so they are similar but not identical; the size of the drop is clear, but the exact percentages are approximate.
+
 ### Development server vs production build
 
 Measured on the development server first (`npm run dev`, Edge, 4× CPU, after the marker fix), Edge's live metrics showed LCP 1.39 s (good), CLS 0.04 (good) and INP **3,504 ms** (poor). Typing in the search box took 1.1–2.2 s per key, and clicking a risk circle took 0.8–2.1 s. React's development mode adds extra checks and double renders, so these numbers are exaggerated. On the production build the same kind of session gave INP **343 ms**. All further results use the production build.
@@ -104,14 +115,15 @@ Protocol:
 6. In the console, run `copy(JSON.stringify(window.__mapPerf))`, then put the medians in the table below.
 7. Optional, to see the before/after directly: record a Performance trace while typing in the search box on `main` before this change and after it, and compare the "Scripting" time.
 
-Results:
+Results (Microsoft Edge, production build, 4× CPU, 200 detections):
 
-| Setup | Detections | `detections-load` | `area-select` | `detection-select` | Typing in search smooth? |
+| Setup | INP | Rendering / s | Painting / s | Scripting / s | Notes |
 |---|---|---|---|---|---|
-| Desktop, 4× CPU | 200 | | | | |
-| Desktop, 4× CPU | 1000 | | | | |
-| Mobile emulation, 4× CPU | 200 | | | | |
-| Mobile emulation, 4× CPU | 1000 | | | | |
+| Desktop, development server, after marker fix | 3,504 ms | – | – | – | Typing 1.1–2.2 s per key; not representative (dev mode) |
+| Desktop, production, after marker fix | 343 ms | 277 ms | 188 ms | 105 ms | Mostly drawing cost (blur, box-shadow animations) |
+| **Desktop, production, after marker + CSS fix** | **125 ms** | **74 ms** | **31 ms** | **65 ms** | Good (under 200 ms) |
+| Mobile emulation, production, after both fixes | | | | | |
+| Desktop, production, 1000 detections | | | | | |
 
 Target: interactions under 100 ms feel instant (RAIL guideline); markers drawn within about 1 s of the data arriving.
 
