@@ -1642,3 +1642,24 @@
 @media(max-width:1150px){.ew-home.ew-home-inferno{grid-template-columns:1fr}.ew-home-inferno .ew-home-preview{max-width:800px;width:100%;margin:auto}.ew-home-inferno .ew-home-hero h1{font-size:clamp(62px,9vw,110px)}}
 @media(max-width:680px){.ew-home.ew-home-inferno{padding:34px 8px 65px}.ew-home-inferno .ew-home-hero h1{font-size:clamp(51px,12.5vw,79px)}.ew-home-edition{font-size:9px;line-height:1.8}.ew-home-visual{height:230px}.ew-home-inferno .ew-home-preview{padding:14px}.ew-home-trust{gap:12px}.ew-home-visual-tag{font-size:8px}.ew-home-inferno .ew-home-actions button{flex:1;min-width:170px}}
 @media(prefers-reduced-motion:reduce){.ew-home-inferno .ew-home-spark-field i,.ew-home-inferno .ew-home-fire-sparks i{display:none}.ew-home-inferno .ew-home-flame,.ew-home-inferno .ew-home-fire-halo,.ew-home-inferno .ew-home-status-dot{animation:none!important}}
+
+
+/* Upright flame silhouette: pointed tip at top, broad rounded base. */
+.ew-home-inferno .ew-home-flame{width:145px;height:184px;display:block}
+.ew-home-inferno .ew-home-flame span{
+  left:50%;rotate:none;border-radius:0;
+  transform:translateX(-50%);
+  clip-path:polygon(50% 0%,66% 22%,82% 39%,95% 59%,100% 75%,95% 88%,83% 97%,65% 100%,35% 100%,17% 97%,5% 88%,0% 75%,5% 59%,18% 39%,34% 22%);
+}
+.ew-home-inferno .ew-home-flame-back{
+  width:136px;height:174px;bottom:0;
+  background:linear-gradient(180deg,#ffb64c 0%,#ff812f 38%,#e9431e 78%,#a91d1d 100%);
+}
+.ew-home-inferno .ew-home-flame-main{
+  width:94px;height:124px;bottom:3px!important;
+  background:linear-gradient(180deg,#ffe78c,#ffb544 55%,#ff772b);
+}
+.ew-home-inferno .ew-home-flame-core{
+  width:48px;height:73px;bottom:6px!important;
+  background:linear-gradient(180deg,#fffbe3,#ffe9a2 70%,#ffc85c);
+}
