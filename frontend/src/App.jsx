@@ -102,6 +102,7 @@ function RefreshMapLayout({ active, hasSelection }) {
 
 function AppContent() {
   const [riskAreas, setRiskAreas] = useState([]);
+  const [homeMotion, setHomeMotion] = useState(() => typeof window === "undefined" ? false : !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
@@ -344,9 +345,9 @@ function AppContent() {
         </div>
         </header>
       <main className="ew-main">
-      {page === "home" && <section className="ew-home ew-home-inferno" aria-label="EmberWatch home">
+      {page === "home" && <section className={`ew-home ew-home-inferno ${homeMotion ? "ew-home-motion-on" : "ew-home-motion-off"}`} aria-label="EmberWatch home">
         <div className="ew-home-spark-field" aria-hidden="true">{Array.from({length:28},(_,i)=><i key={i} style={{"--spark-x":`${(i*37+13)%100}%`,"--spark-delay":`${-(i*0.73)%11}s`,"--spark-duration":`${4+(i%6)*.9}s`,"--spark-drift":`${(i%2?1:-1)*(20+i%5*18)}px`,"--spark-size":`${2+(i%4)}px`}} />)}</div>
-        <div className="ew-home-hero">
+        <div className="ew-home-hero"><button className="ew-home-motion-toggle" type="button" aria-pressed={homeMotion} onClick={() => setHomeMotion(v => !v)}>{homeMotion ? "✦ Reduce animations" : "✦ Enable animations"}</button>
           <div className="ew-home-status"><span className="ew-home-status-dot" /> WILDFIRE INTELLIGENCE PLATFORM <span className="ew-home-status-divider">/</span> CANADA</div>
           <span className="ew-home-edition">SATELLITE OBSERVATIONS <span>✦</span> ENVIRONMENTAL INSIGHTS <span>✦</span> ML RESEARCH</span>
           <h1>WATCH THE <em>WILDFIRE.</em><br /><span>READ THE SIGNALS.</span></h1>
@@ -357,10 +358,15 @@ function AppContent() {
         </div>
         <div className="ew-home-preview" aria-label="EmberWatch features">
           <div className="ew-home-visual" aria-hidden="true">
-            <div className="ew-home-fire-halo ew-home-fire-halo-outer"/><div className="ew-home-fire-halo ew-home-fire-halo-inner"/>
+            <div className="ew-home-radar-sweep"/><div className="ew-home-radar-points"><i/><i/><i/><i/></div><div className="ew-home-fire-halo ew-home-fire-halo-outer"/><div className="ew-home-fire-halo ew-home-fire-halo-inner"/>
             <div className="ew-home-flame"><span className="ew-home-flame-back"/><span className="ew-home-flame-main"/><span className="ew-home-flame-core"/></div>
             <div className="ew-home-fire-sparks">{Array.from({length:16},(_,i)=><i key={i} style={{"--fire-x":`${(i*31+17)%100}%`,"--fire-delay":`${-i*.41}s`,"--fire-drift":`${(i%2?1:-1)*(12+i%5*9)}px`}} />)}</div>
             <span className="ew-home-visual-tag tag-left">LIVE DATA PIPELINE</span><span className="ew-home-visual-tag tag-right">FIRE / SIGNAL / INSIGHT</span>
+          </div>
+          <div className="ew-home-intelligence" aria-label="Current platform data">
+            <div><span>MONITORED REGIONS</span><strong>{loading ? "—" : error ? "Unavailable" : riskAreas.length}</strong><small>{loading ? "Loading data…" : error ? "Data unavailable" : "Loaded from risk API"}</small></div>
+            <div><span>SATELLITE OBSERVATIONS</span><strong>{detectionLoading ? "—" : detectionError ? "Unavailable" : (detectionResult?.detections?.length ?? 0)}</strong><small>{detectionLoading ? "Loading data…" : detectionError ? "Data unavailable" : "Loaded records, not active fires"}</small></div>
+            <div><span>DATA STATUS</span><strong>{loading || detectionLoading ? "Loading" : error || detectionError ? "Partial" : "Loaded"}</strong><small>Check dates in Explore map</small></div>
           </div>
           <div className="ew-home-preview-heading"><div><p className="ew-overline">YOUR COMMAND CENTER</p><h2>Find the signal.</h2></div><span className="ew-home-preview-count">03 / TOOLS</span></div>
           <div className="ew-feature-tiles">

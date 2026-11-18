@@ -1663,3 +1663,28 @@
   width:48px;height:73px;bottom:6px!important;
   background:linear-gradient(180deg,#fffbe3,#ffe9a2 70%,#ffc85c);
 }
+
+
+/* Command-center refinement: atmospheric smoke, radar sweep, live metrics, premium cards. */
+.ew-home-inferno .ew-home-hero::before{content:"";position:absolute;z-index:-1;pointer-events:none;left:-8%;right:0;top:6%;height:65%;background:radial-gradient(ellipse at 65% 65%,rgba(219,65,31,.2),transparent 70%);filter:blur(28px);animation:ew-smoke 11s ease-in-out infinite alternate}
+.ew-home-motion-toggle{display:inline-flex;align-items:center;gap:6px;background:#2e2224!important;color:#ffd3a3!important;border:1px solid #a2694a!important;border-radius:100px!important;font-size:11px!important;padding:8px 13px!important;cursor:pointer;box-shadow:none!important;margin-bottom:20px}
+.ew-home-motion-toggle:focus-visible{outline:2px solid #ffcb7c;outline-offset:3px}
+.ew-home-radar-sweep{position:absolute;width:250px;height:250px;left:50%;top:49%;border-radius:50%;transform:translate(-50%,-50%);background:conic-gradient(from 0deg,transparent 0deg,transparent 305deg,rgba(255,162,66,.02) 315deg,rgba(255,155,69,.24) 350deg,rgba(255,204,122,.5) 359deg,transparent 360deg);mask-image:radial-gradient(circle,transparent 0 20%,black 21%);animation:ew-radar-rotate 9s linear infinite}
+.ew-home-radar-points{position:absolute;inset:0;pointer-events:none}
+.ew-home-radar-points i{position:absolute;width:7px;height:7px;border-radius:50%;background:#ffd68b;box-shadow:0 0 10px 3px #ff8c3b,0 0 23px #fa5827;animation:ew-radar-ping 3s ease-in-out infinite}
+.ew-home-radar-points i:nth-child(1){top:25%;left:26%}.ew-home-radar-points i:nth-child(2){top:37%;right:21%;animation-delay:.9s}.ew-home-radar-points i:nth-child(3){bottom:22%;left:30%;animation-delay:1.7s}.ew-home-radar-points i:nth-child(4){bottom:29%;right:24%;animation-delay:2.4s}
+.ew-home-intelligence{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:17px}
+.ew-home-intelligence>div{display:flex;flex-direction:column;gap:7px;padding:14px 12px;border:1px solid #80523c;background:linear-gradient(140deg,rgba(132,56,33,.24),rgba(28,20,24,.8));border-radius:12px;min-width:0}
+.ew-home-intelligence span{font:700 9px "IBM Plex Mono",monospace;letter-spacing:.055em;color:#f1b889}
+.ew-home-intelligence strong{font-size:clamp(16px,2.3vw,28px);line-height:1.15;color:#fff0d7;overflow-wrap:anywhere}
+.ew-home-intelligence small{font-size:10px;line-height:1.35;color:#d4ad96}
+.ew-home-inferno .ew-feature-tiles button{position:relative;overflow:hidden;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
+.ew-home-inferno .ew-feature-tiles button::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;background:linear-gradient(115deg,transparent 25%,rgba(255,189,108,.16) 50%,transparent 75%);transform:translateX(-100%);transition:opacity .28s ease,transform .6s ease}
+@media(hover:hover){.ew-home-inferno .ew-feature-tiles button:hover{transform:translateY(-4px);border-color:#f0a465;box-shadow:0 12px 32px rgba(233,85,36,.23)}.ew-home-inferno .ew-feature-tiles button:hover::before{opacity:1;transform:translateX(100%)}}
+@keyframes ew-radar-rotate{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes ew-radar-ping{0%,100%{opacity:.3;scale:.65}45%{opacity:1;scale:1.35}}
+@keyframes ew-smoke{from{opacity:.35;transform:translate(-12px,10px) scale(1)}to{opacity:.85;transform:translate(15px,-14px) scale(1.1)}}
+.ew-home-motion-off .ew-home-spark-field i,.ew-home-motion-off .ew-home-fire-sparks i{display:none!important}
+.ew-home-motion-off .ew-home-flame,.ew-home-motion-off .ew-home-fire-halo,.ew-home-motion-off .ew-home-status-dot,.ew-home-motion-off .ew-home-radar-sweep,.ew-home-motion-off .ew-home-radar-points i,.ew-home-motion-off .ew-home-hero::before{animation:none!important}
+@media(max-width:550px){.ew-home-intelligence{grid-template-columns:1fr}.ew-home-intelligence>div{padding:12px 15px}.ew-home-motion-toggle{margin-bottom:14px}}
+@media(prefers-reduced-motion:reduce){.ew-home-inferno .ew-home-radar-sweep,.ew-home-inferno .ew-home-radar-points i,.ew-home-inferno .ew-home-hero::before{animation:none!important}.ew-home-inferno .ew-feature-tiles button,.ew-home-inferno .ew-feature-tiles button::before{transition:none!important}}
