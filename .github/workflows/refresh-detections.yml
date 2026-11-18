@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       days:
-        description: "Days to fetch, ending today (1-10; use more to catch up after a gap)"
+        description: "Days to fetch, ending today (1-5; use 5 to catch up after a gap)"
         required: false
         default: "2"
 
@@ -63,8 +63,8 @@ jobs:
           case "$DAYS" in
             ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 1 ;;
           esac
-          if [ "$DAYS" -lt 1 ] || [ "$DAYS" -gt 10 ]; then
-            echo "::error::days must be between 1 and 10, got $DAYS"
+          if [ "$DAYS" -lt 1 ] || [ "$DAYS" -gt 5 ]; then
+            echo "::error::days must be between 1 and 5, got $DAYS"
             exit 1
           fi
 
