@@ -4,7 +4,8 @@ import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { REPORTS_ENABLED } from "./services/reportApi";
+import { REPORTS_ENABLED, fetchPublicReports } from "./services/reportApi";
+import StaffModeration from "./components/StaffModeration";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
 import DataFreshness from "./components/DataFreshness";
@@ -148,6 +149,10 @@ function AppContent() {
   }, [menuOpen]);
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
+  const [publicReports, setPublicReports] = useState([]);
+  const [reportError, setReportError] = useState(null);
+  const [reportAttempt, setReportAttempt] = useState(0);
+  const [moderating, setModerating] = useState(false);
   const [reporting, setReporting] = useState(false); // #51 Report a Fire panel
   const [detectionLoading, setDetectionLoading] = useState(true);
   // #25/#26: warnings from the API (e.g. fire history unavailable), plus
@@ -187,6 +192,16 @@ function AppContent() {
       active = false;
     };
   }, [detectionAttempt]);
+
+  useEffect(() => {
+    let active = true;
+    fetchPublicReports().then((items) => {
+      if (active) { setPublicReports(items); setReportError(null); }
+    }).catch(() => {
+      if (active) { setPublicReports([]); setReportError("Public reports unavailable"); }
+    });
+    return () => { active = false; };
+  }, [reportAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -364,7 +379,9 @@ function AppContent() {
         <button type="button" className="ew-report-cta" aria-expanded={reporting} onClick={() => setReporting((open) => !open)}>{reporting ? "Close fire report" : "Report a fire"} <span aria-hidden="true">{reporting ? "×" : "↗"}</span></button>
         <span className="ew-report-disclaimer">For emergencies, call local emergency services.</span>
       </div>
-      {reporting && <div className="ew-report-panel"><ReportFire onClose={() => setReporting(false)} /></div>}
+      {reporting && <div className="ew-report-panel"><ReportFire onClose={() => setReporting(false)} onSubmitted={() => setReportAttempt((n) => n + 1)} /></div>}
+      <div className="ew-report-tools"><button type="button" onClick={() => setModerating((v) => !v)}>{moderating ? "Close staff moderation" : "Staff moderation"}</button> <button type="button" onClick={() => setReportAttempt((n) => n + 1)}>Refresh public reports</button>{reportError && <span className="ew-report-error" aria-label="Public reports error">{reportError}</span>}</div>
+      {moderating && <StaffModeration reports={publicReports} onUpdated={() => setReportAttempt((n) => n + 1)} />}
 
       {loading && (
         <p>Loading wildfire risk data...</p>
@@ -436,6 +453,12 @@ function AppContent() {
 
 
 
+            {publicReports.filter((report) => Number.isFinite(report.latitude) && Number.isFinite(report.longitude) && !["rejected", "out"].includes(report.review_status)).map((report) => (
+              <CircleMarker key={`public-report-${report.id}`} center={[report.latitude, report.longitude]} radius={8} pathOptions={{ color: "#7052a3", fillColor: "#c9b2e9", fillOpacity: 0.8, weight: 3, dashArray: "3 3" }}>
+                <Tooltip>Public report — {report.review_status === "unverified" ? "Unverified" : report.review_status.replaceAll("_", " ")}</Tooltip>
+                <Popup><strong>Public report — {report.review_status === "unverified" ? "Unverified" : report.review_status.replaceAll("_", " ")}</strong><p>{[report.observed_type, report.description].filter(Boolean).join(" — ")}</p><p>Reported: {new Date(report.observed_at).toLocaleString()}</p><small>Community report, not a satellite detection or official emergency alert.</small></Popup>
+              </CircleMarker>
+            ))}
             {searchedPlace && <CircleMarker center={[searchedPlace.latitude, searchedPlace.longitude]} radius={11} pathOptions={{color:"#ffb36c",fillColor:"#ff7843",fillOpacity:0.8,weight:3}}><Tooltip permanent direction="top"><strong>{searchedPlace.name}</strong><br />Selected location</Tooltip></CircleMarker>}
             {/* Draw non-interactive risk zones below clickable area and detection markers. */}
             {mapLayer !== "detections" && showZones && riskAreas
