@@ -34,6 +34,7 @@ import { explainFactors } from "./utils/riskExplanation";
 import { sortAreasByRisk } from "./utils/riskFormat";
 import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
+import ForecastPage from "./components/ForecastPage";
 import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
 
 const fireMarkerIcon = (lowConfidence) => divIcon({
@@ -327,6 +328,7 @@ function AppContent() {
           <button type="button" aria-current={page === "home" ? "page" : undefined} onClick={() => navigateTo("home")}>Home</button>
           <button type="button" aria-current={page === "explore" ? "page" : undefined} onClick={() => navigateTo("explore")}>Explore map</button>
           <button type="button" aria-current={page === "learn" ? "page" : undefined} onClick={() => navigateTo("learn")}>Understand risk</button>
+          <button type="button" aria-current={page === "forecast" ? "page" : undefined} onClick={() => navigateTo("forecast")}>AI forecast</button>
         </nav>
         <div className="ew-menu-wrap" ref={menuRef}>
           <button type="button" className="ew-menu-toggle" aria-label="More options" aria-expanded={menuOpen} aria-controls="ew-navigation" onClick={() => setMenuOpen((open) => !open)}>
@@ -346,6 +348,7 @@ function AppContent() {
         <div className="ew-home-hero"><span className="ew-eyebrow">EXPLORE WILDFIRES IN CANADA</span><h1>See what’s<br /><em>happening.</em></h1><p>Curious about wildfire activity? Explore the map, check monitored areas, and see what the data tells us.</p><div className="ew-home-actions"><button type="button" onClick={() => navigateTo("explore")}>Explore the map <span aria-hidden="true">→</span></button><button type="button" className="ew-secondary-action" onClick={() => setPage("learn")}>How it works</button></div><p className="ew-home-caution">Educational prototype · Not an emergency alert or evacuation service</p></div>
         <div className="ew-home-preview" aria-label="Explore features"><div className="ew-home-orbit"><span>🔥</span></div><p className="ew-overline">WHAT CAN YOU DO?</p><h2>Start exploring.</h2><div className="ew-feature-tiles"><button type="button" onClick={() => navigateTo("explore")}><strong>Explore the map</strong><span>Search monitored regions and zoom to their risk assessments.</span><span aria-hidden="true">↗</span></button><button type="button" onClick={() => navigateTo("explore")}><strong>Spot fire activity</strong><span>Inspect satellite hotspots, timestamps and confidence.</span><span aria-hidden="true">↗</span></button><button type="button" onClick={() => setPage("learn")}><strong>Understand risk</strong><span>Learn what the scores mean and where data is missing.</span><span aria-hidden="true">↗</span></button></div></div>
       </section>}
+      {page === "forecast" && <ForecastPage areas={riskAreas} />}
       {page === "learn" && <section className="ew-learn" aria-label="Understanding wildfire risk"><button type="button" className="ew-text-back" onClick={() => setPage("home")}>← Back to home</button><span className="ew-eyebrow">DATA, NOT PREDICTIONS</span><h1>Know what you’re looking at.</h1><p className="ew-learn-intro">EmberWatch combines environmental observations and satellite detections. These are different kinds of information, with different limitations.</p><div className="ew-learn-grid"><article><span>01 / AREA RISK</span><h2>Environmental risk</h2><p>A provisional 0–100 model score derived from available weather, terrain and nearby detection history. It is not a forecast of where a fire will spread.</p></article><article><span>02 / SATELLITE SIGNAL</span><h2>Detection confidence</h2><p>Confidence describes an individual satellite hotspot observation, not the overall wildfire risk of a region. Hotspots are not necessarily confirmed wildfires.</p></article><article><span>03 / DATA QUALITY</span><h2>Freshness matters</h2><p>Older observations may not reflect current conditions. Check the dates, missing inputs and warnings before interpreting any risk assessment.</p></article></div><button type="button" className="ew-primary-action" onClick={() => navigateTo("explore")}>Explore monitored areas →</button><p className="ew-home-caution">For emergencies, follow official local authorities and emergency services.</p></section>}
       <div className={page === "explore" ? "ew-explore-page" : "ew-page-hidden"}>
         <div className="ew-page-heading">
