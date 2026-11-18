@@ -215,7 +215,7 @@ def test_valid_report_returns_201_and_unverified(client, fake_db):
 def test_raw_ip_is_never_stored(client, fake_db, monkeypatch):
     monkeypatch.setenv("REPORT_HASH_SALT", "pepper")
     db = fake_db()
-    client.post("/api/reports", json=payload(), headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.1"})
+    client.post("/api/reports", json=payload(), environ_base={"REMOTE_ADDR": "203.0.113.7"})
 
     stored_key = db.reports[0]["client_key"]
     assert "203.0.113.7" not in stored_key
@@ -255,13 +255,13 @@ def test_rate_limit_returns_429_with_retry_after(client, fake_db, monkeypatch):
     monkeypatch.setenv("REPORT_RATE_LIMIT", "2")
     monkeypatch.setenv("REPORT_RATE_WINDOW_MINUTES", "10")
     db = fake_db()
-    headers = {"X-Forwarded-For": "198.51.100.1"}
+    sender = {"REMOTE_ADDR": "198.51.100.1"}
 
-    codes = [client.post("/api/reports", json=payload(), headers=headers).status_code for _ in range(3)]
+    codes = [client.post("/api/reports", json=payload(), environ_base=sender).status_code for _ in range(3)]
 
     assert codes == [201, 201, 429]
     assert len(db.reports) == 2
-    blocked = client.post("/api/reports", json=payload(), headers=headers)
+    blocked = client.post("/api/reports", json=payload(), environ_base=sender)
     assert blocked.headers["Retry-After"] == "600"
 
 
@@ -269,8 +269,8 @@ def test_rate_limit_is_per_sender(client, fake_db, monkeypatch):
     monkeypatch.setenv("REPORT_RATE_LIMIT", "1")
     db = fake_db()
 
-    first = client.post("/api/reports", json=payload(), headers={"X-Forwarded-For": "198.51.100.1"})
-    other = client.post("/api/reports", json=payload(), headers={"X-Forwarded-For": "198.51.100.2"})
+    first = client.post("/api/reports", json=payload(), environ_base={"REMOTE_ADDR": "198.51.100.1"})
+    other = client.post("/api/reports", json=payload(), environ_base={"REMOTE_ADDR": "198.51.100.2"})
 
     assert (first.status_code, other.status_code) == (201, 201)
     assert len(db.reports) == 2
@@ -374,3 +374,102 @@ def test_database_not_configured_returns_503(client, monkeypatch):
 
     response = client.post("/api/reports", json=payload())
     assert response.status_code == 503
+
+
+# ---------------------------------------------------------------------------
+# Trusted proxies: a forged X-Forwarded-For can't dodge the limit (#52 review)
+# ---------------------------------------------------------------------------
+from services.client_ip import client_ip  # noqa: E402
+
+
+@pytest.mark.parametrize("remote, header, proxies, expected", [
+    ("10.0.0.5", "1.2.3.4", 0, "10.0.0.5"),                         # header ignored by default
+    ("10.0.0.5", "203.0.113.9", 1, "203.0.113.9"),                  # Render added the real client
+    ("10.0.0.5", "6.6.6.6, 203.0.113.9", 1, "203.0.113.9"),         # client's own entry ignored
+    ("10.0.0.5", "6.6.6.6, 203.0.113.9, 10.1.1.1", 2, "203.0.113.9"),
+    ("10.0.0.5", None, 1, "10.0.0.5"),                              # no header: didn't come via the proxy
+    ("10.0.0.5", "203.0.113.9", 2, "10.0.0.5"),                     # fewer hops than trusted proxies
+    ("10.0.0.5", "not-an-ip", 1, "10.0.0.5"),
+    ("10.0.0.5", "2001:db8::1", 1, "2001:db8::1"),
+])
+def test_client_ip_only_trusts_proxy_added_entries(remote, header, proxies, expected):
+    assert client_ip(remote, header, proxies) == expected
+
+
+def test_forged_header_cannot_evade_limit_without_trusted_proxy(client, fake_db, monkeypatch):
+    monkeypatch.setenv("REPORT_RATE_LIMIT", "2")
+    monkeypatch.delenv("TRUSTED_PROXY_COUNT", raising=False)
+    db = fake_db()
+
+    codes = [
+        client.post("/api/reports", json=payload(),
+                    headers={"X-Forwarded-For": f"192.0.2.{n}"},
+                    environ_base={"REMOTE_ADDR": "198.51.100.7"}).status_code
+        for n in range(5)
+    ]
+
+    assert codes == [201, 201, 429, 429, 429]
+    assert len(db.reports) == 2
+
+
+def test_forged_header_cannot_evade_limit_behind_render_proxy(client, fake_db, monkeypatch):
+    """Behind one trusted proxy the client can still put anything at the front
+    of X-Forwarded-For, but the proxy appends the real address at the end."""
+    monkeypatch.setenv("REPORT_RATE_LIMIT", "2")
+    monkeypatch.setenv("TRUSTED_PROXY_COUNT", "1")
+    db = fake_db()
+    proxy = {"REMOTE_ADDR": "10.0.0.1"}
+
+    codes = [
+        client.post("/api/reports", json=payload(),
+                    headers={"X-Forwarded-For": f"192.0.2.{n}, 203.0.113.9"},
+                    environ_base=proxy).status_code
+        for n in range(4)
+    ]
+    other_user = client.post("/api/reports", json=payload(),
+                             headers={"X-Forwarded-For": "203.0.113.50"}, environ_base=proxy)
+
+    assert codes == [201, 201, 429, 429]
+    assert other_user.status_code == 201   # real users behind the same proxy keep separate limits
+    assert len(db.reports) == 3
+
+
+def test_bad_trusted_proxy_config_refuses_reports(client, fake_db, monkeypatch):
+    monkeypatch.setenv("TRUSTED_PROXY_COUNT", "-1")
+    db = fake_db()
+    assert client.post("/api/reports", json=payload()).status_code == 503
+    assert db.reports == []
+
+
+# ---------------------------------------------------------------------------
+# Production salt (#52 review): no weak IP hashes in production
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("salt", [None, "", "short-salt"])
+def test_production_without_strong_salt_refuses_reports(client, fake_db, monkeypatch, salt):
+    monkeypatch.setenv("RENDER", "true")
+    if salt is None:
+        monkeypatch.delenv("REPORT_HASH_SALT", raising=False)
+    else:
+        monkeypatch.setenv("REPORT_HASH_SALT", salt)
+    db = fake_db()
+
+    response = client.post("/api/reports", json=payload())
+
+    assert response.status_code == 503
+    assert db.reports == []
+
+
+def test_production_with_strong_salt_accepts_reports(client, fake_db, monkeypatch):
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("REPORT_HASH_SALT", "x" * 32)
+    db = fake_db()
+    assert client.post("/api/reports", json=payload()).status_code == 201
+    assert len(db.reports) == 1
+
+
+def test_salt_is_optional_for_local_development(client, fake_db, monkeypatch):
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("REPORTS_REQUIRE_SALT", raising=False)
+    monkeypatch.delenv("REPORT_HASH_SALT", raising=False)
+    fake_db()
+    assert client.post("/api/reports", json=payload()).status_code == 201

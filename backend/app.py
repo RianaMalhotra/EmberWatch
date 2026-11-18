@@ -5,7 +5,12 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
-from config import get_cors_origins, get_report_hash_salt, get_report_rate_limit
+from config import (
+    get_cors_origins,
+    get_report_hash_salt,
+    get_report_rate_limit,
+    get_trusted_proxy_count,
+)
 from db import check_database, get_connection
 
 from services.risk_scoring import (
@@ -18,6 +23,7 @@ from services.detection_pipeline import get_classified_detections
 from services.detection_history import get_historical_detections, history_params
 from services.report_store import RateLimited, client_key, save_report
 from services.report_validation import validate_report
+from services.client_ip import client_ip
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -387,11 +393,14 @@ MAX_REPORT_BODY_BYTES = 10_000
 
 
 def _sender_ip():
-    """The sender's IP. On Render the app runs behind a proxy, so the first
-    X-Forwarded-For address is the browser; locally it is remote_addr."""
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    first = forwarded.split(",")[0].strip()
-    return first or request.remote_addr
+    """The address to rate-limit by. X-Forwarded-For is only believed for the
+    TRUSTED_PROXY_COUNT proxies we run behind (1 on Render, 0 locally), so a
+    caller can't dodge the limit by sending a fake header (#52 review)."""
+    return client_ip(
+        request.remote_addr,
+        request.headers.get("X-Forwarded-For"),
+        get_trusted_proxy_count(),
+    )
 
 
 @app.route("/api/reports", methods=["POST"])

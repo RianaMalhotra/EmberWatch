@@ -35,13 +35,21 @@ Backend for the Report a Fire form (#51). User stories: #13 (public reporting), 
 |---|---|---|
 | `REPORT_RATE_LIMIT` | `5` | Reports allowed per sender per window |
 | `REPORT_RATE_WINDOW_MINUTES` | `10` | Window length; also the `Retry-After` value |
-| `REPORT_HASH_SALT` | empty | Secret mixed into the IP hash. Set a long random value in production |
+| `REPORT_HASH_SALT` | empty | Secret mixed into the IP hash. **Required in production:** at least 32 random characters. On Render (`RENDER=true`), or anywhere with `REPORTS_REQUIRE_SALT=true`, reports are refused with `503` until it is set, because the ~4 billion IPv4 addresses are few enough to reverse an unsalted hash |
+| `TRUSTED_PROXY_COUNT` | `0` | How many proxies in front of the app may add to `X-Forwarded-For`. `0` ignores the header and uses the connecting address. **Set to `1` on Render** (one proxy) |
+
+## Which IP is rate-limited
+
+`X-Forwarded-For` can be written by anyone: a caller can send `X-Forwarded-For: 1.2.3.4`. Each proxy in front of the app *appends* the address it received the request from, so only the last `TRUSTED_PROXY_COUNT` entries are real. The app uses the entry added by the outermost trusted proxy and ignores everything to its left (`backend/services/client_ip.py`, the same rule as Werkzeug's `ProxyFix(x_for=N)`). With the default `0`, the header is ignored completely. If the header is missing, too short or not an IP address, the connecting address is used.
+
+On Render with `TRUSTED_PROXY_COUNT=0`, every user would share the proxy's address and one rate limit, so production must use `1`.
 
 ## Setup
 
 1. Apply `supabase/migrations/20261112000000_fire_reports.sql` in the Supabase SQL editor (or `supabase db push`).
 2. Restart the Flask backend.
-3. Build the frontend with `VITE_ENABLE_REPORTS=true` so the form sends reports instead of running as a preview.
+3. On Render, set `TRUSTED_PROXY_COUNT=1` and `REPORT_HASH_SALT` (generate one with `python -c "import secrets; print(secrets.token_urlsafe(48))"`). Keep the salt secret and don't change it, or the rate limit resets.
+4. Build the frontend with `VITE_ENABLE_REPORTS=true` so the form sends reports instead of running as a preview.
 
 ## Automated tests
 
@@ -55,6 +63,8 @@ python -m pytest -q tests/test_reports_52.py
 - validation of every field, including bools, NaN, missing timezones, future and old times
 - the 201 contract the form expects (`id`, `review_status: "unverified"`)
 - rate limits: 429 with `Retry-After`, per-sender limits, and a bad config not counted as success
+- forged `X-Forwarded-For`: with no trusted proxy, five different fake headers from one address are still limited; behind one trusted proxy, fake entries in front of the proxy-added address are ignored, while real users behind the same proxy keep separate limits
+- production salt: missing or short `REPORT_HASH_SALT` on Render refuses reports (503) and stores nothing
 - concurrency: 20 simultaneous requests from one sender store exactly the limit (5)
 - duplicate linking: nearby reports and detections are linked, not dropped; the 2 km / 24 h parameters
 - outages at each step of the transaction: 503, no details leaked, nothing stored
@@ -75,13 +85,14 @@ Expected: `status: success` and `data` with an `id` and `review_status: unverifi
 1. Send the same command again: the new report has `linked_report_id` set to the first report's id.
 2. Send it 5 more times within 10 minutes: the request after the limit fails with `429`.
 3. Change `latitude` to `200`: `400` with `latitude must be a number between -90 and 90.`
-4. Set a wrong password in `DATABASE_URL` and restart: `503`, and in Supabase (`select count(*) from fire_reports`) the count has not changed.
+4. Forged header (run against the deployed backend after setting `TRUSTED_PROXY_COUNT=1`): send 6 reports within 10 minutes, each with a different `-Headers @{ "X-Forwarded-For" = "192.0.2.N" }`. The 6th must still fail with `429`. If it doesn't, Render is not appending the client address the way this setting assumes; set `TRUSTED_PROXY_COUNT=0` and investigate before enabling reports.
+5. Set a wrong password in `DATABASE_URL` and restart: `503`, and in Supabase (`select count(*) from fire_reports`) the count has not changed.
 
 Delete test rows afterwards: `delete from public.fire_reports where description = 'Test report, please ignore';`
 
 ## Known limitations
 
 - **Duplicate linking is provisional.** 2 km / 24 h is a starting value, not a tested one. It links to the single closest match; it does not merge reports or decide that two sightings are the same fire. Staff review (#53) makes the final call.
-- **Rate limiting is per IP address.** People sharing a network (a campus, an office, mobile carrier NAT) share one limit. A determined attacker can change IPs. `X-Forwarded-For` is trusted because the app runs behind Render's proxy; if it is ever exposed directly, that header could be spoofed.
+- **Rate limiting is per IP address.** People sharing a network (a campus, an office, mobile carrier NAT) share one limit, and an attacker with many real IP addresses can still send more. Forged `X-Forwarded-For` headers do not help: only proxy-added entries are used (see "Which IP is rate-limited"). `TRUSTED_PROXY_COUNT` must match the real number of proxies; too high would trust client-written entries again.
 - **Reports are not verified and are never sent to emergency services.** The form tells users to call 911 for emergencies.
 - **Reports are not shown on the map yet.** Displaying and reviewing them is #53.
