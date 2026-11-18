@@ -1719,3 +1719,6 @@
 .ew-map-controls button:focus-visible,.ew-map-controls summary:focus-visible{outline:2px solid #ffd17e;outline-offset:3px}
 .ew-map-controls [aria-label="Map legend"],.ew-map-controls .legend{color:#f2d9c8!important}
 @media(prefers-reduced-motion:reduce){.ew-map-frame .ew-fire-marker-likely,.ew-map-frame .ew-fire-marker-low{animation:none!important}}
+
+/* API-key-free Inferno basemap: darken only the OSM raster tiles, never markers, popups or controls. */
+.ew-map-frame .leaflet-tile.ew-inferno-tiles{filter:invert(1) hue-rotate(180deg) brightness(.73) contrast(1.1) saturate(.55)}
