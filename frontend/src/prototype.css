@@ -1805,3 +1805,7 @@
 .ew-risk-interactive-link h3{margin:10px 0;color:#fff0e4;font:800 clamp(28px,3.5vw,42px) "Barlow Condensed",sans-serif}
 .ew-risk-interactive-link p{max-width:630px;color:#cdb5a5;line-height:1.6}
 .ew-risk-interactive-link button{margin-top:12px}
+
+.ew-explore-lab-cta{display:inline-flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid #e7a06d;border-radius:9px;background:linear-gradient(120deg,#573126,#382525);color:#ffdbbc;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 8px 22px #0003}
+.ew-explore-lab-cta:hover{background:#78432b;transform:translateY(-1px)}
+.ew-explore-lab-cta span{color:#ffb77c}
