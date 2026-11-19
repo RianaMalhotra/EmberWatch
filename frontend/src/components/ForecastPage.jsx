@@ -18,6 +18,7 @@ export default function ForecastPage({ areas = [] }) {
   const locations = areas.filter(a=>valid(a.latitude)&&valid(a.longitude));
   const [areaId,setAreaId]=useState("");
   const [selectedDay,setSelectedDay]=useState(0);
+  const [selectedHour,setSelectedHour]=useState(12);
   const [refresh,setRefresh]=useState(0);
   const [state,setState]=useState({loading:false,data:null,error:""});
   const chosen=locations.find(a=>String(a.id)===areaId)??locations[0];
@@ -34,12 +35,18 @@ export default function ForecastPage({ areas = [] }) {
         const days=dates.map(date=>summarizeDay(data.hourly,date));
         if(days.length!==4||days.some(d=>!d))throw Error("Weather inputs missing; ML output withheld");
         setSelectedDay(0);
-        setState({loading:false,error:"",data:{days,timezone:data.timezone,retrieved:new Date().toISOString()}});
+        setSelectedHour(12);
+        setState({loading:false,error:"",data:{days,hourly:data.hourly,timezone:data.timezone,retrieved:new Date().toISOString()}});
       }).catch(e=>{if(!controller.signal.aborted)setState({loading:false,data:null,error:e.message||"Forecast unavailable"});});
     return ()=>controller.abort();
   },[chosen?.id,chosen?.latitude,chosen?.longitude,refresh]);
   const days=state.data?.days??[];
   const day=days[selectedDay]??days[0];
+  const hourIndices=day?state.data?.hourly?.time?.map((t,i)=>t.startsWith(day.date)?i:-1).filter(i=>i>=0)??[]:[];
+  const hourIndex=hourIndices[Math.min(selectedHour,Math.max(0,hourIndices.length-1))];
+  const hourly=state.data?.hourly;
+  const hourTime=hourIndex!==undefined?hourly.time[hourIndex]?.slice(11,16):null;
+  const hourMetrics=hourIndex!==undefined?{temperature:hourly.temperature_2m?.[hourIndex],humidity:hourly.relative_humidity_2m?.[hourIndex],wind:hourly.wind_speed_10m?.[hourIndex],precipitation:hourly.precipitation?.[hourIndex]}:null;
   return <section className="ew-forecast" aria-label="Experimental ML wildfire weather forecast">
     <div className="ew-fc-hero">
       <div className="ew-fc-hero-content">
@@ -63,13 +70,13 @@ export default function ForecastPage({ areas = [] }) {
           <div className="ew-fc-level"><span className="ew-fc-level-dot"/> {level(day.average)} to historical fire-day weather</div>
           <div className="ew-fc-chart-heading"><strong>Four-day model outlook</strong><span>Daily mean similarity score</span></div>
           <Trend days={days}/>
-          <div className="ew-fc-days">{days.map((d,i)=><button type="button" key={d.date} className={selectedDay===i?"active":""} aria-pressed={selectedDay===i} onClick={()=>setSelectedDay(i)}><span>{i===0?"TODAY":i===1?"TOMORROW":`DAY ${i+1}`}</span><strong>{d.average}<small>/100</small></strong><span>{new Date(d.date+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span></button>)}</div>
+          <div className="ew-fc-days">{days.map((d,i)=><button type="button" key={d.date} className={selectedDay===i?"active":""} aria-pressed={selectedDay===i} onClick={()=>{setSelectedDay(i);setSelectedHour(12);}}><span>{i===0?"TODAY":i===1?"TOMORROW":`DAY ${i+1}`}</span><strong>{d.average}<small>/100</small></strong><span>{new Date(d.date+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span></button>)}</div>
         </div>
         <aside className="ew-fc-side"><span className="ew-fc-overline">03 / WEATHER SIGNALS</span><h2>Behind the estimate</h2><p>Forecast inputs for the selected day. These are weather measurements, not wildfire detections.</p>
           <div className="ew-fc-metrics"><div><span>Temperature · midday</span><strong>{day.temperature.toFixed(1)}°C</strong></div><div><span>Relative humidity · midday</span><strong>{day.humidity.toFixed(0)}%</strong></div><div><span>Wind speed · midday</span><strong>{day.wind.toFixed(1)} km/h</strong></div><div><span>Daily precipitation</span><strong>{day.precipitation.toFixed(1)} mm</strong></div></div>
           <div className="ew-fc-method"><span>MODEL</span><strong>Logistic regression</strong><p>Trained on historical fire-day weather vs selected comparison dates. No calibration to real wildfire incidence.</p></div>
         </aside>
-      </div><div className="ew-fc-provenance">WEATHER: OPEN-METEO · TIME ZONE: {state.data.timezone||"UNKNOWN"} · RETRIEVED {new Date(state.data.retrieved).toLocaleString()}</div></>}
+      </div><div className="ew-fc-hourly"><div className="ew-fc-hourly-title"><div><span className="ew-fc-overline">04 / HOURLY WEATHER EXPLORER</span><h2>Scrub through the day.</h2><p>Explore the actual hourly forecast inputs for your selected day, instead of only the midday summary.</p></div><span className="ew-fc-hourly-time">{hourTime??"—"}</span></div><input aria-label="Forecast hour" type="range" min="0" max={Math.max(0,hourIndices.length-1)} value={Math.min(selectedHour,Math.max(0,hourIndices.length-1))} onChange={e=>setSelectedHour(Number(e.target.value))}/><div className="ew-fc-hourly-labels"><span>00:00</span><span>12:00</span><span>23:00</span></div><div className="ew-fc-hourly-metrics">{[["Temperature",hourMetrics?.temperature,"°C"],["Humidity",hourMetrics?.humidity,"%"],["Wind",hourMetrics?.wind," km/h"],["Precipitation",hourMetrics?.precipitation," mm"]].map(([label,value,unit])=><div key={label}><span>{label}</span><strong>{typeof value==="number"&&Number.isFinite(value)?value.toFixed(1)+unit:"—"}</strong></div>)}</div><p className="ew-fc-hourly-note">Weather values are Open-Meteo forecasts, not measured wildfire activity. Daily model similarity remains experimental.</p></div><div className="ew-fc-provenance">WEATHER: OPEN-METEO · TIME ZONE: {state.data.timezone||"UNKNOWN"} · RETRIEVED {new Date(state.data.retrieved).toLocaleString()}</div></>}
     </div>
     <section className="ew-fc-fieldnotes" aria-labelledby="ew-fc-fieldnotes-title">
       <div className="ew-fc-fieldnotes-intro">
