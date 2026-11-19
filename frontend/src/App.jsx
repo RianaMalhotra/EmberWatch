@@ -418,6 +418,7 @@ function AppContent() {
         </div>
 
       <div className="ew-dashboard-tools">
+        <button type="button" className="ew-explore-lab-cta" onClick={() => navigateTo("lab")}>✦ Compare · Simulate · Replay <span aria-hidden="true">↗</span></button>
         <button type="button" className="ew-report-cta" aria-expanded={reporting} onClick={() => setReporting((open) => !open)}>{reporting ? "Close fire report" : "Report a fire"} <span aria-hidden="true">{reporting ? "×" : "↗"}</span></button>
         <span className="ew-report-disclaimer">For emergencies, call local emergency services.</span>
       </div>
