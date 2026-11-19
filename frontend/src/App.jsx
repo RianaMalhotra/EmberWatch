@@ -35,6 +35,7 @@ import { sortAreasByRisk } from "./utils/riskFormat";
 import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
 import ForecastPage from "./components/ForecastPage";
+import InvestigationLab from "./components/InvestigationLab";
 import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
 
 const fireMarkerIcon = (lowConfidence) => divIcon({
@@ -329,6 +330,7 @@ function AppContent() {
           <button type="button" aria-current={page === "home" ? "page" : undefined} onClick={() => navigateTo("home")}>Home</button>
           <button type="button" aria-current={page === "explore" ? "page" : undefined} onClick={() => navigateTo("explore")}>Explore map</button>
           <button type="button" aria-current={page === "learn" ? "page" : undefined} onClick={() => navigateTo("learn")}>Understand risk</button>
+          <button type="button" aria-current={page === "lab" ? "page" : undefined} onClick={() => navigateTo("lab")}>Investigation lab</button>
           <button type="button" aria-current={page === "forecast" ? "page" : undefined} onClick={() => navigateTo("forecast")}>AI forecast</button>
         </nav>
         <div className="ew-menu-wrap" ref={menuRef}>
@@ -377,6 +379,7 @@ function AppContent() {
         </div>
       </section>}
             {page === "forecast" && <ForecastPage areas={riskAreas} />}
+      {page === "lab" && <InvestigationLab areas={riskAreas} detections={detectionResult?.detections ?? []} onExplore={() => navigateTo("explore")} />}
       {page === "learn" && <section className="ew-learn ew-risk-editorial" aria-label="Understanding wildfire risk">
         <div className="ew-risk-hero">
           <div className="ew-risk-sky" aria-hidden="true"><div className="ew-risk-sun" /><div className="ew-risk-mountain ew-risk-mountain-back" /><div className="ew-risk-mountain ew-risk-mountain-front" /><div className="ew-risk-forest" /></div>
@@ -397,6 +400,7 @@ function AppContent() {
           <div className="ew-risk-section-heading ew-risk-second-heading"><span>02 — HOW TO INTERPRET</span><h2>A score is a <em>starting point.</em></h2><p>Read the label, then investigate the evidence behind it.</p></div>
           <div className="ew-risk-interpret"><div className="ew-risk-scale-panel"><span className="ew-risk-small-label">ENVIRONMENTAL RISK / 0–100</span><div className="ew-risk-scale"><div className="ew-risk-scale-low">LOW</div><div className="ew-risk-scale-medium">MODERATE</div><div className="ew-risk-scale-high">HIGH</div></div><div className="ew-risk-scale-ticks"><span>0</span><span>40</span><span>70</span><span>100</span></div><p>The color is a modeled category for a monitored area, not a live alert or an evacuation instruction.</p></div><aside className="ew-risk-note"><span>FIELD NOTE / IMPORTANT</span><h3>Confidence ≠ risk.</h3><p>A high-confidence satellite hotspot can appear near an area with a different environmental risk level. The two measures answer different questions.</p><span className="ew-risk-note-mark" aria-hidden="true">!</span></aside></div>
           <div className="ew-risk-end"><div><span>READY TO INVESTIGATE?</span><h2>Put the field guide to work.</h2><p>Explore monitored locations, inspect timestamps, and compare the signals yourself.</p></div><button type="button" className="ew-primary-action" onClick={() => navigateTo("explore")}>Explore monitored areas <span aria-hidden="true">↗</span></button></div>
+          <div className="ew-risk-interactive-link"><span>TRY IT YOURSELF</span><h3>See how the signals change.</h3><p>Experiment with weather inputs, compare monitored areas, and replay satellite records in the Investigation Lab.</p><button type="button" className="ew-primary-action" onClick={() => navigateTo("lab")}>Open Investigation Lab ↗</button></div>
           <p className="ew-risk-disclaimer">Educational research prototype · Not an emergency alert service. For emergencies, follow official local authorities.</p>
         </div>
       </section>}
