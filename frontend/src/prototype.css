@@ -1246,6 +1246,10 @@
 .ash-head strong { font-family:"Barlow Condensed",sans-serif; font-size:22px; letter-spacing:.02em; }
 .ash-head span { color:#c7a994; font-size:11px; }
 .ash-head button { background:transparent; color:#e2c4ac; border:0; font-size:26px; cursor:pointer; padding:2px 7px; }
+.ash-head .ash-new-chat { flex-shrink:0; padding:6px 9px; border:1px solid #71503d; border-radius:8px; background:#342b2a; color:#e9c8af; font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; font-size:11px; font-weight:600; line-height:1.2; letter-spacing:0; white-space:nowrap; transition:background .15s ease,border-color .15s ease; }
+.ash-head .ash-new-chat:hover { background:#49362e; border-color:#b77b52; }
+.ash-head .ash-new-chat:focus-visible { outline:2px solid #e9a56e; outline-offset:2px; }
+.ash-head .ash-close { flex-shrink:0; padding:2px 4px; font-size:24px; line-height:1; }
 .ash-messages { flex:1; overflow:auto; display:flex; flex-direction:column; align-items:flex-start; gap:11px; padding:16px 13px; }
 .ash-message { max-width:91%; padding:10px 12px; border-radius:12px; font-size:13px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
 .ash-assistant { background:#31343a; color:#f4e5d8; border-bottom-left-radius:4px; }
