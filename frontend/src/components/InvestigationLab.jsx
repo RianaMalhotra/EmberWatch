@@ -12,7 +12,7 @@ function FactorRows({area}) {
   const factors = area?.factors ?? area?.environmental_factors ?? {};
   return <div className="lab-factors">{Object.entries(factorNames).map(([key,label])=><div key={key}><span>{label}</span><strong>{fmt(factors[key],key.includes("humidity")?"%":key.includes("wind")?" km/h":key.includes("temperature")?"°C":key.includes("precipitation")?" mm":"°")}</strong></div>)}</div>;
 }
-export default function InvestigationLab({areas=[],detections=[],onExplore,onAsk}) {
+export default function InvestigationLab({areas=[],detections=[],onExplore}) {
   const locations=useMemo(()=>areas.filter(a=>has(a.latitude)&&has(a.longitude)),[areas]);
   const [tab,setTab]=useState("simulator");
   const [first,setFirst]=useState("");
