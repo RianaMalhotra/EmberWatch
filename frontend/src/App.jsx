@@ -689,7 +689,7 @@ function AppContent() {
       </div>
       </ErrorBoundary>
       </div></main>
-      <AshDetective areas={riskAreas} detections={detectionResult?.detections ?? []} selectedArea={selectedArea} searchedPlace={searchedPlace} />
+      <AshDetective areas={riskAreas} detections={detectionResult?.detections ?? []} selectedArea={selectedArea} searchedPlace={searchedPlace} currentPage={page} />
     </div>
   );
 }
