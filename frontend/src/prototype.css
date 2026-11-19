@@ -1236,12 +1236,13 @@
 
 /* Ash Detective — a quiet floating casebook, not another dashboard panel. */
 .ash-shell { position:fixed; right:clamp(12px,2vw,28px); bottom:clamp(12px,2vw,26px); z-index:1200; display:flex; flex-direction:column; align-items:flex-end; gap:11px; font-family:"Source Sans 3",sans-serif; }
-/* The floating Ask Ash launcher is shaped like a detective's fedora. */
-.ash-launcher { position:relative; isolation:isolate; display:flex; align-items:center; justify-content:center; gap:8px; min-width:140px; margin-top:28px; padding:12px 18px 10px; background:linear-gradient(145deg,#533321,#2e211d); color:#ffe8cc; border:2px solid #dc9350; border-radius:48% 48% 45% 45% / 65% 65% 45% 45%; box-shadow:0 7px 26px #0008,0 0 16px #b65b2833; font-family:"Source Sans 3",sans-serif; font-size:14px; font-weight:750; cursor:pointer; transition:transform .18s ease,box-shadow .18s ease; }
-.ash-launcher::before { content:""; position:absolute; z-index:-1; width:83px; height:37px; left:50%; bottom:calc(100% - 7px); transform:translateX(-50%); border:2px solid #dc9350; border-bottom:8px solid #b66b36; border-radius:48% 48% 12% 12% / 78% 78% 12% 12%; background:linear-gradient(to bottom,#60402d 0%,#4a2d21 65%,#251b1b 66%,#251b1b 79%,#b66b36 80%); pointer-events:none; }
-.ash-launcher:hover { transform:translateY(-2px); box-shadow:0 10px 30px #000a,0 0 20px #d8793d66; }
-.ash-launcher:focus-visible { outline:3px solid #ffc18c; outline-offset:4px; }
-.ash-launcher span:first-child { display:grid; place-items:center; width:28px; height:28px; flex-shrink:0; }
+/* Compact detective magnifying-glass launcher; no hat-shaped button. */
+.ash-launcher { position:relative; display:flex; align-items:center; justify-content:center; gap:9px; min-height:48px; padding:8px 18px 8px 12px; background:#30251f; color:#ffe8cc; border:1px solid #c48653; border-radius:30px; box-shadow:0 7px 26px #0008; font-family:"Source Sans 3",sans-serif; font-size:14px; font-weight:750; cursor:pointer; transition:background .18s ease,transform .18s ease; }
+.ash-launcher:hover { background:#493024; transform:translateY(-2px); }
+.ash-launcher:focus-visible { outline:3px solid #ffc18c; outline-offset:3px; }
+.ash-launcher span:first-child { position:relative; display:grid; place-items:center; width:31px; height:31px; flex-shrink:0; border:2px solid #e6a267; border-radius:50%; background:#422c23; }
+.ash-launcher span:first-child::after { content:""; position:absolute; width:13px; height:5px; right:-9px; bottom:-4px; transform:rotate(48deg); border-radius:4px; background:#e6a267; box-shadow:0 1px 3px #0005; pointer-events:none; }
+.ash-launcher span:first-child svg { width:23px; height:23px; }
 @media(prefers-reduced-motion:reduce) { .ash-launcher { transition:none; } .ash-launcher:hover { transform:none; } }
 .ash-panel { display:flex; flex-direction:column; width:min(370px,calc(100vw - 24px)); height:min(510px,calc(100dvh - 110px)); background:#1c2026; color:#f4e7da; border:1px solid #6d4a34; border-radius:17px; overflow:hidden; box-shadow:0 20px 65px #000a; }
 .ash-head { display:flex; align-items:center; gap:11px; padding:13px 15px; border-bottom:1px solid #43372e; background:#28252a; }
