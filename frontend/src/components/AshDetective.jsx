@@ -41,7 +41,8 @@ function localAnswer(question, areas, detections) {
   return "I can investigate monitored-area risk scores, fire icons, detection confidence, search, reports, and data freshness. Try asking about a monitored city, or open Explore map to select a place. I won't invent a current fire status or a risk score for an unmonitored location.";
 }
 
-export default function AshDetective({ areas = [], detections = [], selectedArea, searchedPlace }) {
+export default function AshDetective({ areas = [], detections = [], selectedArea, searchedPlace, currentPage = "home" }) {
+  const contextualQuestions = currentPage === "forecast" ? ["Explain the four-day weather outlook", "What does similarity mean?", "How does tomorrow compare?"] : currentPage === "lab" ? ["How does the what-if simulator work?", "Why is confidence different from risk?", "Are these records current?"] : selectedArea ? ["Explain the risk for " + selectedArea.name, "How current is this area data?", "What do the factor scores mean?"] : starterQuestions;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([welcome]);
@@ -76,6 +77,7 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
         body: JSON.stringify({ question, history: prior, context: {
           forecast, forecast_error: forecastError,
           selected_area: selectedArea?.name ?? null,
+          current_page: currentPage,
           searched_place: searchedPlace?.name ?? null,
           areas: areas.slice(0, 100).map((a) => ({ name: a.name, risk_score: a.risk_score, risk_level: a.risk_level, observed_at: a.observed_at, is_complete: a.is_complete })),
           detection_count: detections.length
@@ -98,7 +100,7 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
       {open && <section className="ash-panel" aria-label="Ash Detective assistant">
         <header className="ash-head"><div className="ash-avatar"><AshMascot size={38} /></div><div><strong>Ash Detective</strong><span>Wildfire case notes · educational</span></div><button type="button" className="ash-new-chat" onClick={clearChat} aria-label="Start new conversation" title="New conversation">New chat</button><button type="button" className="ash-close" aria-label="Close Ash Detective" onClick={() => setOpen(false)}>×</button></header>
         <div className="ash-messages" role="log" aria-live="polite">{messages.map((m, i) => <div className={`ash-message ash-${m.role}`} key={i}>{m.text}</div>)}{busy && <div className="ash-message ash-assistant">Investigating…</div>}<div ref={endRef} /></div>
-        {messages.length === 1 && <div className="ash-suggestions">{starterQuestions.map((q) => <button type="button" key={q} onClick={() => ask(q)}>{q}</button>)}</div>}
+        {messages.length === 1 && <div className="ash-suggestions">{contextualQuestions.map((q) => <button type="button" key={q} onClick={() => ask(q)}>{q}</button>)}</div>}
         <form className="ash-compose" onSubmit={(e) => { e.preventDefault(); ask(draft); }}><input aria-label="Ask Ash Detective" placeholder="Ask me anything about the map…" value={draft} maxLength={500} onChange={(e) => setDraft(e.target.value)} /><button type="submit" disabled={!draft.trim() || busy} aria-label="Send message">➤</button></form>
         <p className="ash-caution">May be incomplete or outdated · Not emergency advice</p>
       </section>}
