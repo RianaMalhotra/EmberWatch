@@ -31,6 +31,40 @@ EmberWatch addresses the difficulty of interpreting wildfire observations and en
 
 The map makes two related but different signals visible together: **area risk** is calculated from environmental factors and historical detections, while **detection confidence** describes a particular satellite observation. Incomplete scores are identified rather than presented as certain. The overlay is a visual approximation around monitored locations, not a prediction of fire spread. A live screenshot can be captured from the dashboard for reports or presentations; the README does not embed a screenshot that might become stale.
 
+## Application screenshots
+
+Explore the [live EmberWatch application](https://ember-watch-xi.vercel.app/) through these five views.
+
+### Homepage — wildfire intelligence at a glance
+
+![EmberWatch homepage with monitored-region and satellite-observation summaries](docs/homepage.webp)
+
+The landing page introduces the platform and links directly to the map, risk explanations, and experimental ML outlook.
+
+### Wildfire explorer — satellite detections and risk zones
+
+![Interactive wildfire map with satellite hotspot markers, risk zones, and map controls](docs/wildfire-map.webp)
+
+Use **Explore map** to inspect monitored regions, switch map layers, and explore satellite-derived hotspot observations. Detection markers are observations, not confirmed active wildfires; always check the displayed dates and freshness warnings.
+
+### Understand Risk — interpreting the signals
+
+![Understand Risk page explaining environmental risk, satellite detections, and data freshness](docs/understand-risk.webp)
+
+Learn the distinction between an environmental risk score, satellite detection confidence, and the age or completeness of the underlying data.
+
+### Investigation Lab — interactive experiments
+
+![Investigation Lab with weather controls and a simulated risk score](docs/investigation-lab.webp)
+
+Adjust simulated weather conditions and compare outcomes to explore how risk indicators respond. These experiments are educational simulations, not live forecasts.
+
+### AI Forecast — experimental weather outlook
+
+![AI Forecast page showing the experimental machine-learning weather outlook](docs/ai-forecast.webp)
+
+Explore a four-day weather outlook and its similarity to selected historical fire-day conditions. The model's output is **not** a wildfire probability or an emergency warning.
+
 ## Risk model and data provenance
 
 The `weighted-index-v1` model combines temperature (15%), relative humidity (20%), wind (15%), precipitation (10%), vegetation/NDVI (10%), terrain slope (5%), and nearby historical detections (25%). Scores are computed from available inputs, with weights renormalized. If available coverage is **below 50%**, no risk score or level is returned. Missing and non-finite measurements are never fabricated.
