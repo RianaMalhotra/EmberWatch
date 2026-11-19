@@ -49,3 +49,11 @@
 .ew-lab-map-caption {background:#251d22f2;color:#ffe0bd;border:1px solid #9b6043;max-width:calc(100% - 100px);line-height:1.45}
 .ew-lab-footer {background:linear-gradient(110deg,#573028,#2b222a);border-color:#b57550}
 @media(max-width:520px) {.ew-lab-playback-map{height:340px}.ew-lab-map-caption{font-size:10px;max-width:calc(100% - 30px);bottom:24px}}
+
+/* Explicit contrast fix: site-wide heading rules previously painted the hero navy. */
+.ew-lab .ew-lab-hero h1,
+.ew-lab .ew-lab-hero h1:not(em) { color:#fff2e8 !important; text-shadow:0 3px 18px #130e12aa; }
+.ew-lab .ew-lab-hero h1 em { color:#ff9d60 !important; }
+.ew-lab .ew-lab-panel h2,
+.ew-lab .ew-lab-comparison h3,
+.ew-lab .ew-lab-mission h2 { color:#fff0e5 !important; }
