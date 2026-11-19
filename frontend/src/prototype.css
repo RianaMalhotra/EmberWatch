@@ -1797,3 +1797,11 @@
 @media(max-width:850px) { .ew-risk-story { grid-template-columns:1fr; }.ew-risk-story-card { min-height:350px; }.ew-risk-interpret { grid-template-columns:1fr; }.ew-risk-end { flex-direction:column; align-items:flex-start; } }
 @media(max-width:540px) { .ew-risk-hero { min-height:480px; }.ew-risk-hero .ew-text-back { margin-bottom:38px; }.ew-risk-hero-index { display:none; }.ew-risk-guide { padding-inline:4px; }.ew-risk-end,.ew-risk-scale-panel,.ew-risk-note { padding:20px; }.ew-risk-end .ew-primary-action { width:100%; } }
 @media(prefers-reduced-motion:reduce) { .ew-risk-story-card { transition:none; }.ew-risk-story-card:hover { transform:none; } }
+
+
+/* Entry point from Understand Risk into the interactive field station */
+.ew-risk-interactive-link{margin:24px 0;padding:28px 32px;border:1px solid #d37a48;border-radius:16px;background:radial-gradient(circle at 85% 20%,#e67c3844,transparent 35%),linear-gradient(110deg,#3b2727,#241e25);box-shadow:0 12px 35px #0003}
+.ew-risk-interactive-link>span{font-size:11px;letter-spacing:.2em;color:#f6ae7d;font-weight:850}
+.ew-risk-interactive-link h3{margin:10px 0;color:#fff0e4;font:800 clamp(28px,3.5vw,42px) "Barlow Condensed",sans-serif}
+.ew-risk-interactive-link p{max-width:630px;color:#cdb5a5;line-height:1.6}
+.ew-risk-interactive-link button{margin-top:12px}
