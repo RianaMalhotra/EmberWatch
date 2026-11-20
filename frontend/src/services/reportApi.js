@@ -44,3 +44,29 @@ export async function submitReport(payload) {
   const body = await response.json().catch(() => null);
   return parseReportResponse(body);
 }
+
+export async function fetchPublicReports() {
+  const response = await fetch(`${API_BASE_URL}/api/reports`);
+  if (!response.ok) throw new Error("Reports unavailable");
+  const body = await response.json();
+  if (body?.status !== "success" || !Array.isArray(body.data)) throw new Error("Invalid reports response");
+  return body.data;
+}
+
+export async function moderatePublicReport(id, status, token) {
+  const response = await fetch(`${API_BASE_URL}/api/reports/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) throw new Error(`Moderation failed (${response.status})`);
+  return response.json();
+}
+
+export async function fetchReportAudit(id, token) {
+  const response = await fetch(`${API_BASE_URL}/api/reports/${id}/audit`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error(`Audit unavailable (${response.status})`);
+  return (await response.json()).data;
+}
