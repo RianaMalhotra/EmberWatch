@@ -405,18 +405,16 @@ function AppContent() {
         </div>
       </section>}
             <div className={page === "explore" ? "ew-explore-page" : "ew-page-hidden"}>
-        <div className="ew-page-heading ew-explore-hero">
-          <div className="ew-explore-hero-copy">
-            <span className="ew-eyebrow"><span className="ew-live-ember" aria-hidden="true" /> EMBERWATCH / FIELD EXPLORER</span>
-            <h1>{view === "dashboard" ? <>See the landscape.<br /><em>Understand the risk.</em></> : <>Your area.<br /><em>The full picture.</em></>}</h1>
-            <p>{view === "dashboard" ? "Explore monitored regions and satellite hotspots across Canada. Select a place to investigate the evidence." : "Explore the signals behind this area's modeled risk assessment."}</p>
-            <div className="ew-explore-hero-steps" aria-label="How to explore"><span><b>01</b> Find a place</span><span><b>02</b> Inspect the map</span><span><b>03</b> Explore the evidence</span></div>
-          </div>
-          <div className="ew-explore-hero-stats" aria-label="Available map data">
-            <div><span>MONITORED REGIONS</span><strong>{loading ? "—" : riskAreas.length}</strong><small>Modeled risk assessments</small></div>
-            <div><span>SATELLITE RECORDS</span><strong>{detectionLoading ? "—" : detectionResult?.detections?.length ?? "—"}</strong><small>May include historical observations</small></div>
-            <div className="ew-explore-hero-foot"><span className="ew-explore-status-dot" /> {error || detectionError ? "Some data unavailable" : loading || detectionLoading ? "Loading observations" : "Explore available data"}</div>
-          </div>
+        <div className="ew-page-heading">
+        <div>
+        <span className="ew-eyebrow"><span className="ew-live-ember" aria-hidden="true" /> CANADA · WILDFIRE EXPLORER</span>
+        <h1>
+        {view === "dashboard" ? "Explore the map" : "Area assessment"}
+        </h1>
+        <p>
+        {view === "dashboard" ? "Search for a place or tap a marker to see its risk." : "Risk assessment and environmental conditions"}
+        </p>
+        </div>
         </div>
 
       <div className="ew-dashboard-tools">
@@ -477,7 +475,7 @@ function AppContent() {
       <ErrorBoundary label="map and details" resetKeys={[riskAreas, detectionResult]}>
       <div className="ew-workspace ew-map-first">
         <div className="ew-ember-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
-        <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> INTERACTIVE MAP <span className="ew-map-title-caption">Select a risk circle or satellite hotspot to investigate</span></div><div className="ew-map-frame">
+        <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> MAP <span className="ew-map-title-caption">Explore locations and satellite observations</span></div><div className="ew-map-frame">
           <MapContainer
             center={[54.5, -119]}
             zoom={6}
@@ -582,7 +580,7 @@ function AppContent() {
         <div className="ew-map-side-window" aria-label="Location search and details">
         <aside className={`ew-side-panel ${selectedArea || selectedDetection || searchedPlace ? "ew-has-selection" : ""} ${detailsExpanded ? "ew-sheet-expanded" : ""}`}>
           <div className="ew-panel-top"><button type="button" className="ew-search-collapse" aria-expanded={searchExpanded} onClick={() => setSearchExpanded((v) => !v)}>{searchExpanded ? "− Hide search" : "⌕ Search places"}</button><div className={searchExpanded ? "ew-search-body" : "ew-search-body ew-search-body-hidden"}>
-          <div className="ew-locations-heading"><h2>Find your focus</h2><span className="ew-section-meta">CANADA</span></div>
+          <div className="ew-locations-heading"><h2>Find a place</h2><span className="ew-section-meta">Canada</span></div>
           <label className="ew-search-label" htmlFor="ew-area-search">Search across Canada</label>
           <input id="ew-area-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded={placeMatches.length > 0} aria-controls="ew-place-suggestions" placeholder="Search anywhere in Canada..." value={search} onChange={(event) => { setSearch(event.target.value); setSearchedPlace(null); if (view !== "dashboard") setView("dashboard"); }} onKeyDown={(event) => { if (event.key === "Enter") { if (placeMatches.length > 0) choosePlace(placeMatches[0]); else if (filteredAreas.length > 0) selectArea(filteredAreas[0]); } }} />
           {placeLoading && <p className="ew-search-count" role="status">Finding places...</p>}
@@ -616,7 +614,8 @@ function AppContent() {
             </section>
           ) : !selectedArea ? (
             <>
-              <div className="ew-empty-assessment"><span className="ew-empty-assessment-icon" aria-hidden="true">⌖</span><span className="ew-overline">READY WHEN YOU ARE</span><h2>Every location tells a story.</h2><p>Choose a monitored area on the map or from the list to reveal its risk score, conditions, and supporting evidence.</p><div className="ew-empty-assessment-tip">↗ Start with a glowing map marker</div></div>
+              <h2>Pick a place</h2>
+              <p>Tap a location to see its risk score and what goes into it.</p>
             </>
           ) : (
             <>
