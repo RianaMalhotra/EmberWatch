@@ -1827,3 +1827,12 @@
 .ew-selection-disclaimer{font-size:.84rem;line-height:1.5;color:#d7c5b9}
 .ew-home-place-search :focus-visible,.ew-selection-actions button:focus-visible{outline:3px solid #ffca81;outline-offset:2px}
 @media(max-width:640px){.ew-home-place-row{flex-direction:column}.ew-home-place-row button{width:100%}.ew-home-place-search{margin-top:18px}}
+
+
+/* Explore basemap switcher — inside existing layers panel */
+.ew-basemap-picker{padding:12px 0 15px;margin-bottom:13px;border-bottom:1px solid rgba(245,181,126,.2)}
+.ew-basemap-label{display:block;color:#f2d3b5;font-size:.78rem;font-weight:700;letter-spacing:.035em;margin-bottom:9px}
+.ew-basemap-picker .ew-layer-switcher{display:flex;flex-wrap:wrap;gap:5px}
+.ew-basemap-picker .ew-layer-switcher button{flex:1;min-width:75px;white-space:nowrap}
+.ew-basemap-picker .ew-layer-switcher button[aria-pressed="true"]{background:#a84f2a;color:#fff7ee;border-color:#f1b078}
+.ew-basemap-picker .ew-layer-switcher button:focus-visible{outline:3px solid #ffd08c;outline-offset:2px}
