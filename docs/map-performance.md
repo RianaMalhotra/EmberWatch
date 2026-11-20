@@ -68,6 +68,30 @@ The slowest interaction after the fix broke down as 1 ms input delay, 56 ms proc
 
 Measured on the development server first (`npm run dev`, Edge, 4× CPU, after the marker fix), Edge's live metrics showed LCP 1.39 s (good), CLS 0.04 (good) and INP **3,504 ms** (poor). Typing in the search box took 1.1–2.2 s per key, and clicking a risk circle took 0.8–2.1 s. React's development mode adds extra checks and double renders, so these numbers are exaggerated. On the production build the same kind of session gave INP **343 ms**. All further results use the production build.
 
+## Third bottleneck: markers re-added on zoom (found on mobile)
+
+Mobile was measured with the production build in Microsoft Edge, iPhone 16 device emulation, 4× CPU slowdown, in a 1.6-minute session of tapping risk areas and flames, zooming and searching. The session also included a page load ("Loading" 2.3 s).
+
+| | Desktop (after CSS fix) | **Mobile emulation** |
+|---|---|---|
+| INP | 125 ms (good) | **1,118 ms (poor)** |
+| Scripting per second | 65 ms | 261 ms |
+| Rendering per second | 74 ms | 184 ms |
+| Painting per second | 31 ms | 31 ms |
+
+The slowest interaction (1,118 ms) broke down as **3 ms** input delay, **833 ms processing** and **282 ms** presentation delay. So on mobile the cost was **JavaScript**, not drawing; painting stayed as low as on desktop, so the CSS fix holds there too. In that interaction's time range, map tiles started downloading right after the tap, so the tap moved or zoomed the map; tapping a risk area flies the map in to zoom 10. In the Bottom-up view, Leaflet's **`addLayer`** was the largest application cost (3.8 s total), which means markers were being added to the map over and over.
+
+**Cause:** below zoom 7 detections are grouped by grid cell, and every group, even one holding a single detection, got the grid-cell key. At zoom 7 and above each detection gets its id as the key. So whenever the zoom crossed into or between clustered levels, every marker's React key changed, React removed every marker, and Leaflet built them all again, including the hundreds of lone detections that had not moved.
+
+**Fix** (`frontend/src/components/DetectionClusters.jsx`): a lone detection now keeps its id as its key at every zoom level, and only real groups get a `cluster-…` key, which can never collide with an id. Measured with `mapPerformance.test.jsx` (deterministic, counts markers added when zooming from 6 to 10):
+
+| Detections | Markers re-added, zoom 6 → 10, before | After |
+|---|---|---|
+| 200 | 200 | **32** (only those that were in clusters) |
+| 1000 | 1000 | **596** |
+
+The remaining additions are unavoidable: those markers really do appear when a cluster splits. The mobile browser measurement should be repeated after this fix (row "after key fix" in the results table).
+
 ## Measurement A: automated, reproducible (wasted marker work)
 
 ```
@@ -115,14 +139,15 @@ Protocol:
 6. In the console, run `copy(JSON.stringify(window.__mapPerf))`, then put the medians in the table below.
 7. Optional, to see the before/after directly: record a Performance trace while typing in the search box on `main` before this change and after it, and compare the "Scripting" time.
 
-Results (Microsoft Edge, production build, 4× CPU, 200 detections):
+Results (Microsoft Edge, production build, 4× CPU, 200 detections; per-second values normalise for different recording lengths):
 
 | Setup | INP | Rendering / s | Painting / s | Scripting / s | Notes |
 |---|---|---|---|---|---|
 | Desktop, development server, after marker fix | 3,504 ms | – | – | – | Typing 1.1–2.2 s per key; not representative (dev mode) |
 | Desktop, production, after marker fix | 343 ms | 277 ms | 188 ms | 105 ms | Mostly drawing cost (blur, box-shadow animations) |
 | **Desktop, production, after marker + CSS fix** | **125 ms** | **74 ms** | **31 ms** | **65 ms** | Good (under 200 ms) |
-| Mobile emulation, production, after both fixes | | | | | |
+| Mobile emulation (iPhone 16), production, after marker + CSS fix | 1,118 ms | 184 ms | 31 ms | 261 ms | Poor. 833 ms of JavaScript in the slowest tap; markers re-added on zoom (see third bottleneck). Session included a page load |
+| Mobile emulation (iPhone 16), production, after key fix | | | | | |
 | Desktop, production, 1000 detections | | | | | |
 
 Target: interactions under 100 ms feel instant (RAIL guideline); markers drawn within about 1 s of the data arriving.

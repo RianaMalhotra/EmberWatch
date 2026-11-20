@@ -22,7 +22,7 @@ import { fetchRiskAreas } from "../services/riskApi";
 import { fetchDetections } from "../services/detectionApi";
 import { makeAreas, makeDetections } from "./mapFixtures";
 
-const stats = vi.hoisted(() => ({ renders: 0, iconSwaps: 0, lastIcon: new Map() }));
+const stats = vi.hoisted(() => ({ renders: 0, iconSwaps: 0, mounts: 0, lastIcon: new Map() }));
 const zoom = vi.hoisted(() => ({ level: 6, handlers: [] }));
 const mockMap = vi.hoisted(() => ({
   fitBounds() {}, panTo() {}, flyTo() {}, setView() {}, invalidateSize() {},
@@ -46,6 +46,8 @@ vi.mock("react-leaflet", async () => {
     CircleMarker: ({ center, eventHandlers }) =>
       el("button", { type: "button", "aria-label": `Select area at ${center.join(", ")}`, onClick: eventHandlers?.click }),
     Marker: ({ position, icon }) => {
+      // A mount is Leaflet's addLayer(): building the marker's HTML element.
+      React.useEffect(() => { stats.mounts += 1; }, []);
       const key = position.join(",");
       stats.renders += 1;
       if (stats.lastIcon.has(key) && stats.lastIcon.get(key) !== icon) stats.iconSwaps += 1;
@@ -74,6 +76,7 @@ afterEach(() => {
 function resetStats() {
   stats.renders = 0;
   stats.iconSwaps = 0;
+  stats.mounts = 0;
 }
 
 async function renderDashboard(detectionCount, zoomLevel) {
@@ -125,5 +128,25 @@ describe.each([
     expect(typing.renders).toBe(0);
     expect(click.iconSwaps).toBe(0);
     expect(click.renders).toBe(0);
+  }, 60_000);
+});
+
+// A phone recording (Edge, iPhone 16 emulation, 4x CPU) showed Leaflet's
+// addLayer as the biggest app cost: zooming in after tapping an area gave
+// every lone detection a new React key, so all markers were removed and added
+// again. Lone detections now keep their key at every zoom level.
+describe.each([200, 1000])("zooming in with %i detections", (count) => {
+  it("only re-adds markers that were part of a cluster", async () => {
+    await renderDashboard(count, 6);
+    const lone = (await import("../components/DetectionClusters"))
+      .clusterDetections(makeDetections(count), 6)
+      .filter((cluster) => cluster.items.length === 1).length;
+    const total = count;
+
+    zoom.level = 10;
+    act(() => zoom.handlers.forEach((handler) => handler()));
+
+    console.info(`[#48] zoom 6 -> 10 with ${count} detections: ${stats.mounts} markers added (was ${total} before the key fix; ${lone} lone markers kept)`);
+    expect(stats.mounts).toBe(total - lone);
   }, 60_000);
 });
