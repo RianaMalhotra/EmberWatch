@@ -12,8 +12,12 @@ export function clusterDetections(detections, zoom) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(d);
   }
-  return Array.from(groups, ([key, items]) => ({
-    key, items,
+  // #48: a lone detection keeps the same key (its id) at every zoom level, so
+  // React keeps its Leaflet marker instead of removing and re-adding it each
+  // time the zoom changes. Only real groups get a grid-cell key.
+  return Array.from(groups, ([cellKey, items]) => ({
+    key: items.length === 1 ? String(items[0].id) : `cluster-${cellKey}`,
+    items,
     latitude: items.reduce((sum, d) => sum + d.latitude, 0) / items.length,
     longitude: items.reduce((sum, d) => sum + d.longitude, 0) / items.length,
   }));

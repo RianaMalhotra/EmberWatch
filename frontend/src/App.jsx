@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
@@ -26,25 +26,18 @@ import {
   riskStatusText,
   weatherObservedText,
 } from "./utils/riskFormat";
-import { MapContainer, TileLayer, CircleMarker, Circle, Marker, Popup, Tooltip, useMap } from "react-leaflet";
-import { divIcon } from "leaflet";
+import { MapContainer, TileLayer, CircleMarker, Circle, Tooltip, useMap } from "react-leaflet";
 import { RISK_ZONE_RADIUS_M, riskZoneStyle } from "./utils/riskZone";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
 import { sortAreasByRisk } from "./utils/riskFormat";
 import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
+import { MapZoomObserver } from "./components/DetectionClusters";
+import DetectionLayer from "./components/DetectionLayer";
 import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
-import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
-
-const fireMarkerIcon = (lowConfidence) => divIcon({
-  className: "ew-fire-marker-wrap",
-  html: `<span class="ew-fire-marker ${lowConfidence ? "ew-fire-marker-low" : "ew-fire-marker-likely"}" aria-hidden="true">🔥</span>`,
-  iconSize: [26, 30],
-  iconAnchor: [13, 25],
-  popupAnchor: [0, -23],
-});
+import { detectionLimit, perfEnd, perfStart } from "./utils/perfMarks";
 
 const factorUnits = {
   temperature_c: "°C",
@@ -136,6 +129,10 @@ function AppContent() {
   const menuRef = useRef(null);
   const detailsRef = useRef(null);
 
+  // #48: opt-in timings (?perf=1), see docs/map-performance.md.
+  useEffect(() => { if (selectedArea) perfEnd("area-select", { area: selectedArea.id }); }, [selectedArea]);
+  useEffect(() => { if (selectedDetection) perfEnd("detection-select"); }, [selectedDetection]);
+
   useEffect(() => {
     if (!menuOpen) return;
     function closeMenu(event) {
@@ -158,6 +155,9 @@ function AppContent() {
   const [warnings, setWarnings] = useState([]);
   const [riskAttempt, setRiskAttempt] = useState(0);
   const [detectionAttempt, setDetectionAttempt] = useState(0);
+  useEffect(() => {
+    if (detectionResult) perfEnd("detections-load", { detections: detectionResult.detections.length });
+  }, [detectionResult]);
 
   // #18: detections load separately from risk areas, so if one request fails
   // the other still shows (see #4, reliable handling of failures).
@@ -166,8 +166,9 @@ function AppContent() {
 
     async function loadDetections() {
       setDetectionLoading(true);
+      perfStart("detections-load");
       try {
-        const result = await fetchDetections();
+        const result = await fetchDetections(detectionLimit());
 
         if (!active) return;
 
@@ -299,7 +300,29 @@ function AppContent() {
     setMenuOpen(false);
   }
 
+  // #48: stable handlers (setters and refs never change), so the memoised
+  // DetectionLayer is not re-rendered just because App re-rendered.
+  const selectDetection = useCallback((detection) => {
+    perfStart("detection-select");
+    setSelectedDetection(detection);
+    setSelectedArea(null);
+    setSearchedPlace(null);
+    setDetailsExpanded(false);
+    setView("information");
+    setShowFullDetails(false);
+    if (window.matchMedia?.("(max-width: 860px)").matches) {
+      requestAnimationFrame(() => detailsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+    }
+  }, []);
+
+  const zoomToCluster = useCallback((cluster) => {
+    setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude });
+    setMapZoom(8);
+    setSelectedDetection(null);
+  }, []);
+
   function selectArea(area) {
+    perfStart("area-select");
     navigateTo("explore");
     setSelectedArea(area);
     setDetailsExpanded(false);
@@ -533,38 +556,15 @@ function AppContent() {
              );
            })}
            
-          {mapLayer !== "risk" && clusterDetections(detectionResult?.detections ?? [], mapZoom).map((cluster) => {
-            const detection = cluster.items[0];
-            const clustered = cluster.items.length > 1;
-            const icon = clustered ? divIcon({
-              className: "ew-fire-cluster-wrap",
-              html: `<span class="ew-fire-cluster" aria-hidden="true">🔥 <b>${cluster.items.length}</b></span>`,
-              iconSize: [48, 36], iconAnchor: [24, 18],
-            }) : fireMarkerIcon(detection.classification === "low_confidence");
-            return (
-              <Marker
-                key={`detection-${cluster.key}`}
-                position={[cluster.latitude, cluster.longitude]}
-                icon={icon}
-                eventHandlers={{ click: () => {
-                  if (clustered) { setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude }); setMapZoom(8); setSelectedDetection(null); return; }
-                  setSelectedDetection(detection); setSelectedArea(null); setSearchedPlace(null);
-                  setDetailsExpanded(false); setView("information"); setShowFullDetails(false);
-                  if (window.matchMedia?.("(max-width: 860px)").matches) requestAnimationFrame(() => detailsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
-                } }}
-              >
-                <Popup>
-                  {clustered ? <><strong>{cluster.items.length} satellite observations</strong><p>Zoom in to see individual hotspots. These may be historical.</p></> : <>
-                    <strong>{classificationLabel(detection)}</strong>
-                    <p>Location: {formatCoordinates(detection.latitude, detection.longitude)}
-                    <br />Detected: {formatDetectionTime(detection.timestamp)}
-                    <br />Confidence: {formatConfidence(detection.confidence)}</p>
-                    {!detection.meets_threshold && <p>Below the {detectionResult.threshold}% confidence threshold. Treat with caution.</p>}
-                  </>}
-                </Popup>
-              </Marker>
-            );
-          })}
+          {mapLayer !== "risk" && (
+            <DetectionLayer
+              detections={detectionResult?.detections}
+              threshold={detectionResult?.threshold}
+              zoom={mapZoom}
+              onSelectDetection={selectDetection}
+              onZoomToCluster={zoomToCluster}
+            />
+          )}
         </MapContainer></div>
         <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button><div id="ew-map-controls-content" className="ew-map-controls-content" hidden={!mapControlsOpen}><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
           <input

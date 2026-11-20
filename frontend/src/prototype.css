@@ -1809,3 +1809,42 @@
 .ew-explore-lab-cta{display:inline-flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid #e7a06d;border-radius:9px;background:linear-gradient(120deg,#573126,#382525);color:#ffdbbc;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 8px 22px #0003}
 .ew-explore-lab-cta:hover{background:#78432b;transform:translateY(-1px)}
 .ew-explore-lab-cta span{color:#ffb77c}
+
+/* ------------------------------------------------------------------------
+   #48 performance: cheaper effects over the live map.
+   A 16.6 s Edge recording of the production build (4x CPU) spent 7.7 s in
+   Rendering + Painting but only 1.7 s in Scripting, and kept painting even
+   while idle. Causes, all decorative:
+   1. backdrop-filter blur on the panels over the map: every map pan/zoom,
+      tile load or moving ember underneath forces the blur to be redrawn.
+      These panels are already 85-95 % opaque, so the blur is barely visible.
+   2. ew-pulse animated box-shadow, which repaints every frame forever.
+   3. The rising embers drew a large blurred box-shadow on each frame.
+   Same look, but only opacity/transform animate (handled by the GPU).
+   ------------------------------------------------------------------------ */
+.ew-side-panel,
+.ew-view-information .ew-side-panel,
+.ew-view-risk .ew-side-panel,
+.ew-map-controls,
+.ew-map-title,
+.ew-map-first .ew-map-title,
+.ew-map-first .ew-map-controls,
+.ew-map-first .ew-side-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.ew-live-ember,
+.ew-map-title-dot,
+.ew-home-orbit span {
+  animation-name: ew-pulse-cheap;
+}
+@keyframes ew-pulse-cheap { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+
+.ew-ember-field i {
+  width: 12px;
+  height: 12px;
+  box-shadow: none;
+  background: radial-gradient(circle, #ffb27a 0, #ff652b 30%, rgba(255, 101, 43, 0) 70%);
+  will-change: transform, opacity;
+}
