@@ -121,6 +121,7 @@ function AppContent() {
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
   const [mapLayer, setMapLayer] = useState("both");
+  const [basemap, setBasemap] = useState("satellite");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
   const [legendOpen, setLegendOpen] = useState(true);
   const [mapZoom, setMapZoom] = useState(6);
@@ -487,12 +488,31 @@ function AppContent() {
             <RefreshMapLayout active={page === "explore"} hasSelection={Boolean(searchedPlace || selectedArea)} />
             <MapZoomObserver onZoom={setMapZoom} zoomTarget={clusterZoomTarget} />
             <FocusSelected area={searchedPlace ?? selectedArea} />
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              className="ew-inferno-tiles"
-              maxZoom={19}
-            />
+            {basemap === "standard" ? (
+              <TileLayer
+                key="standard-basemap"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                className="ew-inferno-tiles"
+                maxZoom={19}
+              />
+            ) : (
+              <TileLayer
+                key="satellite-basemap"
+                attribution='Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+              />
+            )}
+            {basemap === "hybrid" && (
+              <TileLayer
+                key="hybrid-labels"
+                attribution='Labels &copy; Esri'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+                zIndex={2}
+              />
+            )}
 
 
 
@@ -566,7 +586,7 @@ function AppContent() {
             );
           })}
         </MapContainer></div>
-        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button><div id="ew-map-controls-content" className="ew-map-controls-content" hidden={!mapControlsOpen}><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
+        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button><div id="ew-map-controls-content" className="ew-map-controls-content" hidden={!mapControlsOpen}><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["satellite", "Satellite"], ["hybrid", "Hybrid"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
