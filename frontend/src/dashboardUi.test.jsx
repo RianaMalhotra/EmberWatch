@@ -77,7 +77,7 @@ afterEach(() => {
 describe("area list", () => {
   it("lists every area, highest risk first and unscored last", async () => {
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
     const list = await screen.findByRole("navigation", { name: "Monitored areas" });
@@ -95,7 +95,7 @@ describe("area list", () => {
   it("selects an area from the list without touching the map", async () => {
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
     const lytton = await screen.findByRole("button", { name: /^Lytton/ });
@@ -112,7 +112,7 @@ describe("area list", () => {
     mockMap.bounds = { contains: () => false };
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
 
@@ -124,7 +124,7 @@ describe("area list", () => {
   it("does not move the map when the area is already visible", async () => {
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Ottawa/ }));
@@ -144,7 +144,7 @@ describe("phone layout", () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
 
@@ -163,7 +163,7 @@ describe("phone layout", () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
 
@@ -178,7 +178,7 @@ describe("details panel and legend", () => {
   it("keeps the model explanation collapsed until asked for", async () => {
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Lytton/ }));
@@ -192,7 +192,7 @@ describe("details panel and legend", () => {
 
   it("explains detection markers as well as risk areas", async () => {
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
     const legend = await screen.findByLabelText("Map legend");
@@ -205,7 +205,7 @@ describe("details panel and legend", () => {
   it("clears the selection and returns to the hint", async () => {
     const user = userEvent.setup();
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
     const browse = screen.queryByRole("button", { name: /Browse .* monitored areas/i });
     if (browse) browse.click();
     await user.click(await screen.findByRole("button", { name: /^Kelowna/ }));
