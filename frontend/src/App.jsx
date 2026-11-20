@@ -327,11 +327,10 @@ function AppContent() {
         </button>
         </div>
         <nav className="ew-top-nav" aria-label="Main navigation">
-          <button type="button" aria-current={page === "home" ? "page" : undefined} onClick={() => navigateTo("home")}>Home</button>
-          <button type="button" aria-current={page === "explore" ? "page" : undefined} onClick={() => navigateTo("explore")}>Explore map</button>
-          <button type="button" aria-current={page === "learn" ? "page" : undefined} onClick={() => navigateTo("learn")}>Understand risk</button>
-          <button type="button" aria-current={page === "lab" ? "page" : undefined} onClick={() => navigateTo("lab")}>Investigation lab</button>
-          <button type="button" aria-current={page === "forecast" ? "page" : undefined} onClick={() => navigateTo("forecast")}>AI forecast</button>
+          <button type="button" aria-current={page === "home" ? "page" : undefined} onClick={() => navigateTo("home")}>Overview</button>
+          <button type="button" aria-current={page === "explore" ? "page" : undefined} onClick={() => navigateTo("explore")}>Explore</button>
+          <button type="button" aria-current={page === "learn" ? "page" : undefined} onClick={() => navigateTo("learn")}>Learn</button>
+          <button type="button" aria-current={page === "forecast" ? "page" : undefined} onClick={() => navigateTo("forecast")}>Forecast</button>
         </nav>
         <div className="ew-menu-wrap" ref={menuRef}>
           <button type="button" className="ew-menu-toggle" aria-label="More options" aria-expanded={menuOpen} aria-controls="ew-navigation" onClick={() => setMenuOpen((open) => !open)}>
@@ -339,6 +338,7 @@ function AppContent() {
           </button>
           {menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Map settings">
             <strong>More options</strong>
+            <button type="button" onClick={() => navigateTo("lab")}>Investigation lab · Compare and replay</button>
             <button type="button" onClick={() => { navigateTo("learn"); }}>How risk works</button>
             <button type="button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); setMenuOpen(false); }}>Reset map selection</button>
             <button type="button" onClick={() => { setPage("explore"); setReporting(true); setMenuOpen(false); }}>Report a Fire {REPORTS_ENABLED ? "" : "(preview)"}</button>
@@ -354,6 +354,7 @@ function AppContent() {
           <span className="ew-home-edition">SATELLITE OBSERVATIONS <span>✦</span> ENVIRONMENTAL INSIGHTS <span>✦</span> ML RESEARCH</span>
           <h1>WATCH THE <em>WILDFIRE.</em><br /><span>READ THE SIGNALS.</span></h1>
           <p>From satellite hotspots to environmental risk and experimental machine learning—explore the data behind Canada's changing wildfire landscape.</p>
+          <form className="ew-home-place-search" role="search" onSubmit={(event) => { event.preventDefault(); if (placeMatches.length) choosePlace(placeMatches[0]); else { const match = riskAreas.find((area) => (area.name ?? "").toLowerCase().includes(search.trim().toLowerCase())); if (match && search.trim()) selectArea(match); else navigateTo("explore"); } }}><label htmlFor="ew-home-location">Check a location</label><div className="ew-home-place-row"><input id="ew-home-location" type="search" value={search} onChange={(event) => {setSearch(event.target.value);setSearchedPlace(null);}} placeholder="Search a Canadian city or monitored area" autoComplete="off" /><button type="submit">Find on map →</button></div>{search.trim().length >= 2 && <div className="ew-home-place-results" aria-label="Location suggestions">{placeLoading && <span>Searching locations…</span>}{placeError && <span>{placeError}</span>}{placeMatches.map((place) => <button type="button" key={place.id} onClick={() => choosePlace(place)}>{place.name}{place.admin1 ? `, ${place.admin1}` : ""}</button>)}{riskAreas.filter((area) => (area.name ?? "").toLowerCase().includes(search.trim().toLowerCase())).slice(0, 4).map((area) => <button type="button" key={`area-${area.id}`} onClick={() => selectArea(area)}>{area.name} · monitored area</button>)}</div>}</form>
           <div className="ew-home-actions"><button type="button" onClick={() => navigateTo("explore")}>Explore wildfire map <span aria-hidden="true">↗</span></button><button type="button" className="ew-secondary-action" onClick={() => navigateTo("forecast")}>Explore ML outlook <span aria-hidden="true">→</span></button></div>
           <div className="ew-home-trust"><span><b>01</b> SATELLITE DETECTIONS</span><span><b>02</b> RISK ASSESSMENTS</span><span><b>03</b> EXPERIMENTAL ML</span></div>
           <p className="ew-home-caution">Research and educational prototype · Not an emergency alert or evacuation service</p>
@@ -621,6 +622,8 @@ function AppContent() {
             <>
               <div className="ew-detail-heading"><div><span className="ew-overline">AREA ASSESSMENT</span><h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2></div><button type="button" className="ew-back-button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); }}>← Back</button></div>
 
+              <div className="ew-selection-actions"><button type="button" onClick={() => navigateTo("forecast")}>Explore available forecasts →</button><button type="button" onClick={() => navigateTo("lab")}>Compare areas →</button></div>
+              <p className="ew-selection-disclaimer">Risk estimates are experimental. Satellite hotspots are observations, not confirmed fires or official emergency alerts.</p>
               {riskState(selectedArea) === "incomplete" && (
                 <p role="status">
                   Some inputs are missing. This risk assessment is incomplete.
