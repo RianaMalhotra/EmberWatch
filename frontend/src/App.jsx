@@ -37,6 +37,7 @@ import AshDetective from "./components/AshDetective";
 import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
 import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
+import { findHotspotClusters } from "./utils/hotspotDbscan";
 
 const fireMarkerIcon = (lowConfidence) => divIcon({
   className: "ew-fire-marker-wrap",
@@ -268,6 +269,8 @@ function AppContent() {
     setPage("explore");
   }
 
+  const mlHotspotClusters = findHotspotClusters(detectionResult?.detections ?? []);
+
   const nearbyDetections = searchedPlace && detectionResult?.detections
     ? detectionResult.detections.filter((d) => {
         const lat = (d.latitude - searchedPlace.latitude) * Math.PI / 180;
@@ -468,6 +471,25 @@ function AppContent() {
           <span>{detectionSummary(detectionResult)}</span>
           {detectionResult.detections.length === 0 && <span>No wildfire detections available for the latest observations.</span>}
         </div>
+      )}
+
+      {detectionResult && !detectionLoading && (
+        <details className="ew-map-help" aria-label="ML hotspot discovery">
+          <summary>ML hotspot discovery (DBSCAN) — {mlHotspotClusters.length} spatial groups</summary>
+          <p>Unsupervised density-based clustering groups nearby satellite hotspots within 25 km (at least 3 observations). These are <strong>not confirmed fires or predictions</strong>; detections may be historical or delayed. Check timestamps.</p>
+          {mlHotspotClusters.length === 0 ? <p>No dense hotspot groups in the currently loaded detections.</p> : (
+            <ul>{mlHotspotClusters.slice(0, 8).map((cluster) => (
+              <li key={cluster.id}>
+                <button type="button" onClick={() => {
+                  setPage("explore");
+                  setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude });
+                  setMapZoom(8);
+                }}>View group ({cluster.count} detections) at {cluster.latitude.toFixed(2)}, {cluster.longitude.toFixed(2)}</button>
+                {cluster.latestTimestamp && <span> · latest observation {cluster.latestTimestamp}</span>}
+              </li>
+            ))}</ul>
+          )}
+        </details>
       )}
 
       {/* #49: a rendering error in the map or details panel is contained here, so the
