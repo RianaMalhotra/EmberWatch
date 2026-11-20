@@ -90,7 +90,21 @@ The slowest interaction (1,118 ms) broke down as **3 ms** input delay, **833 ms 
 | 200 | 200 | **32** (only those that were in clusters) |
 | 1000 | 1000 | **596** |
 
-The remaining additions are unavoidable: those markers really do appear when a cluster splits. The mobile browser measurement should be repeated after this fix (row "after key fix" in the results table).
+The remaining additions are unavoidable: those markers really do appear when a cluster splits.
+
+**Mobile result after the key fix** (same setup; a 1.1-minute session, also hand-driven, so similar but not identical):
+
+| Slowest interaction (INP) | Before key fix | After |
+|---|---|---|
+| **Total** | **1,118 ms** | **555 ms** (−50 %) |
+| Input delay | 3 ms | 8 ms |
+| Processing (JavaScript) | 833 ms | 451 ms (−46 %) |
+| Presentation delay (drawing) | 282 ms | 96 ms (−66 %) |
+
+**Remaining work.** On the emulated phone, INP is now 555 ms, just above Google's 500 ms "poor" line and well above the 200 ms "good" target. Desktop meets it at 125 ms. Per second, rendering in this session (258 ms) was higher than in the first mobile session (184 ms), so style and layout work on the small screen is now the larger cost. Likely next steps, not done in #48:
+- Avoid the zoom-10 fly-in when an area is tapped on small screens, so fewer clusters split at once.
+- Profile the details panel layout and the smooth `scrollIntoView` on phones.
+- Measure on a physical phone: emulation with 4× slowdown is a rough stand-in.
 
 ## Measurement A: automated, reproducible (wasted marker work)
 
@@ -147,7 +161,7 @@ Results (Microsoft Edge, production build, 4× CPU, 200 detections; per-second v
 | Desktop, production, after marker fix | 343 ms | 277 ms | 188 ms | 105 ms | Mostly drawing cost (blur, box-shadow animations) |
 | **Desktop, production, after marker + CSS fix** | **125 ms** | **74 ms** | **31 ms** | **65 ms** | Good (under 200 ms) |
 | Mobile emulation (iPhone 16), production, after marker + CSS fix | 1,118 ms | 184 ms | 31 ms | 261 ms | Poor. 833 ms of JavaScript in the slowest tap; markers re-added on zoom (see third bottleneck). Session included a page load |
-| Mobile emulation (iPhone 16), production, after key fix | | | | | |
+| **Mobile emulation (iPhone 16), production, after key fix** | **555 ms** | 258 ms | 39 ms | 210 ms | Halved, but still above 500 ms (poor) on a 4× slowed phone; see remaining work |
 | Desktop, production, 1000 detections | | | | | |
 
 Target: interactions under 100 ms feel instant (RAIL guideline); markers drawn within about 1 s of the data arriving.
