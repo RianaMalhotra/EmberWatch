@@ -1885,3 +1885,35 @@
   max-height:min(72dvh,560px)!important;
  }
 }
+
+
+/* Keep the opened layer menu content visible and scrollable.
+   Do not flex-shrink the contents into a zero-height region. */
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open{
+  height:auto!important;
+  min-height:0!important;
+  max-height:min(75dvh,600px)!important;
+  display:block!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain;
+}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open>.ew-map-controls-content{
+  display:flex!important;
+  position:relative!important;
+  flex:none!important;
+  height:auto!important;
+  min-height:min-content!important;
+  max-height:none!important;
+  overflow:visible!important;
+  visibility:visible!important;
+  opacity:1!important;
+  padding:12px 8px!important;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content .ew-basemap-picker,
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content .ew-layer-switcher,
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content .ew-zone-toggle,
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content details{
+  visibility:visible!important;
+  opacity:1!important;
+}
