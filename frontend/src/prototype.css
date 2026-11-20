@@ -1836,3 +1836,52 @@
 .ew-basemap-picker .ew-layer-switcher button{flex:1;min-width:75px;white-space:nowrap}
 .ew-basemap-picker .ew-layer-switcher button[aria-pressed="true"]{background:#a84f2a;color:#fff7ee;border-color:#f1b078}
 .ew-basemap-picker .ew-layer-switcher button:focus-visible{outline:3px solid #ffd08c;outline-offset:2px}
+
+
+/* Map controls layout repair: prevent clipped labels, sideways scrolling and overflowing legend. */
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-map-controls.ew-map-controls-open{
+  box-sizing:border-box!important;
+  width:min(330px,calc(100% - 24px))!important;
+  max-width:calc(100% - 24px)!important;
+  max-height:min(78dvh,620px)!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-toggle{
+  flex:0 0 auto;min-width:0;gap:8px;white-space:normal;text-align:left;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-label{
+  min-width:0;white-space:normal;overflow-wrap:anywhere;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content{
+  box-sizing:border-box;display:flex;flex:1 1 auto;flex-direction:column;
+  align-items:stretch;min-width:0;width:100%;max-width:100%;
+  min-height:0;max-height:none!important;overflow-x:hidden!important;
+  overflow-y:auto!important;padding:12px 8px 9px;gap:12px;
+  scrollbar-width:thin;
+}
+.ew-explore-page .ew-map-controls-content>*{box-sizing:border-box;min-width:0;max-width:100%}
+.ew-explore-page .ew-map-controls-content .ew-layer-switcher{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;min-width:0;gap:4px}
+.ew-explore-page .ew-basemap-picker .ew-layer-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ew-explore-page .ew-map-controls-content .ew-layer-switcher button{
+  min-width:0!important;width:100%;max-width:100%;white-space:normal;
+  overflow-wrap:anywhere;line-height:1.25;padding:10px 5px;font-size:12px;
+}
+.ew-explore-page .ew-map-controls-content .ew-basemap-picker{width:100%;margin:0;padding:0 0 12px}
+.ew-explore-page .ew-map-controls-content .ew-zone-toggle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ew-explore-page .ew-map-controls-content .ew-zone-toggle input{flex-shrink:0}
+.ew-explore-page .ew-map-controls-content .ew-legend-disclosure,
+.ew-explore-page .ew-map-controls-content .ew-map-help{width:100%;min-width:0;overflow-wrap:anywhere}
+.ew-explore-page .ew-map-controls-content .legend,
+.ew-explore-page .ew-map-controls-content .legend-group,
+.ew-explore-page .ew-map-controls-content .legend-item{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.ew-explore-page .ew-map-controls-content .legend{display:flex;flex-direction:column;align-items:stretch}
+.ew-explore-page .ew-map-controls-content summary{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:800px){
+ .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open{
+  width:min(330px,calc(100% - 20px))!important;
+  max-width:calc(100% - 20px)!important;
+  max-height:min(72dvh,560px)!important;
+ }
+}
