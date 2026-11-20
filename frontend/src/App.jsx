@@ -340,7 +340,6 @@ function AppContent() {
             <strong>More options</strong>
             <button type="button" onClick={() => navigateTo("lab")}>Investigation lab · Compare and replay</button>
             <button type="button" onClick={() => { navigateTo("learn"); }}>How risk works</button>
-            <button type="button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); setMenuOpen(false); }}>Reset map selection</button>
             <button type="button" onClick={() => { setPage("explore"); setReporting(true); setMenuOpen(false); }}>Report a Fire {REPORTS_ENABLED ? "" : "(preview)"}</button>
             <p>EmberWatch is an educational risk explorer, not an emergency alert service.</p>
           </nav>}
