@@ -1,0 +1,35 @@
+{
+  "model_version": "historical-weather-logreg-v1",
+  "kind": "regularized logistic regression",
+  "features": [
+    "temperature_c",
+    "relative_humidity_pct",
+    "wind_speed_kmh",
+    "precipitation_mm"
+  ],
+  "means": [
+    10.30952380952381,
+    52.904761904761905,
+    8.20952380952381,
+    0.9428571428571427
+  ],
+  "scales": [
+    19.56549209004526,
+    23.081439176687404,
+    6.722096098964878,
+    2.079050018540159
+  ],
+  "weights": [
+    -1.0407065727215266,
+    0.5403246509329723,
+    -0.6912245911256195,
+    0.6492613047039723,
+    -0.26662038303219476
+  ],
+  "training_examples": 21,
+  "positive_examples": 7,
+  "independent_events": 7,
+  "group_holdout_fire_above_both_controls": 7,
+  "group_holdout_events": 7,
+  "warning": "Selected fire-day versus historical-control classification, not a calibrated wildfire probability or validated operational forecast."
+}
