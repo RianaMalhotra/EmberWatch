@@ -61,7 +61,7 @@ describe("Ask Ash session security", () => {
     send("What's the risk in Kelowna?");
     await screen.findByText("Verified only against the supplied map snapshot.");
     act(() => { window.dispatchEvent(new Event("emberwatch:logout")); });
-    expect(screen.queryByText("What's the risk in Kelowna?")).toBeNull();
+    expect(screen.getByRole("log").querySelector(".ash-message.ash-user")).toBeNull();
     send("How current is the data?");
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(2));
     const request = JSON.parse(globalThis.fetch.mock.calls[1][1].body);
@@ -84,6 +84,6 @@ describe("Ask Ash session security", () => {
     old.resolve(mockResponse("Stale private reply"));
     await waitFor(() => expect(screen.queryByText("Stale private reply")).toBeNull());
     expect(screen.getByText("Fresh session reply")).toBeTruthy();
-    expect(screen.queryByText("What's the risk in Kelowna?")).toBeNull();
+    expect(screen.getByRole("log").querySelector(".ash-message.ash-user")).toBeNull();
   });
 });
