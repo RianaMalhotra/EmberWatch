@@ -17,3 +17,9 @@ The existing /api/health and /api/health/db routes cover application and databas
 
 ## PRA4
 Use [the usability study template](usability-study-template.md) with two real participants. No test results have been collected by this change.
+
+## API diagnostics (implemented)
+Set a strong random `METRICS_TOKEN` in the Render service environment, then request `GET /api/internal/metrics` with `Authorization: Bearer <token>`. Without the token, the endpoint returns 404. It reports process-local request counts by status class and bounded p95 latency samples by Flask endpoint; it intentionally does not log user prompts, raw URLs, IP addresses, or request bodies. Each Gunicorn worker maintains independent counters, so this is diagnostic information rather than a globally aggregated SLO dashboard. Do not put the token in frontend code or Vercel environment variables exposed to the browser.
+
+## Regression coverage
+`backend/tests/test_tdd_edge_cases.py` checks malformed detection rows, limit bounds, invalid weather inputs, minimum scoring coverage and bounded risk scores. `backend/tests/test_metrics_api.py` checks access control. Run `cd backend && python -m pytest -q` before deploying. The GitHub Actions workflow must be checked separately; commits alone do not prove tests passed.
