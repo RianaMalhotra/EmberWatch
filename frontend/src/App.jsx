@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
@@ -39,7 +39,10 @@ import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
 import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
+import StakeholderAnalytics from "./components/StakeholderAnalytics";
 import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
+import { findHotspotClusters } from "./utils/hotspotDbscan";
+import HotspotDiscoveryPanel from "./components/HotspotDiscoveryPanel";
 
 const fireMarkerIcon = (lowConfidence) => divIcon({
   className: "ew-fire-marker-wrap",
@@ -287,6 +290,11 @@ function AppContent() {
     setPage("explore");
   }
 
+  const mlHotspotClusters = useMemo(
+    () => findHotspotClusters(detectionResult?.detections ?? []),
+    [detectionResult?.detections]
+  );
+
   const nearbyDetections = searchedPlace && detectionResult?.detections
     ? detectionResult.detections.filter((d) => {
         const lat = (d.latitude - searchedPlace.latitude) * Math.PI / 180;
@@ -358,6 +366,7 @@ function AppContent() {
           {menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Map settings">
             <strong>More options</strong>
             <button type="button" onClick={() => navigateTo("lab")}>Investigation lab · Compare and replay</button>
+            <button type="button" onClick={() => navigateTo("analytics")}>Advanced analytics · Operations & Research</button>
             <button type="button" onClick={() => { navigateTo("learn"); }}>How risk works</button>
             <button type="button" onClick={() => { setPage("explore"); setReporting(true); setMenuOpen(false); }}>Report a Fire {REPORTS_ENABLED ? "" : "(preview)"}</button>
             <p>EmberWatch is an educational risk explorer, not an emergency alert service.</p>
@@ -399,6 +408,7 @@ function AppContent() {
       </section>}
             {page === "forecast" && <ForecastPage areas={riskAreas} />}
       {page === "lab" && <InvestigationLab areas={riskAreas} detections={detectionResult?.detections ?? []} onExplore={() => navigateTo("explore")} />}
+      {page === "analytics" && <StakeholderAnalytics areas={riskAreas} detections={detectionResult?.detections ?? []} onExplore={() => navigateTo("explore")} />}
       {page === "learn" && <section className="ew-learn ew-risk-editorial" aria-label="Understanding wildfire risk">
         <div className="ew-risk-hero">
           <div className="ew-risk-sky" aria-hidden="true"><div className="ew-risk-sun" /><div className="ew-risk-mountain ew-risk-mountain-back" /><div className="ew-risk-mountain ew-risk-mountain-front" /><div className="ew-risk-forest" /></div>
@@ -489,6 +499,14 @@ function AppContent() {
           <span>{detectionSummary(detectionResult)}</span>
           {detectionResult.detections.length === 0 && <span>No wildfire detections available for the latest observations.</span>}
         </div>
+      )}
+
+      {detectionResult && !detectionLoading && (
+        <HotspotDiscoveryPanel clusters={mlHotspotClusters} onViewGroup={(cluster) => {
+          setPage("explore");
+          setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude });
+          setMapZoom(8);
+        }} />
       )}
 
       {/* #49: a rendering error in the map or details panel is contained here, so the
