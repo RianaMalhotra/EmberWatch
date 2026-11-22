@@ -21,19 +21,15 @@ export default function DetectionHistoryExplorer({ onExplore }) {
   const [state, setState] = useState("idle");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
+  const [query, setQuery] = useState(null);
 
   useEffect(() => {
-    if (!attempt) return;
+    if (!query) return;
     let active = true;
-    const bounds = REGIONS[region];
-    const from = utcDay(start);
-    // End date is inclusive in the form but exclusive in the API.
-    const until = new Date(Date.parse(utcDay(end)) + 86400000).toISOString();
     setState("loading");
     setResult(null);
     setError("");
-    fetchDetectionHistory({ ...bounds, start: from, end: until, limit: 200 })
+    fetchDetectionHistory({ south: query.south, north: query.north, west: query.west, east: query.east, start: query.start, end: query.end, limit: query.limit })
       .then(data => {
         if (!active) return;
         setResult(data);
@@ -45,14 +41,14 @@ export default function DetectionHistoryExplorer({ onExplore }) {
         setState("error");
       });
     return () => { active = false; };
-  }, [attempt]); // A query is only sent after the user submits.
+  }, [query]);
 
   const invalid = !start || !end || !Number.isFinite(Date.parse(utcDay(start)))
     || !Number.isFinite(Date.parse(utcDay(end))) || start > end;
   return <section className="ew-analytics-panel ew-history" aria-label="Satellite detection history">
     <h2>Satellite detection history</h2>
     <p>Query previously ingested NASA FIRMS observations by broad region and UTC date. Historical heat observations are not confirmed fires or current wildfire alerts.</p>
-    <form onSubmit={event => { event.preventDefault(); if (!invalid) setAttempt(n => n + 1); }}>
+    <form onSubmit={event => { event.preventDefault(); if (!invalid) setQuery({ ...REGIONS[region], start: utcDay(start), end: new Date(Date.parse(utcDay(end)) + 86400000).toISOString(), limit: 200, requestedAt: Date.now() }); }}>
       <div className="ew-analytics-controls">
         <label>Region
           <select value={region} onChange={event => setRegion(event.target.value)}>
