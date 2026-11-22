@@ -91,7 +91,11 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
           current_page: currentPage,
           searched_place: searchedPlace?.name ?? null,
           areas: areas.slice(0, 100).map((a) => ({ name: a.name, risk_score: a.risk_score, risk_level: a.risk_level, observed_at: a.observed_at, is_complete: a.is_complete })),
-          detection_count: detections.length
+          detection_count: detections.length,
+          detections: detections.slice(0, 20).map((d) => ({
+            latitude: d.latitude, longitude: d.longitude, confidence: d.confidence,
+            classification: d.classification, timestamp: d.timestamp ?? d.acquired_at ?? d.detected_at ?? null
+          }))
         } }),
       });
       if (response.ok) {
