@@ -20,7 +20,7 @@ async function loadForecast(area) {
 
 function localAnswer(question, areas, detections, rememberedArea = null) {
   const q = question.toLowerCase();
-  const area = areas.find((a) => a.name && q.includes(a.name.toLowerCase())) ?? rememberedArea;
+  const area = areas.find((a) => a.name && q.includes(a.name.toLowerCase())) ?? (/\b(it|its|there|that area|this area|same area|the risk|its data)\b/.test(q) ? rememberedArea : null);
   if (area) {
     const score = typeof area.risk_score === "number" && Number.isFinite(area.risk_score)
       ? `${area.risk_level ?? "Unclassified"} (${area.risk_score.toFixed(1)}/100)`
