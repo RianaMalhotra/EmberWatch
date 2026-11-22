@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import HotspotDiscoveryPanel from "./HotspotDiscoveryPanel";
 
 const group = { id: 1, count: 4, latitude: 49.123, longitude: -123.456, latestTimestamp: "2026-11-20T12:30:00Z" };
+
+afterEach(cleanup);
 
 describe("HotspotDiscoveryPanel", () => {
   it("explains the empty state without implying confirmed fires", () => {

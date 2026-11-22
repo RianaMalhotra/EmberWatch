@@ -42,7 +42,7 @@ jobs:
 
   data-processing-tests:
     # Tests in tests/ cover data-processing/ (FIRMS cleaning, loading,
-    # validation) and ml/; they need no database (#46).
+    # validation) and ml/. Integration contracts have dedicated workflows.
     name: Data Processing Tests
     runs-on: ubuntu-latest
 
@@ -61,7 +61,7 @@ jobs:
           pip install pytest
 
       - name: Run data-processing tests
-        run: python -m pytest tests -q
+        run: python -m pytest tests -q --ignore=tests/test_firms_full_stack_contract.py --ignore=tests/test_postgis_integration.py
 
   frontend-tests:
     name: Frontend Tests
