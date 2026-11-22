@@ -123,6 +123,7 @@ function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
   const [mapLayer, setMapLayer] = useState("both");
   const [basemap, setBasemap] = useState("hybrid");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
@@ -199,6 +200,7 @@ function AppContent() {
     let active = true;
 
     async function loadRiskAreas() {
+      setLoading(true);
       try {
         const result = await fetchRiskAreas();
 
@@ -613,20 +615,20 @@ function AppContent() {
           Show 50 km risk zones
         </label>
         <details className="ew-legend-disclosure" open={legendOpen}><summary onClick={(event) => { event.preventDefault(); setLegendOpen((open) => !open); }}>Map legend</summary><RiskLegend /></details>
-        <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Bright flame icons meet the satellite confidence threshold; faded flame icons do not. Detection confidence is not the same as wildfire risk.</p></details>
+        <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Dashed outlines indicate incomplete inputs. Satellite hotspots are not confirmed wildfires.</p></details>
         </div>}</div></div>
         <div className="ew-map-side-window" aria-label="Location search and details">
         <aside className={`ew-side-panel ${selectedArea || selectedDetection || searchedPlace ? "ew-has-selection" : ""} ${detailsExpanded ? "ew-sheet-expanded" : ""}`}>
-          <div className="ew-panel-top"><button type="button" className="ew-search-collapse" aria-expanded={searchExpanded} onClick={() => setSearchExpanded((v) => !v)}>{searchExpanded ? "− Hide search" : "⌕ Search places"}</button><div className={searchExpanded ? "ew-search-body" : "ew-search-body ew-search-body-hidden"}>
+          <div className="ew-panel-top">{(selectedArea || selectedDetection || searchedPlace) && <button type="button" className="ew-clear-selection" onClick={() => { setSelectedArea(null); setSelectedDetection(null); setSearchedPlace(null); setSearch(""); setPlaceMatches([]); setSuggestionIndex(-1); setShowFullDetails(false); setView("dashboard"); }}>Clear current selection</button>}<button type="button" className="ew-search-collapse" aria-expanded={searchExpanded} onClick={() => setSearchExpanded((v) => !v)}>{searchExpanded ? "− Hide search" : "⌕ Search places"}</button><div className={searchExpanded ? "ew-search-body" : "ew-search-body ew-search-body-hidden"}>
           <div className="ew-locations-heading"><h2>Find a place</h2><span className="ew-section-meta">Canada</span></div>
           <label className="ew-search-label" htmlFor="ew-area-search">Search across Canada</label>
-          <input id="ew-area-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded={placeMatches.length > 0} aria-controls="ew-place-suggestions" placeholder="Search anywhere in Canada..." value={search} onChange={(event) => { setSearch(event.target.value); setSearchedPlace(null); if (view !== "dashboard") setView("dashboard"); }} onKeyDown={(event) => { if (event.key === "Enter") { if (placeMatches.length > 0) choosePlace(placeMatches[0]); else if (filteredAreas.length > 0) selectArea(filteredAreas[0]); } }} />
+          <input id="ew-area-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded={placeMatches.length > 0} aria-controls={placeMatches.length ? "ew-place-suggestions" : undefined} aria-activedescendant={placeMatches[suggestionIndex] ? `ew-place-${placeMatches[suggestionIndex].id}` : undefined} placeholder="Search anywhere in Canada..." value={search} onChange={(event) => { setSearch(event.target.value); setSuggestionIndex(-1); setShowAreaList(true); setSearchedPlace(null); if (view !== "dashboard") setView("dashboard"); }} onKeyDown={(event) => { if (event.key === "Escape") { setPlaceMatches([]); setSuggestionIndex(-1); } else if (["ArrowDown", "ArrowUp"].includes(event.key) && placeMatches.length) { event.preventDefault(); setSuggestionIndex(i => event.key === "ArrowDown" ? (i + 1) % placeMatches.length : (i <= 0 ? placeMatches.length - 1 : i - 1)); } else if (event.key === "Enter") { event.preventDefault(); if (placeMatches.length > 0) choosePlace(placeMatches[suggestionIndex] ?? placeMatches[0]); else if (filteredAreas.length > 0) selectArea(filteredAreas[0]); setSuggestionIndex(-1); } }} />
           {placeLoading && <p className="ew-search-count" role="status">Finding places...</p>}
           {placeError && <p className="ew-search-count" role="status">{placeError}</p>}
-          {placeMatches.length > 0 && <div id="ew-place-suggestions" className="ew-place-suggestions" role="listbox" aria-label="Canadian place suggestions">{placeMatches.map((place) => <button type="button" role="option" aria-selected={false} key={place.id} onClick={() => choosePlace(place)}>{place.name}{place.admin1 ? `, ${place.admin1}` : ""}<span>↗</span></button>)}</div>}
+          {placeMatches.length > 0 && <div id="ew-place-suggestions" className="ew-place-suggestions" role="listbox" aria-label="Canadian place suggestions">{placeMatches.map((place) => <button type="button" role="option" id={`ew-place-${place.id}`} aria-selected={placeMatches[suggestionIndex]?.id === place.id} key={place.id} onClick={() => choosePlace(place)}>{place.name}{place.admin1 ? `, ${place.admin1}` : ""}<span>↗</span></button>)}</div>}
           {search.trim() && !placeLoading && placeMatches.length === 0 && !placeError && <p className="ew-search-count">Choose a monitored area below, or try another Canadian place name.</p>}
-          <button type="button" className="ew-area-list-toggle" aria-expanded={showAreaList || Boolean(search.trim())} onClick={() => setShowAreaList((open) => !open)}>{showAreaList || search.trim() ? "Hide monitored areas" : `Browse ${riskAreas.length} monitored areas`} <span aria-hidden="true">{showAreaList || search.trim() ? "−" : "+"}</span></button>
-          {(showAreaList || Boolean(search.trim())) && <nav className="ew-area-list" aria-label="Monitored areas">
+          <button type="button" className="ew-area-list-toggle" aria-expanded={showAreaList} onClick={() => setShowAreaList((open) => !open)}>{showAreaList ? "Hide monitored areas" : `Browse ${riskAreas.length} monitored areas`} <span aria-hidden="true">{showAreaList ? "−" : "+"}</span></button>
+          {(showAreaList) && <nav className="ew-area-list" aria-label="Monitored areas">
           {filteredAreas.map((area) => <button type="button" aria-pressed={selectedArea?.id === area.id} className={`ew-area-row ${selectedArea?.id === area.id ? "is-selected" : ""}`} key={area.id} onClick={() => selectArea(area)}>
           <span className="ew-area-name">
           {area.name ?? `Area ${area.id}`}
