@@ -41,8 +41,8 @@ jobs:
           if-no-files-found: ignore
 
   data-processing-tests:
-    # Tests in tests/ cover data-processing/ (FIRMS cleaning, loading,
-    # validation) and ml/. Integration contracts have dedicated workflows.
+    # Tests in tests/ include backend contract and PostGIS modules;
+    # install backend dependencies even when live DB credentials are absent.
     name: Data Processing Tests
     runs-on: ubuntu-latest
 
@@ -58,10 +58,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest
+          pip install -r backend/requirements.txt
 
       - name: Run data-processing tests
-        run: python -m pytest tests -q --ignore=tests/test_firms_full_stack_contract.py --ignore=tests/test_postgis_integration.py
+        run: python -m pytest tests -q
 
   frontend-tests:
     name: Frontend Tests
