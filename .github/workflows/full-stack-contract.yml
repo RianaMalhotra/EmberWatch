@@ -1,0 +1,36 @@
+name: FIRMS full-stack integration contract
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firms-to-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend and test dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Run FIRMS ingestion to Flask contract tests and export response
+        env:
+          EMBERWATCH_CONTRACT_OUTPUT: ${{ runner.temp }}/emberwatch-detections.json
+        run: python -m pytest tests/test_firms_full_stack_contract.py -q
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Validate frontend consumes actual Flask contract
+        working-directory: frontend
+        env:
+          EMBERWATCH_CONTRACT_OUTPUT: ${{ runner.temp }}/emberwatch-detections.json
+        run: npx vitest run src/services/firmsContract.test.js
