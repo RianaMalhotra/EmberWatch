@@ -55,7 +55,7 @@ function localAnswer(question, areas, detections, rememberedArea = null) {
 }
 
 export default function AshDetective({ areas = [], detections = [], selectedArea, searchedPlace, currentPage = "home" }) {
-  const contextualQuestions = currentPage === "forecast" ? ["Explain the four-day weather outlook", "What does similarity mean?", "How does tomorrow compare?"] : currentPage === "lab" ? ["How does the what-if simulator work?", "Why is confidence different from risk?", "Are these records current?"] : selectedArea ? ["Explain the risk for " + selectedArea.name, "How current is this area data?", "What do the factor scores mean?"] : starterQuestions;
+  const contextualQuestions = currentPage === "analytics" ? ["How do I use this website?", "Who are the stakeholders?", "Tell me about this project"] : currentPage === "forecast" ? ["Explain the four-day weather outlook", "What does similarity mean?", "How does tomorrow compare?"] : currentPage === "lab" ? ["How does the what-if simulator work?", "Why is confidence different from risk?", "Are these records current?"] : selectedArea ? ["Explain the risk for " + selectedArea.name, "How current is this area data?", "What do the factor scores mean?"] : starterQuestions;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([welcome]);
