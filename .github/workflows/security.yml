@@ -40,3 +40,17 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  authorization-regression:
+    name: Staff authorization regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Verify unauthenticated staff endpoints are not public
+        working-directory: backend
+        run: python -m pytest tests/test_staff_authorization_guard.py -q
