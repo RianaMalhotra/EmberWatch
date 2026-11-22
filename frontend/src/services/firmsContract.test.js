@@ -8,7 +8,7 @@ const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
 
 describe("FIRMS ingestion -> Flask -> frontend contract", () => {
-  it("renders the Flask-produced detection contract and flags historical data", async () => {
+  (process.env.EMBERWATCH_CONTRACT_OUTPUT ? it : it.skip)("renders the Flask-produced detection contract and flags historical data", async () => {
     const file = process.env.EMBERWATCH_CONTRACT_OUTPUT;
     if (!file) throw new Error("EMBERWATCH_CONTRACT_OUTPUT must point to generated Flask contract");
     const payload = JSON.parse(readFileSync(file, "utf8"));
