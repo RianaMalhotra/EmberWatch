@@ -1,12 +1,11 @@
 -- Isolated CI schema mirroring production detection columns and uniqueness.
-CREATE SCHEMA IF NOT EXISTS extensions;
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE TABLE public.detections (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  latitude double precision NOT NULL CHECK(latitude BETWEEN -90 AND 90),
  longitude double precision NOT NULL CHECK(longitude BETWEEN -180 AND 180),
- location extensions.geography(point,4326) GENERATED ALWAYS AS (
-   extensions.st_setsrid(extensions.st_makepoint(longitude,latitude),4326)::extensions.geography
+ location geography(point,4326) GENERATED ALWAYS AS (
+   ST_SetSRID(ST_MakePoint(longitude,latitude),4326)::geography
  ) STORED,
  detected_at timestamptz NOT NULL,
  confidence real NOT NULL CHECK(confidence BETWEEN 0 AND 100),
