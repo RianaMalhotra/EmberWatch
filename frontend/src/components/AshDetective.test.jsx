@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AshDetective from "./AshDetective.jsx";
 
 const areas = [
@@ -60,7 +60,7 @@ describe("Ask Ash session security", () => {
     openChat();
     send("What's the risk in Kelowna?");
     await screen.findByText("Verified only against the supplied map snapshot.");
-    window.dispatchEvent(new Event("emberwatch:logout"));
+    act(() => { window.dispatchEvent(new Event("emberwatch:logout")); });
     expect(screen.queryByText("What's the risk in Kelowna?")).toBeNull();
     send("How current is the data?");
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(2));
@@ -78,7 +78,7 @@ describe("Ask Ash session security", () => {
     openChat();
     send("What's the risk in Kelowna?");
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1));
-    window.dispatchEvent(new Event("emberwatch:logout"));
+    act(() => { window.dispatchEvent(new Event("emberwatch:logout")); });
     send("What is the risk in Toronto?");
     await screen.findByText("Fresh session reply");
     old.resolve(mockResponse("Stale private reply"));
