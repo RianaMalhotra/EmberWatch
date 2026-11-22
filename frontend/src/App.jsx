@@ -404,7 +404,7 @@ function AppContent() {
           <button type="button" className="ew-risk-hero-link" onClick={() => document.getElementById("ew-risk-guide")?.scrollIntoView({ behavior:"smooth", block:"start" })}>Explore the field guide <span aria-hidden="true">↓</span></button>
           <span className="ew-risk-hero-index" aria-hidden="true">EMBERWATCH / RESEARCH NOTES</span>
         </div>
-        <div id="ew-risk-guide" className="ew-risk-guide"><button type="button" className="ew-primary-action" onClick={() => window.dispatchEvent(new Event("emberwatch:guide"))}>Ask Ash how to use the website</button>
+        <div id="ew-risk-guide" className="ew-risk-guide">
           <div className="ew-risk-section-heading"><span>01 — THE BIG PICTURE</span><h2>Three signals. <em>Three different meanings.</em></h2><p>They work together on the map, but they are not interchangeable.</p></div>
           <div className="ew-risk-story">
             <article className="ew-risk-story-card ew-risk-story-weather"><div className="ew-risk-card-top"><span>01 / ENVIRONMENT</span><span className="ew-risk-card-glyph" aria-hidden="true">☀</span></div><div className="ew-risk-weather-art" aria-hidden="true"><div className="ew-risk-weather-orbit" /><span>°</span><i /></div><div className="ew-risk-card-bottom"><h3>Environmental risk</h3><p>A provisional 0–100 model score based on available weather, terrain and nearby detection history. <strong>It is not a fire-spread forecast.</strong></p></div></article>
