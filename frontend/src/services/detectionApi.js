@@ -54,9 +54,11 @@ export async function fetchDetectionHistory({ south, north, west, east, start, e
     south: String(south), north: String(north), west: String(west), east: String(east),
     start: new Date(from).toISOString(), end: new Date(to).toISOString(), limit: String(limit),
   });
-  const response = await fetch(`${API_BASE_URL}/api/detections/history?${params}`);
+  const response = await withTimeout(fetch(`${API_BASE_URL}/api/detections/history?${params}`));
   if (!response.ok) throw new Error(`Failed to fetch detection history: ${response.status}`);
-  const result = await response.json();
-  if (!Array.isArray(result?.detections)) throw new Error("Invalid historical detection data received");
+  const result = await readJson(response, "Invalid historical detection data received");
+  if (result?.status !== "success" || !Array.isArray(result?.detections) || typeof result?.truncated !== "boolean") {
+    throw new Error("Invalid historical detection data received");
+  }
   return sanitizeDetections(result);
 }
