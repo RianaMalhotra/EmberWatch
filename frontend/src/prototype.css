@@ -1930,3 +1930,9 @@
 .ew-skip-link:focus{transform:none}
 .ew-main :focus-visible,.ew-top-nav :focus-visible{outline:3px solid #ffd08c;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.ew-main *, .ew-top-nav *{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Consistent secondary controls and compact mobile map actions */
+.ew-clear-selection,.ew-search-count button{border:1px solid #c38b62;border-radius:8px;background:#362521;color:#fff0e4;padding:9px 12px;font:inherit;cursor:pointer}
+.ew-clear-selection:hover,.ew-search-count button:hover{background:#57382b}
+.ew-clear-selection{margin-bottom:8px}
+@media(max-width:600px){.ew-map-controls-toggle,.ew-search-collapse,.ew-clear-selection,.ash-guide-launcher{min-height:44px}.ew-map-controls-content{overscroll-behavior:contain}.ew-side-panel{min-width:0}.ew-analytics-table-wrap{max-width:100%;overflow-x:auto}.ash-shell .ash-panel{width:min(360px,calc(100vw - 24px));max-height:70dvh}}
