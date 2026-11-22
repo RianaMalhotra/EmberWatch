@@ -22,6 +22,7 @@ export default function DetectionHistoryExplorer({ onExplore }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState(null);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     if (!query) return;
@@ -41,14 +42,14 @@ export default function DetectionHistoryExplorer({ onExplore }) {
         setState("error");
       });
     return () => { active = false; };
-  }, [query]);
+  }, [query, revision]);
 
   const invalid = !start || !end || !Number.isFinite(Date.parse(utcDay(start)))
     || !Number.isFinite(Date.parse(utcDay(end))) || start > end;
   return <section className="ew-analytics-panel ew-history" aria-label="Satellite detection history">
     <h2>Satellite detection history</h2>
     <p>Query previously ingested NASA FIRMS observations by broad region and UTC date. Historical heat observations are not confirmed fires or current wildfire alerts.</p>
-    <form onSubmit={event => { event.preventDefault(); if (!invalid) setQuery({ ...REGIONS[region], start: utcDay(start), end: new Date(Date.parse(utcDay(end)) + 86400000).toISOString(), limit: 200, requestedAt: Date.now() }); }}>
+    <form onSubmit={event => { event.preventDefault(); if (!invalid) { setQuery({ ...REGIONS[region], start: utcDay(start), end: new Date(Date.parse(utcDay(end)) + 86400000).toISOString(), limit: 200 }); setRevision(n => n + 1); } }}>
       <div className="ew-analytics-controls">
         <label>Region
           <select value={region} onChange={event => setRegion(event.target.value)}>
