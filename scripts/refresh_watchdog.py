@@ -16,9 +16,9 @@ def check_refresh(runs, now=None):
         raise ValueError("No successful FIRMS refresh in recent workflow history")
     completed = []
     for run in successful:
-        stamp = run.get("run_completed_at")
+        stamp = run.get("updated_at")
         if not stamp:
-            raise ValueError("Invalid FIRMS refresh completion timestamp: missing run_completed_at")
+            raise ValueError("Invalid FIRMS refresh completion timestamp: missing updated_at")
         try:
             parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
             if parsed.tzinfo is None:
