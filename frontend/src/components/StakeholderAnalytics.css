@@ -43,3 +43,13 @@
 .ew-app .ew-analytics-panel .ew-analytics-table-wrap>small button{margin-left:10px;background:transparent;color:#ffc292;border:0;text-decoration:underline;cursor:pointer}
 .ew-app .ew-analytics-reports .ew-analytics-controls label{flex:0 1 320px}
 @media(max-width:900px){.ew-app .ew-analytics-priority-layout{grid-template-columns:1fr}.ew-app .ew-analytics-area-detail{position:static}}
+
+/* Row-level accordion replaces the former right-side detail panel. */
+.ew-app .ew-analytics-priority .ew-analytics-table-wrap table{min-width:520px}
+.ew-app .ew-analytics-expanded-row td{padding:0 8px 15px!important;background:rgba(244,135,69,.055);border-bottom:1px solid #87583b}
+.ew-app .ew-analytics-inline-detail{margin:8px 0 0;padding:18px 20px;border:1px solid #805139;border-radius:10px;background:#282421}
+.ew-app .ew-analytics-inline-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin:15px 0}
+.ew-app .ew-analytics-inline-stats small{display:block;color:#cda98d;margin-bottom:6px}
+.ew-app .ew-analytics-inline-stats strong{color:#fff1e5;font-size:15px;overflow-wrap:anywhere}
+.ew-app .ew-analytics-inline-detail p{margin:8px 0 0;font-size:13px}
+@media(max-width:650px){.ew-app .ew-analytics-inline-stats{grid-template-columns:1fr;gap:12px}}
