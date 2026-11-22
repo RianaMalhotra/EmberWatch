@@ -53,3 +53,21 @@
 .ew-app .ew-analytics-inline-stats strong{color:#fff1e5;font-size:15px;overflow-wrap:anywhere}
 .ew-app .ew-analytics-inline-detail p{margin:8px 0 0;font-size:13px}
 @media(max-width:650px){.ew-app .ew-analytics-inline-stats{grid-template-columns:1fr;gap:12px}}
+
+/* Bring the interactive area list into the first viewport; no scrolling through
+   the observation table and reports is needed before opening an area. */
+.ew-app .ew-analytics{display:flex;flex-direction:column;gap:0}
+.ew-app .ew-analytics-hero{order:0;min-height:0;padding:18px 26px;grid-template-columns:minmax(0,1fr) 100px}
+.ew-app .ew-analytics-hero h1{font-size:clamp(24px,2.6vw,36px)!important;margin:8px 0}
+.ew-app .ew-analytics-hero p{font-size:14px;margin:5px 0}
+.ew-app .ew-analytics-hero-tags{margin-top:10px}
+.ew-app .ew-analytics-hero-symbol{display:none}
+.ew-app .ew-analytics-tabs{order:1;margin:12px 0}
+.ew-app .ew-analytics-priority{order:2;margin:5px 0 12px}
+.ew-app .ew-analytics-priority .ew-analytics-table-wrap th,.ew-app .ew-analytics-priority .ew-analytics-table-wrap td{padding:8px 10px}
+.ew-app .ew-analytics-priority .ew-analytics-table-wrap{max-height:65vh;overflow:auto}
+.ew-app .ew-analytics-priority .ew-analytics-table-wrap thead{position:sticky;top:0;background:#191b1d;z-index:1}
+.ew-app .ew-analytics-panel:not(.ew-analytics-priority):not(.ew-analytics-reports){order:3}
+.ew-app .ew-analytics-reports{order:4}
+.ew-app .ew-analytics-disclaimer{order:5}
+@media(max-width:760px){.ew-app .ew-analytics-hero{padding:16px;grid-template-columns:1fr}.ew-app .ew-analytics-hero-tags{display:none}}
