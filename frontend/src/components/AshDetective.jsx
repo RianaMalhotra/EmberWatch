@@ -52,7 +52,7 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
   const lastAreaRef = useRef(null);
   const conversationVersionRef = useRef(0);
   const [forecastCache, setForecastCache] = useState(null);
-  function clearChat() { conversationVersionRef.current += 1; lastAreaRef.current = null; historyRef.current = []; setMessages([welcome]); setForecastCache(null); setDraft(""); }
+  function clearChat() { conversationVersionRef.current += 1; lastAreaRef.current = null; historyRef.current = []; setMessages([welcome]); setForecastCache(null); setDraft(""); setBusy(false); }
   useEffect(() => { if (open) endRef.current?.scrollIntoView?.({ block: "end" }); }, [messages, open]);
   useEffect(() => {
     const onLogout = () => clearChat();
@@ -99,7 +99,7 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
         if (typeof data.answer === "string" && data.answer.trim()) answer = data.answer;
       }
     } catch { /* An optional AI service may be offline; use transparent local guidance. */ }
-    if (conversationVersion !== conversationVersionRef.current) { setBusy(false); return; }
+    if (conversationVersion !== conversationVersionRef.current) return;
     if (!answer && forecast) answer = `Four-day outlook for ${forecast.area}: ${forecast.days.map(d => `${d.date}: ${d.similarity}/100 (${level(d.similarity)})`).join("; ")}. These are similarities to historical fire-day weather, NOT wildfire probabilities. Forecast retrieved ${new Date(forecast.retrieved_at).toLocaleString()}.`;
     if (!answer && forecastError) answer = forecastError + " Open AI Forecast to try again.";
     if (!answer) answer = localAnswer(question, areas, detections, contextualArea);
