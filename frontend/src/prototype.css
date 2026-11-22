@@ -1945,3 +1945,8 @@
 .ew-quick-guide button:hover{background:#57382b}.ew-search-hint{margin:4px 0 8px}
 @media(max-width:700px){.ew-quick-guide{grid-template-columns:1fr;gap:6px}.ew-quick-guide>div{padding:10px;display:grid;grid-template-columns:1fr auto;align-items:center}.ew-quick-guide span{grid-column:1}.ew-quick-guide button{grid-column:2;grid-row:1 / span 2;min-height:44px;margin:0}}
 @media(max-width:360px){.ew-quick-guide>div{display:flex}.ew-quick-guide button{width:100%}}
+
+.ew-quick-guide-disclosure>summary{cursor:pointer;padding:10px 12px;color:inherit;font-weight:600;min-height:44px;box-sizing:border-box}
+.ew-quick-guide-disclosure>summary:focus-visible,.ew-quick-guide button:focus-visible{outline:3px solid #ffb36c;outline-offset:3px}
+.ew-quick-guide button{min-height:44px}
+@media(prefers-reduced-motion:reduce){.ew-quick-guide *, .ew-quick-guide-disclosure{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
