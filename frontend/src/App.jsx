@@ -240,9 +240,11 @@ function AppContent() {
       return;
     }
     const controller = new AbortController();
+    setPlaceMatches([]);
+    setSuggestionIndex(-1);
+    setPlaceLoading(true);
+    setPlaceError("");
     const timer = setTimeout(async () => {
-      setPlaceLoading(true);
-      setPlaceError("");
       try {
         const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json&countryCode=CA`;
         const response = await fetch(url, { signal: controller.signal });
@@ -280,14 +282,14 @@ function AppContent() {
     [detectionResult?.detections]
   );
 
-  const nearbyDetections = searchedPlace && detectionResult?.detections
+  const nearbyDetections = useMemo(() => searchedPlace && detectionResult?.detections
     ? detectionResult.detections.filter((d) => {
         const lat = (d.latitude - searchedPlace.latitude) * Math.PI / 180;
         const lon = (d.longitude - searchedPlace.longitude) * Math.PI / 180;
         const a = Math.sin(lat / 2) ** 2 + Math.cos(searchedPlace.latitude * Math.PI / 180) * Math.cos(d.latitude * Math.PI / 180) * Math.sin(lon / 2) ** 2;
         return 12742 * Math.asin(Math.min(1, Math.sqrt(a))) <= 50;
       })
-    : [];
+    : [], [searchedPlace, detectionResult?.detections]);
 
   function retryRiskAreas() {
     setLoading(true);
@@ -588,6 +590,8 @@ function AppContent() {
                 key={`detection-${cluster.key}`}
                 position={[cluster.latitude, cluster.longitude]}
                 icon={icon}
+                title={clustered ? `${cluster.items.length} satellite observations` : `Satellite observation, ${detection.classification === "low_confidence" ? "low confidence" : "meets confidence threshold"}`}
+                alt={clustered ? `${cluster.items.length} satellite observations` : "Satellite heat observation"}
                 eventHandlers={{ click: () => {
                   if (clustered) { setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude }); setMapZoom(8); setSelectedDetection(null); return; }
                   setSelectedDetection(detection); setSelectedArea(null); setSearchedPlace(null);
