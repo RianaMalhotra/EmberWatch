@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
@@ -38,6 +38,7 @@ import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
 import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
 import { findHotspotClusters } from "./utils/hotspotDbscan";
+import HotspotDiscoveryPanel from "./components/HotspotDiscoveryPanel";
 
 const fireMarkerIcon = (lowConfidence) => divIcon({
   className: "ew-fire-marker-wrap",
@@ -270,7 +271,10 @@ function AppContent() {
     setPage("explore");
   }
 
-  const mlHotspotClusters = findHotspotClusters(detectionResult?.detections ?? []);
+  const mlHotspotClusters = useMemo(
+    () => findHotspotClusters(detectionResult?.detections ?? []),
+    [detectionResult?.detections]
+  );
 
   const nearbyDetections = searchedPlace && detectionResult?.detections
     ? detectionResult.detections.filter((d) => {
@@ -475,22 +479,11 @@ function AppContent() {
       )}
 
       {detectionResult && !detectionLoading && (
-        <details className="ew-map-help" aria-label="ML hotspot discovery">
-          <summary>ML hotspot discovery (DBSCAN) — {mlHotspotClusters.length} spatial groups</summary>
-          <p>Unsupervised density-based clustering groups nearby satellite hotspots within 25 km (at least 3 observations). These are <strong>not confirmed fires or predictions</strong>; detections may be historical or delayed. Check timestamps.</p>
-          {mlHotspotClusters.length === 0 ? <p>No dense hotspot groups in the currently loaded detections.</p> : (
-            <ul>{mlHotspotClusters.slice(0, 8).map((cluster) => (
-              <li key={cluster.id}>
-                <button type="button" onClick={() => {
-                  setPage("explore");
-                  setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude });
-                  setMapZoom(8);
-                }}>View group ({cluster.count} detections) at {cluster.latitude.toFixed(2)}, {cluster.longitude.toFixed(2)}</button>
-                {cluster.latestTimestamp && <span> · latest observation {cluster.latestTimestamp}</span>}
-              </li>
-            ))}</ul>
-          )}
-        </details>
+        <HotspotDiscoveryPanel clusters={mlHotspotClusters} onViewGroup={(cluster) => {
+          setPage("explore");
+          setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude });
+          setMapZoom(8);
+        }} />
       )}
 
       {/* #49: a rendering error in the map or details panel is contained here, so the
