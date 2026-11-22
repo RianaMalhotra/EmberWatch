@@ -106,6 +106,31 @@ def ash_detective():
             sanitized.append({k: area.get(k) for k in (
                 "name", "risk_score", "risk_level", "observed_at", "is_complete"
             )})
+    # Browser-supplied satellite observations are evidence, not instructions or
+    # proof of active fires. Bound the sample and reject malformed records.
+    import math
+    raw_detections = context.get("detections", [])
+    if not isinstance(raw_detections, list):
+        raw_detections = []
+    safe_detections = []
+    for detection in raw_detections[:20]:
+        if not isinstance(detection, dict):
+            continue
+        lat, lon, confidence = (detection.get(k) for k in ("latitude", "longitude", "confidence"))
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+               for v in (lat, lon, confidence)):
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180 and 0 <= confidence <= 100):
+            continue
+        classification = detection.get("classification")
+        if classification not in ("potential_wildfire", "low_confidence"):
+            continue
+        timestamp = detection.get("timestamp")
+        safe_detections.append({
+            "latitude": lat, "longitude": lon, "confidence": confidence,
+            "classification": classification,
+            "timestamp": timestamp[:40] if isinstance(timestamp, str) else None,
+        })
     forecast = context.get("forecast")
     if not isinstance(forecast, dict) or not isinstance(forecast.get("days"), list):
         forecast = None
@@ -129,6 +154,9 @@ def ash_detective():
         "A missing area is unmonitored, not safe or risk-free. "
         "Risk: LOW <40, MODERATE 40–<70, HIGH >=70. "
         "Flame icons are satellite hotspots, not confirmed fires; faded flames mean low confidence. "
+        "When asked about detections, use only supplied observation timestamps, coordinates, "
+        "confidence and classification. Never treat confidence as fire probability. "
+        "The sample is capped and may not represent all map detections. "
         "Never invent current wildfire incidents, evacuation advice, current weather, or "
         "real-time coverage. Say when data is unavailable or stale. "
         "For emergencies, refer to official local authorities and emergency services. "
@@ -148,6 +176,7 @@ def ash_detective():
                 "selected_area": str(context.get("selected_area", ""))[:100],
                 "searched_place": str(context.get("searched_place", ""))[:100],
                 "detection_count": context.get("detection_count"),
+                "detections": safe_detections,
                 "forecast": forecast,
                 "forecast_error": str(context.get("forecast_error", ""))[:150],
             }, default=str)[:14000]},
