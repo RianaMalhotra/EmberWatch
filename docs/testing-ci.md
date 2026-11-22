@@ -25,6 +25,8 @@ python -m pip install pytest
 python -m pytest tests -q
 ```
 
+The burned-area check tests (`tests/test_evaluate_against_nbac_maps.py`) need geopandas, shapely and pyproj, which CI does not install, so they are skipped there. Run them locally with `pip install -r ml/requirements-nbac.txt` and then `python -m pytest tests -q`.
+
 Frontend:
 
 ```bash

@@ -49,6 +49,14 @@ Options: `--radius-km`, `--window-hours`, `--min-recall`, and `--label type` (us
 python ml/evaluate_threshold_split.py
 ```
 
+**Export stored detections (`export_detections.py`, issue #56).** Read-only. Writes `data-processing/data/detections_<year>.csv` from `public.detections` (archive rows only), for when the raw and cleaned FIRMS files are not at hand. Needs `DATABASE_URL`.
+
+```bash
+python data-processing/export_detections.py 2023 2024 2025
+```
+
+**Burned-area check (`ml/evaluate_against_nbac.py`, issue #56).** Labels each detection by whether it lies inside an official NBAC burned-area polygon instead of using the persistence proxy. Needs the map libraries (`pip install -r ml/requirements-nbac.txt`) and the NBAC yearly zips, which go in `data-processing/data/` (git-ignored). Method and caveats: [docs/threshold-backtest.md](../docs/threshold-backtest.md).
+
 Results and caveats: [docs/threshold-backtest.md](../docs/threshold-backtest.md).
 
 Put the recommended value in `DEFAULT_MIN_DETECTION_CONFIDENCE` in `backend/config.py`. The threshold can also be overridden at runtime with the `MIN_DETECTION_CONFIDENCE` environment variable.

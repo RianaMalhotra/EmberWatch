@@ -15,15 +15,22 @@ writes (``ml/results/backtest_<year>.csv``). Confusion-matrix counts add up
 across years, so training years are pooled by summing counts. No raw FIRMS
 files are needed and it uses only the standard library.
 
-Answer key: the labels come from the persistence proxy in
+Answer key: by default the labels come from the persistence proxy in
 ``backtest_threshold.py`` (a detection is "real" if it is seen again nearby
 within 72 hours). That is a proxy, not field-verified ground truth, so every
 number here is a proxy-based estimate and not a validated accuracy.
+
+``--labels nbac`` uses the results of ``evaluate_against_nbac.py`` instead
+(``ml/results/nbac_<year>.csv``): "real" means the detection lies inside an
+official burned-area polygon. That is an independent answer key, but "outside"
+is not proof of a false alarm (see that script).
 
 Usage (from the repository root):
 
     python ml/evaluate_threshold_split.py
     python ml/evaluate_threshold_split.py --train 2023 2024 --test 2025
+    python ml/evaluate_threshold_split.py --labels nbac
+    python ml/evaluate_threshold_split.py --labels nbac --report-threshold 20
 """
 
 import argparse
@@ -37,6 +44,24 @@ from backtest_threshold import choose_threshold, metrics_from_counts
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(HERE, "results")
 OUTPUT_CSV = os.path.join(RESULTS_DIR, "threshold_split_evaluation.csv")
+# labels: results file prefix, output file name, and wording for the report
+LABEL_SOURCES = {
+    "persistence": {
+        "prefix": "backtest", "output": "threshold_split_evaluation.csv",
+        "positive": "real", "negative": "one-off", "short": ("real", "one-off"),
+        "positive_plural": "real fires", "negative_plural": "one-off hotspots",
+        "note": "Labels: persistence proxy (not field-verified ground truth).",
+    },
+    "nbac": {
+        "prefix": "nbac", "output": "threshold_split_evaluation_nbac.csv",
+        "positive": "inside burned area", "negative": "outside burned area",
+        "short": ("inside", "outside"),
+        "positive_plural": "detections inside mapped burned areas",
+        "negative_plural": "detections outside mapped burned areas",
+        "note": ("Labels: inside an official burned-area polygon (NBAC). "
+                 "'Outside' is not proof of a false alarm, so the false-positive rate is overstated."),
+    },
+}
 COUNT_FIELDS = ("true_positives", "false_positives", "false_negatives", "true_negatives")
 
 
@@ -51,18 +76,18 @@ def load_counts(path):
     return counts
 
 
-def find_years(results_dir=RESULTS_DIR):
-    """Years that have a backtest_<year>.csv in the results folder."""
+def find_years(results_dir=RESULTS_DIR, prefix="backtest"):
+    """Years that have a <prefix>_<year>.csv in the results folder."""
     years = []
-    for path in glob.glob(os.path.join(results_dir, "backtest_*.csv")):
-        match = re.fullmatch(r"backtest_(\d{4})\.csv", os.path.basename(path))
+    for path in glob.glob(os.path.join(results_dir, f"{prefix}_*.csv")):
+        match = re.fullmatch(rf"{prefix}_(\d{{4}})\.csv", os.path.basename(path))
         if match:
             years.append(int(match.group(1)))
     return sorted(years)
 
 
-def load_years(years, results_dir=RESULTS_DIR):
-    return {year: load_counts(os.path.join(results_dir, f"backtest_{year}.csv")) for year in years}
+def load_years(years, results_dir=RESULTS_DIR, prefix="backtest"):
+    return {year: load_counts(os.path.join(results_dir, f"{prefix}_{year}.csv")) for year in years}
 
 
 def pool(counts_by_year, years):
@@ -109,26 +134,60 @@ def leave_one_year_out(counts_by_year, min_recall=0.9):
             for test in years]
 
 
+def evaluate_fixed_threshold(counts_by_year, threshold):
+    """Per-year metrics for one fixed threshold (such as the deployed setting).
+
+    Nothing is chosen on any year here, so every year is a fair test. Each row
+    also carries the "no filter" (threshold 0) metrics for comparison.
+    """
+    rows = []
+    for year in sorted(counts_by_year):
+        counts = counts_by_year[year]
+        if threshold not in counts:
+            raise ValueError(f"Threshold {threshold} was not scored; available: {sorted(counts)}")
+        rows.append({
+            "year": year,
+            "at_threshold": metrics_from_counts(threshold, *counts[threshold]),
+            "no_filter": metrics_from_counts(0, *counts[0]) if 0 in counts else None,
+        })
+    return rows
+
+
+def format_fixed_threshold(rows, threshold, labels="persistence"):
+    words = LABEL_SOURCES[labels]
+    lines = [f"Fixed threshold {threshold} (not chosen on any year, so every year is a test):",
+             f"  {'year':<6}{'precision (no filter)':<24}{'recall':<9}{'false-positive rate':<21}"
+             f"drops {words['short'][0]} / {words['short'][1]}"]
+    for row in rows:
+        m, base = row["at_threshold"], row["no_filter"]
+        shown = f"{m['precision']}" + (f" ({base['precision']})" if base else "")
+        lines.append(f"  {row['year']:<6}{shown:<24}{m['recall']:<9}{m['false_positive_rate']:<21}"
+                     f"{1 - m['recall']:.1%} / {1 - m['false_positive_rate']:.1%}")
+    return "\n".join(lines)
+
+
 def _years(years):
     return "+".join(str(y) for y in years)
 
 
-def format_report(split):
+def format_report(split, labels="persistence"):
     """Plain-text report: confusion matrix and metrics on the held-out years."""
     test, train = split["test"], split["train"]
+    words = LABEL_SOURCES[labels]
+    pos, neg = words["positive"], words["negative"]
     lines = [
         f"Train {_years(split['train_years'])} -> threshold {split['threshold']} "
         f"(recall >= {split['min_recall']:.0%} rule, best Youden's J)",
         f"  on the training years: recall {train['recall']}, "
         f"false-positive rate {train['false_positive_rate']}, Youden's J {train['youden_j']}",
         f"Held-out {_years(split['test_years'])} at threshold {split['threshold']}:",
-        "                       predicted real   predicted one-off",
-        f"  actually real        {test['true_positives']:>14,}   {test['false_negatives']:>17,}",
-        f"  actually one-off     {test['false_positives']:>14,}   {test['true_negatives']:>17,}",
+        f"  {'':<26}predicted {pos}   predicted {neg}",
+        f"  {'actually ' + pos:<26}{test['true_positives']:>{len('predicted ' + pos)},}   {test['false_negatives']:>{len('predicted ' + neg)},}",
+        f"  {'actually ' + neg:<26}{test['false_positives']:>{len('predicted ' + pos)},}   {test['true_negatives']:>{len('predicted ' + neg)},}",
         f"  precision {test['precision']}, recall {test['recall']}, "
         f"false-positive rate {test['false_positive_rate']}, Youden's J {test['youden_j']}",
-        f"  removes {1 - test['recall']:.1%} of real fires and "
-        f"{1 - test['false_positive_rate']:.1%} of one-off hotspots",
+        f"  removes {1 - test['recall']:.1%} of {words['positive_plural']} and "
+        f"{1 - test['false_positive_rate']:.1%} of {words['negative_plural']}",
     ]
     if test["recall"] < split["min_recall"]:
         lines.append(f"  NOTE: held-out recall {test['recall']} is below the "
@@ -165,14 +224,21 @@ def main(argv=None):
     parser.add_argument("--test", type=int, nargs="+", help="test years (default: the latest year)")
     parser.add_argument("--min-recall", type=float, default=0.9,
                         help="only choose thresholds that keep at least this share of real fires")
+    parser.add_argument("--report-threshold", type=int, default=None, metavar="N",
+                        help="also report this fixed threshold (for example the deployed 20) on every year")
+    parser.add_argument("--labels", choices=sorted(LABEL_SOURCES), default="persistence",
+                        help="answer key: persistence proxy (backtest_<year>.csv, default) "
+                             "or burned-area maps (nbac_<year>.csv)")
     parser.add_argument("--output", default=None,
-                        help=f"results CSV (default {os.path.relpath(OUTPUT_CSV)} in the default results folder)")
+                        help="results CSV (default: threshold_split_evaluation[_nbac].csv in the results folder)")
     args = parser.parse_args(argv)
 
-    years = find_years(args.results_dir)
+    source = LABEL_SOURCES[args.labels]
+    years = find_years(args.results_dir, source["prefix"])
     if len(years) < 2:
-        parser.error(f"Need backtest_<year>.csv for at least two years in {args.results_dir}; found {years}.")
-    counts = load_years(years, args.results_dir)
+        parser.error(f"Need {source['prefix']}_<year>.csv for at least two years in "
+                     f"{args.results_dir}; found {years}.")
+    counts = load_years(years, args.results_dir, source["prefix"])
 
     test_years = args.test or [years[-1]]
     train_years = args.train or [y for y in years if y not in test_years]
@@ -180,8 +246,8 @@ def main(argv=None):
     folds = leave_one_year_out(counts, args.min_recall)
 
     print("Held-out evaluation of the detection confidence threshold (#56)")
-    print("Labels: persistence proxy (not field-verified ground truth).\n")
-    print(format_report(main_split))
+    print(source["note"] + "\n")
+    print(format_report(main_split, args.labels))
     print("\nLeave-one-year-out (each year held out in turn):")
     for fold in folds:
         test = fold["test"]
@@ -189,8 +255,14 @@ def main(argv=None):
               f"held-out {_years(fold['test_years'])}: precision {test['precision']}, "
               f"recall {test['recall']}, false-positive rate {test['false_positive_rate']}")
 
-    output = args.output or (OUTPUT_CSV if args.results_dir == RESULTS_DIR
-                             else os.path.join(args.results_dir, "threshold_split_evaluation.csv"))
+    if args.report_threshold is not None:
+        try:
+            fixed = evaluate_fixed_threshold(counts, args.report_threshold)
+        except ValueError as error:
+            parser.error(str(error))
+        print("\n" + format_fixed_threshold(fixed, args.report_threshold, args.labels))
+
+    output = args.output or os.path.join(args.results_dir, source["output"])
     with open(output, "w", newline="", encoding="utf-8") as target:
         writer = csv.DictWriter(target, fieldnames=CSV_FIELDS, lineterminator="\n")
         writer.writeheader()

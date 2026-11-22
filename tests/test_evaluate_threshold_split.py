@@ -124,3 +124,51 @@ def test_committed_results_headline_numbers():
     assert (test["true_positives"], test["false_positives"],
             test["false_negatives"], test["true_negatives"]) == (109640, 28786, 13713, 4160)
     assert test["precision"] == 0.792 and test["recall"] == 0.8888
+
+
+#fixed threshold report and the burned-area (NBAC) results
+
+def test_fixed_threshold_is_scored_on_every_year_next_to_no_filter():
+    rows = ev.evaluate_fixed_threshold(synthetic(), 50)
+    assert [row["year"] for row in rows] == [2023, 2024, 2025]
+    assert rows[2]["at_threshold"] == metrics_from_counts(50, *TEST[50])
+    assert rows[2]["no_filter"] == metrics_from_counts(0, *TEST[0])
+    text = ev.format_fixed_threshold(rows, 50)
+    assert "Fixed threshold 50" in text and "2025" in text and "drops real / one-off" in text
+    assert "drops inside / outside" in ev.format_fixed_threshold(rows, 50, "nbac")
+
+
+def test_fixed_threshold_that_was_never_scored_is_rejected():
+    with pytest.raises(ValueError, match="not scored"):
+        ev.evaluate_fixed_threshold(synthetic(), 37)
+
+
+def test_cli_reports_a_fixed_threshold(tmp_path, capsys):
+    for year, counts in synthetic().items():
+        write_results(tmp_path, year, counts)
+    ev.main(["--results-dir", str(tmp_path), "--output", str(tmp_path / "e.csv"), "--report-threshold", "50"])
+    assert "Fixed threshold 50" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        ev.main(["--results-dir", str(tmp_path), "--output", str(tmp_path / "e.csv"), "--report-threshold", "37"])
+
+
+# The burned-area numbers in docs/threshold-backtest.md come from ml/results/nbac_<year>.csv.
+# If those are regenerated these fail: update the docs, then this test.
+
+def committed_nbac():
+    years = ev.find_years(prefix="nbac")
+    assert years == [2023, 2024, 2025]
+    return ev.load_years(years, prefix="nbac")
+
+
+def test_committed_nbac_results_choose_no_filter_in_every_fold():
+    for fold in ev.leave_one_year_out(committed_nbac()):
+        assert fold["threshold"] == 0
+
+
+def test_committed_nbac_results_for_the_deployed_threshold_of_20():
+    by_year = {row["year"]: row for row in ev.evaluate_fixed_threshold(committed_nbac(), 20)}
+    at = {year: (row["at_threshold"]["precision"], row["at_threshold"]["recall"],
+                 row["at_threshold"]["false_positive_rate"]) for year, row in by_year.items()}
+    assert at == {2023: (0.9717, 0.9038, 0.9055), 2024: (0.9488, 0.904, 0.9153), 2025: (0.9496, 0.8845, 0.9086)}
+    assert [by_year[y]["no_filter"]["precision"] for y in (2023, 2024, 2025)] == [0.9717, 0.9494, 0.9509]
