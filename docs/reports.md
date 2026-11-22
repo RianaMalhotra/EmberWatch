@@ -96,3 +96,20 @@ Delete test rows afterwards: `delete from public.fire_reports where description 
 - **Rate limiting is per IP address.** People sharing a network (a campus, an office, mobile carrier NAT) share one limit, and an attacker with many real IP addresses can still send more. Forged `X-Forwarded-For` headers do not help: only proxy-added entries are used (see "Which IP is rate-limited"). `TRUSTED_PROXY_COUNT` must match the real number of proxies; too high would trust client-written entries again.
 - **Reports are not verified and are never sent to emergency services.** The form tells users to call 911 for emergencies.
 - **Reports are not shown on the map yet.** Displaying and reviewing them is #53.
+
+
+## Sprint 5 staff moderation API (proposed)
+
+Staff-only endpoints:
+- `GET /api/staff/reports?status=unverified` lists full reports, including descriptions; status may be omitted to include all review states
+- `PATCH /api/staff/reports/{id}/review` with `{"review_status":"verified"}` or `{"review_status":"rejected"}` changes only a pending report; already-reviewed reports cannot be silently overwritten
+
+Every request requires an actual Supabase Auth access token in `Authorization: Bearer <token>`.
+The Flask server verifies the token with `GET {SUPABASE_URL}/auth/v1/user`, then checks the returned authenticated user ID against the server-side `STAFF_USER_IDS` allowlist. Unverified JWT claims and `X-Staff`/`X-User-Role` headers are never accepted. Failed verification denies access.
+
+Required backend environment:
+- `SUPABASE_URL`: HTTPS Supabase project URL
+- `SUPABASE_ANON_KEY`: public/anon key for Auth user verification (never a service-role key)
+- `STAFF_USER_IDS`: comma-separated UUIDs of approved staff
+
+**Deployment gate:** Keep the reporting feature in preview until the migration, secure environment configuration, authenticated staff UI, and deployed end-to-end tests have been verified. This API alone does not complete #51, #53, or #64. The frontend must send the authenticated staff session's access token; no token should be hard-coded or placed in query strings.
