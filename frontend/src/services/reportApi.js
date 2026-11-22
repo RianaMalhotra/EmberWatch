@@ -70,3 +70,14 @@ export async function fetchReportAudit(id, token) {
   if (!response.ok) throw new Error(`Audit unavailable (${response.status})`);
   return (await response.json()).data;
 }
+
+export async function fetchStaffReports(token) {
+  const response = await fetch(`${API_BASE_URL}/api/staff/reports`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Staff reports unavailable (${response.status})`);
+  const body = await response.json();
+  if (body?.status !== "success" || !Array.isArray(body.data)) throw new Error("Invalid staff reports response");
+  return body.data;
+}

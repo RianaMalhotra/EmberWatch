@@ -66,6 +66,25 @@ def active_reports():
         current_app.logger.exception("Could not load public reports")
         return jsonify({"status": "unavailable", "message": "Reports unavailable"}), 503
 
+@reports_bp.get("/api/staff/reports")
+def staff_reports():
+    """Full report queue, including rejected/out, accessible only to allowlisted staff."""
+    if not _staff():
+        return jsonify({"status": "error", "message": "Staff authorization required"}), 403
+    try:
+        with get_connection() as conn:
+            rows = conn.execute(
+                "select id,latitude,longitude,observed_type,description,observed_at,review_status,created_at "
+                "from public.fire_reports order by created_at desc limit 500"
+            ).fetchall()
+        return jsonify({"status": "success", "data": [
+            dict(zip(PUBLIC_REPORT_FIELDS, row)) for row in rows
+        ]}), 200
+    except Exception:
+        current_app.logger.exception("Could not load staff reports")
+        return jsonify({"status": "unavailable", "message": "Staff reports unavailable"}), 503
+
+
 @reports_bp.patch("/api/reports/<int:report_id>/status")
 def moderate_report(report_id):
     staff_id = _staff()

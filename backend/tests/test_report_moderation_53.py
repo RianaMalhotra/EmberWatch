@@ -161,3 +161,31 @@ def test_authorized_audit_returns_history(client):
     assert response.status_code == 200
     assert response.get_json()["data"][0]["new_status"] == "confirmed"
     assert conn.queries[0][1] == (42,)
+
+
+def test_staff_reports_requires_authorization(client):
+    assert client.get("/api/staff/reports").status_code == 403
+
+def test_staff_reports_returns_all_statuses_and_original_content(client):
+    rows = [
+        (7, 43.123456, -79.987654, "smoke", "private report text", "2026-11-20", "unverified", "2026-11-20"),
+        (8, 44.123456, -78.987654, "flames", "rejected details", "2026-11-20", "rejected", "2026-11-20"),
+        (9, 45.123456, -77.987654, "smoke", "resolved details", "2026-11-20", "out", "2026-11-20"),
+    ]
+    conn = FakeConnection([FakeResult(rows=rows)])
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.get("/api/staff/reports")
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    assert [r["review_status"] for r in data] == ["unverified", "rejected", "out"]
+    assert data[0]["description"] == "private report text"
+    assert data[0]["latitude"] == 43.123456
+    assert data[1]["description"] == "rejected details"
+    assert "where review_status" not in conn.queries[0][0].lower()
+
+def test_staff_reports_database_error_is_503(client):
+    conn = FakeConnection(error=RuntimeError("db unavailable"))
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.get("/api/staff/reports")
+    assert response.status_code == 503
+    assert response.get_json()["status"] == "unavailable"

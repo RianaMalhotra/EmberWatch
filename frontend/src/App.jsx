@@ -443,7 +443,7 @@ function AppContent() {
       </div>
       {reporting && <div className="ew-report-panel"><ReportFire onClose={() => setReporting(false)} onSubmitted={() => setReportAttempt((n) => n + 1)} /></div>}
       {(REPORTS_ENABLED || moderating) && <div className="ew-report-tools">{moderating && <button type="button" onClick={() => setModerating(false)}>Close staff moderation</button>} {REPORTS_ENABLED && <button type="button" onClick={() => setReportAttempt((n) => n + 1)}>Refresh public reports</button>}{reportError && <span className="ew-report-error" aria-label="Public reports error">{reportError}</span>}</div>}
-      {moderating && <StaffModeration reports={publicReports} onUpdated={() => setReportAttempt((n) => n + 1)} />}
+      {moderating && <StaffModeration onUpdated={() => setReportAttempt((n) => n + 1)} />}
 
       {loading && (
         <p>Loading wildfire risk data...</p>

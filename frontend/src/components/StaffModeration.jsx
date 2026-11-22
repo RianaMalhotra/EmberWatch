@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { moderatePublicReport, fetchReportAudit } from "../services/reportApi";
+import { moderatePublicReport, fetchReportAudit, fetchStaffReports } from "../services/reportApi";
 import { signInStaff, signOutStaff, refreshStaff, staffAuthConfigured } from "../services/staffAuth";
 
 const STATUSES = ["verified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"];
-export default function StaffModeration({ reports, onUpdated }) {
+export default function StaffModeration({ onUpdated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState({});
   const [audit, setAudit] = useState({});
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [reload, setReload] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -22,6 +25,21 @@ export default function StaffModeration({ reports, onUpdated }) {
     }, delay);
     return () => clearTimeout(timer);
   }, [session]);
+
+  useEffect(() => {
+    if (!session?.access_token) {
+      setReports([]);
+      return;
+    }
+    let active = true;
+    setLoadingReports(true);
+    fetchStaffReports(session.access_token).then((items) => {
+      if (active) { setReports(items); setError(""); }
+    }).catch((err) => {
+      if (active) { setReports([]); setError(err.message); }
+    }).finally(() => { if (active) setLoadingReports(false); });
+    return () => { active = false; };
+  }, [session?.access_token, reload]);
 
   async function login(event) {
     event.preventDefault();
@@ -39,6 +57,7 @@ export default function StaffModeration({ reports, onUpdated }) {
     const token = session?.access_token;
     setSession(null);
     setAudit({});
+    setReports([]);
     setError("");
     if (token) {
       try { await signOutStaff(token); }
@@ -66,14 +85,16 @@ export default function StaffModeration({ reports, onUpdated }) {
       <button type="submit" disabled={busy || !staffAuthConfigured}>Sign in</button>
     </form> : <>
       <p>Signed in as {session.user?.email || email} <button type="button" onClick={logout}>Sign out</button></p>
-      {reports.length === 0 && <p>No active public reports available.</p>}
+      <button type="button" disabled={busy || loadingReports} onClick={() => setReload((n) => n + 1)}>Refresh staff reports</button>
+      {loadingReports && <p role="status">Loading staff reports...</p>}
+      {!loadingReports && reports.length === 0 && <p>No reports available.</p>}
       {reports.map((report) => <article key={report.id} style={{ borderTop: "1px solid #bbb", padding: 10 }}>
         <strong>Report #{report.id} — {report.review_status}</strong>
         <p>{[report.observed_type, report.description].filter(Boolean).join(" — ")} · {report.latitude}, {report.longitude}</p>
         <label>New status <select aria-label={`Status for report ${report.id}`} value={status[report.id] || "confirmed"} onChange={(e) => setStatus((prev) => ({ ...prev, [report.id]: e.target.value }))}>
           {STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll("_", " ")}</option>)}
         </select></label>
-        <button type="button" disabled={busy} onClick={() => withStaff(async (token) => { await moderatePublicReport(report.id, status[report.id] || "confirmed", token); onUpdated?.(); })}>Save status</button>
+        <button type="button" disabled={busy} onClick={() => withStaff(async (token) => { await moderatePublicReport(report.id, status[report.id] || "confirmed", token); setReload((n) => n + 1); onUpdated?.(); })}>Save status</button>
         <button type="button" disabled={busy} onClick={() => withStaff(async (token) => { const rows = await fetchReportAudit(report.id, token); setAudit((prev) => ({ ...prev, [report.id]: rows })); })}>View audit history</button>
         {audit[report.id] && <ul>{audit[report.id].map((entry, i) => <li key={i}>{entry.old_status} → {entry.new_status} by {entry.staff_id} at {new Date(entry.changed_at).toLocaleString()}</li>)}</ul>}
       </article>)}
