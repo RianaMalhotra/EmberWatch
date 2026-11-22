@@ -543,5 +543,47 @@ def create_report():
     return jsonify({"status": "success", "data": saved}), 201
 
 
+@app.route("/api/staff/reports", methods=["GET"])
+def staff_reports_queue():
+    """Authenticated review queue, including unverified and rejected reports."""
+    from services.staff_auth import verify_staff
+    from services.staff_reports import list_reports
+    if not verify_staff(request.headers.get("Authorization")):
+        return jsonify({"status": "error", "message": "Staff authorization required"}), 403
+    status = request.args.get("status")
+    if status not in (None, "unverified", "verified", "rejected"):
+        return jsonify({"status": "error", "message": "Invalid review status"}), 400
+    try:
+        with get_connection() as conn:
+            reports = list_reports(conn, status=status)
+        return jsonify({"status": "success", "data": reports}), 200
+    except Exception:
+        app.logger.exception("Staff report queue unavailable")
+        return jsonify({"status": "unavailable", "message": "Report queue unavailable"}), 503
+
+
+@app.route("/api/staff/reports/<int:report_id>/review", methods=["PATCH"])
+def staff_review_report(report_id):
+    """Approve or reject a pending report; never permit anonymous moderation."""
+    from services.staff_auth import verify_staff
+    from services.staff_reports import review_report
+    if not verify_staff(request.headers.get("Authorization")):
+        return jsonify({"status": "error", "message": "Staff authorization required"}), 403
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or body.get("review_status") not in ("verified", "rejected"):
+        return jsonify({"status": "error", "message": "Review status must be verified or rejected"}), 400
+    if report_id <= 0:
+        return jsonify({"status": "error", "message": "Invalid report ID"}), 400
+    try:
+        with get_connection() as conn:
+            result = review_report(conn, report_id, body["review_status"])
+        if result is None:
+            return jsonify({"status": "error", "message": "Pending report not found"}), 404
+        return jsonify({"status": "success", "data": result}), 200
+    except Exception:
+        app.logger.exception("Staff report review unavailable")
+        return jsonify({"status": "unavailable", "message": "Could not review report"}), 503
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
