@@ -4,7 +4,6 @@ The question: which minimum confidence keeps the most real wildfire
 detections while filtering out the most false ones?
 
 Answer key ("ground truth")
----------------------------
 FIRMS does not say which detections were real fires, so we need a proxy.
 
 * ``persistence`` (default): a detection counts as a real fire if another
@@ -18,7 +17,7 @@ FIRMS does not say which detections were real fires, so we need a proxy.
   bad thresholds; it is kept only for comparison.
 
 Choosing the threshold
-----------------------
+
 Most detections are real fires, so F1 and precision always look best at
 threshold 0. Instead the recommendation maximises **Youden's J**
 (true-positive rate minus false-positive rate), which is not fooled by
@@ -46,9 +45,6 @@ KM_PER_DEG_LAT = 110.57
 EARTH_RADIUS_KM = 6371.0
 
 
-# ---------------------------------------------------------------------------
-# Labelling
-# ---------------------------------------------------------------------------
 
 def load_labelled(rows):
     """Label rows using the FIRMS ``type`` column.
@@ -151,11 +147,6 @@ def label_by_persistence(rows, radius_km=2.0, window_hours=72.0, min_gap_hours=1
                 break
         labelled.append((confidence, confirmed))
     return labelled, skipped
-
-
-# ---------------------------------------------------------------------------
-# Scoring
-# ---------------------------------------------------------------------------
 
 def metrics_from_counts(threshold, tp, fp, fn, tn):
     """Metrics from confusion-matrix counts (a detection is "kept" if its
