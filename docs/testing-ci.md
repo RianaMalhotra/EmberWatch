@@ -18,7 +18,7 @@ python -m pip install -r requirements.txt
 python -m pytest -q --cov=services.detection_pipeline --cov=services.detection_validation --cov=services.detection_filter --cov=services.risk_scoring --cov-report=term-missing --cov-report=xml:coverage.xml
 ```
 
-Data processing (FIRMS cleaning, loading and validation, threshold backtest; no database needed). CI runs this as the "Data Processing Tests" job (#46):
+Data processing (FIRMS cleaning, loading and validation, threshold backtest and held-out evaluation; no database needed). CI runs this as the "Data Processing Tests" job (#46):
 
 ```bash
 python -m pip install pytest

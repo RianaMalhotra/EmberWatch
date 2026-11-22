@@ -157,25 +157,15 @@ def label_by_persistence(rows, radius_km=2.0, window_hours=72.0, min_gap_hours=1
 # Scoring
 # ---------------------------------------------------------------------------
 
-def score_threshold(labelled, threshold):
-    """Metrics when keeping detections with confidence >= threshold."""
-    tp = fp = fn = tn = 0
-    for confidence, is_fire in labelled:
-        kept = confidence >= threshold
-        if kept and is_fire:
-            tp += 1
-        elif kept:
-            fp += 1
-        elif is_fire:
-            fn += 1
-        else:
-            tn += 1
-
+def metrics_from_counts(threshold, tp, fp, fn, tn):
+    """Metrics from confusion-matrix counts (a detection is "kept" if its
+    confidence is at or above the threshold; kept means predicted real)."""
+    total = tp + fp + fn + tn
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     false_positive_rate = fp / (fp + tn) if fp + tn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    kept_share = (tp + fp) / len(labelled) if labelled else 0.0
+    kept_share = (tp + fp) / total if total else 0.0
     return {
         "threshold": threshold,
         "precision": round(precision, 4),
@@ -191,6 +181,33 @@ def score_threshold(labelled, threshold):
     }
 
 
+def score_threshold(labelled, threshold):
+    """Metrics when keeping detections with confidence >= threshold."""
+    tp = fp = fn = tn = 0
+    for confidence, is_fire in labelled:
+        kept = confidence >= threshold
+        if kept and is_fire:
+            tp += 1
+        elif kept:
+            fp += 1
+        elif is_fire:
+            fn += 1
+        else:
+            tn += 1
+    return metrics_from_counts(threshold, tp, fp, fn, tn)
+
+
+def choose_threshold(results, min_recall=0.9):
+    """The recommended row from per-threshold results.
+
+    Only thresholds with recall >= min_recall are considered (if none
+    qualify, all are). The best Youden's J wins; ties go to the higher
+    threshold (fewer false alarms).
+    """
+    candidates = [r for r in results if r["recall"] >= min_recall] or results
+    return max(candidates, key=lambda r: (r["youden_j"], r["threshold"]))
+
+
 def run_backtest(labelled, thresholds=None, min_recall=0.9):
     """Score every threshold and recommend the one with the best Youden's J.
 
@@ -202,9 +219,7 @@ def run_backtest(labelled, thresholds=None, min_recall=0.9):
     if all(is_fire for _, is_fire in labelled) or not any(is_fire for _, is_fire in labelled):
         raise ValueError("All rows have the same label, so thresholds can't be compared.")
     results = [score_threshold(labelled, t) for t in (thresholds or DEFAULT_THRESHOLDS)]
-    candidates = [r for r in results if r["recall"] >= min_recall] or results
-    best = max(candidates, key=lambda r: (r["youden_j"], r["threshold"]))
-    return results, best
+    return results, choose_threshold(results, min_recall)
 
 
 def main(argv=None):
