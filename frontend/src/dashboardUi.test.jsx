@@ -220,3 +220,23 @@ describe("detection summary wording", () => {
     expect(detectionSummary(one)).toMatch(/^1 detection shown:/);
   });
 });
+
+
+describe("first-time map guidance (#48)", () => {
+  it("explains risk versus satellite observations without chatbot assistance", async () => {
+    render(<App />);
+    (await screen.findByRole("button", { name: "Explore" })).click();
+    const guide = screen.getByRole("region", { name: "Quick map guide" });
+    expect(within(guide).getByText(/not confirmed fires/i)).toBeInTheDocument();
+    expect(within(guide).getByText(/not the probability of a wildfire/i)).toBeInTheDocument();
+    expect(within(guide).getByRole("button", { name: "Find a place" })).toBeInTheDocument();
+    expect(within(guide).getByRole("button", { name: "Show map legend" })).toBeInTheDocument();
+  });
+  it("opens the risk explanation from the map guide", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await user.click(within(screen.getByRole("region", { name: "Quick map guide" })).getByRole("button", { name: "Understand risk" }));
+    expect(screen.getByRole("button", { name: "Learn" })).toHaveAttribute("aria-current", "page");
+  });
+});
