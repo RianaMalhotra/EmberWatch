@@ -239,8 +239,8 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
 
       {step === "done" && (
         <>
-          <h2 role="status">Report received</h2>
-          <p>Thank you. Your report was received and is <strong>awaiting review</strong> by staff.</p>
+          <h2>Report received</h2>
+          <p role="status">Thank you. Your report was received and is <strong>awaiting review</strong> by staff.</p>
           <p>It has <strong>not</strong> been sent to emergency services. If there is immediate danger, call 911.</p>
           {receipt?.id && <p className="rf-hint">Report ID: {receipt.id}</p>}
           <div className="rf-footer"><button type="button" className="rf-btn rf-primary" onClick={onClose}>Back to map</button></div>
