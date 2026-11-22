@@ -19,7 +19,9 @@ async function loadForecast(area) {
 }
 
 function projectGuide(question) {
-  const q = question.toLowerCase();
+  const q = question.toLowerCase().trim();
+  if (/^(?:hi|hello|hey|hiya|heya|yo|good morning|good afternoon|good evening|greetings|hey ash|hi ash|hello ash)[!.?\s]*$/i.test(q))
+    return "Hey there! 🔥 I’m Ash, your EmberWatch detective. What would you like to explore? I can show you around the website, explain wildfire risk, or tell you about the project!";
   if (/stakeholder|who (?:is|are) (?:this|the) (?:project|website) for|who uses (?:emberwatch|this)/.test(q))
     return "EmberWatch stakeholders include: (1) local residents and communities who want wildfire awareness; (2) emergency responders and wildfire-management agencies who could use supplementary observations; (3) researchers and environmental scientists studying satellite detections and environmental conditions; (4) community contributors and staff moderators who submit and review reports; and (5) the student development team, university evaluators, data providers such as NASA FIRMS, and hosting providers. Emergency agencies and researchers are intended or potential users, not confirmed project partners. EmberWatch is not an official emergency service.";
   if (/how (?:do|can|to|should) (?:i|we|you) (?:use|navigate)|instructions|tutorial|walk.?through|getting started|website guide|how (?:does|to) (?:the )?(?:site|website) work/.test(q))
