@@ -41,8 +41,8 @@ jobs:
           if-no-files-found: ignore
 
   data-processing-tests:
-    # Tests in tests/ cover data-processing/ (FIRMS cleaning, loading,
-    # validation) and ml/; they need no database (#46).
+    # Tests in tests/ include backend contract and PostGIS modules;
+    # install backend dependencies even when live DB credentials are absent.
     name: Data Processing Tests
     runs-on: ubuntu-latest
 

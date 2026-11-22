@@ -482,6 +482,47 @@ def get_risk_areas():
     return jsonify(body), 200
 
 
+@app.route("/api/reports/verified", methods=["GET"])
+def public_verified_reports():
+    """Public, read-only verified community observations (never emergency alerts).
+
+    Only staff-reviewed reports are exposed. Do not return submitter identifiers,
+    free-text descriptions, location source, or private moderation data.
+    """
+    try:
+        raw_limit = request.args.get("limit", "100")
+        limit = int(raw_limit)
+        if not 1 <= limit <= 200:
+            raise ValueError()
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "limit must be between 1 and 200"}), 400
+
+    try:
+        with get_connection() as conn:
+            rows = conn.execute("""
+                SELECT id, round(latitude::numeric, 2)::float8,
+                       round(longitude::numeric, 2)::float8,
+                       observed_type, observed_at, created_at
+                FROM public.fire_reports
+                WHERE review_status = 'verified'
+                ORDER BY observed_at DESC, id DESC
+                LIMIT %s
+            """, (limit,)).fetchall()
+    except Exception:
+        app.logger.exception("Could not load verified community reports")
+        return jsonify({"status": "unavailable", "message": "Verified reports unavailable"}), 503
+
+    reports = [{
+        "id": row[0], "latitude": row[1], "longitude": row[2],
+        "observed_type": row[3], "observed_at": row[4].isoformat() if row[4] else None,
+        "created_at": row[5].isoformat() if row[5] else None,
+        "review_status": "verified", "source": "community_report",
+    } for row in rows]
+    response = jsonify({"status": "success", "reports": reports, "count": len(reports)})
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return response, 200
+
+
 # A report is a few hundred bytes; refuse anything far bigger.
 MAX_REPORT_BODY_BYTES = 10_000
 
