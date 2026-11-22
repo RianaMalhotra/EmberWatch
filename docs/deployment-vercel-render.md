@@ -187,7 +187,7 @@ Fill this in as you verify. "Not yet verified" means nobody has checked it on th
 |---|---|---|---|
 | Render environment variables match section 1 | Not yet verified | | |
 | Vercel `VITE_API_BASE_URL` set for Production and Preview | Not yet verified | | |
-| Migrations 1 to 4 applied; `scripts/check_migrations.py` passes | Not yet verified | paste the output table | |
+| Migrations 1 to 4 applied; `scripts/check_migrations.py` passes | **Blocker: migrations 3 and 4 not applied** | Run 2026-11-22 against the database in a local `.env` (believed to be the shared project, to be confirmed). OK: PostgreSQL 17, PostGIS, terrain columns, 13 areas, 628,200 detections. Missing: `fire_reports` (migration 4); `detections_unique` is still the old version (migration 3). Pre-check for migration 3 passed (0 rows without a satellite, no duplicates), so it is safe to apply. | 2026-11-22 |
 | `scripts/smoke_check.py` passes against production | Passed 2026-11-22 (6 of 7; 1 warning) | `https://emberwatch-ccub.onrender.com`: health, database, detections, 13 areas all HTTP 200. `/api/health/freshness` returned 404 (deployed build older than main?) | 2026-11-22 | 
 | CORS allows the production frontend and blocks others | Passed | `https://ember-watch-xi.vercel.app` allowed; unknown origin gets no header | 2026-11-22 |
 | Render deploys the latest `main` | **Blocker / to check** | Freshness endpoint (added 2026-11-22) returns 404 in production. Confirm the deployed commit and whether auto-deploy is on. | 2026-11-22 |
