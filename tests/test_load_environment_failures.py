@@ -187,3 +187,60 @@ def test_missing_elevation_gives_null_terrain_not_zero():
 
     assert terrain[0]["slope_deg"] is None
     assert terrain[0]["elevation_m"] == 100.0
+
+
+# Temporary failures are retried (scheduled refresh kept failing on one
+# TLS handshake timeout from GitHub Actions)
+
+def flaky(monkeypatch, failures):
+    calls = {"n": 0}
+
+    def fake_urlopen(request, timeout=None):
+        calls["n"] += 1
+        if calls["n"] <= len(failures):
+            raise failures[calls["n"] - 1]
+        return Reply(b'{"ok": true}')
+
+    monkeypatch.setattr(loader.urllib.request, "urlopen", fake_urlopen)
+    return calls
+
+
+@pytest.mark.parametrize("error", [
+    urllib.error.URLError("_ssl.c:1001: The handshake operation timed out"),
+    socket.timeout("timed out"),
+    ConnectionResetError("reset by peer"),
+    urllib.error.HTTPError("http://x", 503, "Service Unavailable", {}, None),
+    urllib.error.HTTPError("http://x", 429, "Too Many Requests", {}, None),
+])
+def test_temporary_failure_is_retried_then_succeeds(monkeypatch, error):
+    calls = flaky(monkeypatch, [error, error])
+    waits = []
+    assert loader.fetch_json_with_retry("http://x", delays=(5, 20), sleep=waits.append) == {"ok": True}
+    assert calls["n"] == 3
+    assert waits == [5, 20]
+
+
+def test_gives_up_after_all_retries(monkeypatch):
+    error = urllib.error.URLError("handshake timed out")
+    calls = flaky(monkeypatch, [error, error, error])
+    with pytest.raises(OSError):
+        loader.fetch_json_with_retry("http://x", delays=(5, 20), sleep=lambda s: None)
+    assert calls["n"] == 3
+
+
+def test_permanent_http_error_is_not_retried(monkeypatch):
+    calls = flaky(monkeypatch, [urllib.error.HTTPError("http://x", 400, "Bad Request", {}, None)])
+    with pytest.raises(OSError):
+        loader.fetch_json_with_retry("http://x", delays=(5, 20), sleep=lambda s: None)
+    assert calls["n"] == 1
+
+
+def test_bad_reply_is_not_retried(monkeypatch):
+    serve(monkeypatch, body=b"<html>oops</html>")
+    with pytest.raises(DataSourceError):
+        loader.fetch_json_with_retry("http://x", delays=(5, 20), sleep=lambda s: None)
+
+
+def test_collect_uses_the_retrying_fetch_by_default():
+    import inspect
+    assert inspect.signature(collect).parameters["fetch"].default is loader.fetch_json_with_retry

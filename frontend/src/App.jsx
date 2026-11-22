@@ -124,6 +124,7 @@ function AppContent() {
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
   const [mapLayer, setMapLayer] = useState("both");
+  const [basemap, setBasemap] = useState("hybrid");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
   const [legendOpen, setLegendOpen] = useState(true);
   const [mapZoom, setMapZoom] = useState(6);
@@ -345,11 +346,10 @@ function AppContent() {
         </button>
         </div>
         <nav className="ew-top-nav" aria-label="Main navigation">
-          <button type="button" aria-current={page === "home" ? "page" : undefined} onClick={() => navigateTo("home")}>Home</button>
-          <button type="button" aria-current={page === "explore" ? "page" : undefined} onClick={() => navigateTo("explore")}>Explore map</button>
-          <button type="button" aria-current={page === "learn" ? "page" : undefined} onClick={() => navigateTo("learn")}>Understand risk</button>
-          <button type="button" aria-current={page === "lab" ? "page" : undefined} onClick={() => navigateTo("lab")}>Investigation lab</button>
-          <button type="button" aria-current={page === "forecast" ? "page" : undefined} onClick={() => navigateTo("forecast")}>AI forecast</button>
+          <button type="button" aria-current={page === "home" ? "page" : undefined} onClick={() => navigateTo("home")}>Overview</button>
+          <button type="button" aria-current={page === "explore" ? "page" : undefined} onClick={() => navigateTo("explore")}>Explore</button>
+          <button type="button" aria-current={page === "learn" ? "page" : undefined} onClick={() => navigateTo("learn")}>Learn</button>
+          <button type="button" aria-current={page === "forecast" ? "page" : undefined} onClick={() => navigateTo("forecast")}>Forecast</button>
         </nav>
         <div className="ew-menu-wrap" ref={menuRef}>
           <button type="button" className="ew-menu-toggle" aria-label="More options" aria-expanded={menuOpen} aria-controls="ew-navigation" onClick={() => setMenuOpen((open) => !open)}>
@@ -357,8 +357,8 @@ function AppContent() {
           </button>
           {menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Map settings">
             <strong>More options</strong>
+            <button type="button" onClick={() => navigateTo("lab")}>Investigation lab · Compare and replay</button>
             <button type="button" onClick={() => { navigateTo("learn"); }}>How risk works</button>
-            <button type="button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); setMenuOpen(false); }}>Reset map selection</button>
             <button type="button" onClick={() => { setPage("explore"); setReporting(true); setMenuOpen(false); }}>Report a Fire {REPORTS_ENABLED ? "" : "(preview)"}</button>
             <p>EmberWatch is an educational risk explorer, not an emergency alert service.</p>
           </nav>}
@@ -372,6 +372,7 @@ function AppContent() {
           <span className="ew-home-edition">SATELLITE OBSERVATIONS <span>✦</span> ENVIRONMENTAL INSIGHTS <span>✦</span> ML RESEARCH</span>
           <h1>WATCH THE <em>WILDFIRE.</em><br /><span>READ THE SIGNALS.</span></h1>
           <p>From satellite hotspots to environmental risk and experimental machine learning—explore the data behind Canada's changing wildfire landscape.</p>
+          <form className="ew-home-place-search" role="search" onSubmit={(event) => { event.preventDefault(); if (placeMatches.length) choosePlace(placeMatches[0]); else { const match = riskAreas.find((area) => (area.name ?? "").toLowerCase().includes(search.trim().toLowerCase())); if (match && search.trim()) selectArea(match); else navigateTo("explore"); } }}><label htmlFor="ew-home-location">Check a location</label><div className="ew-home-place-row"><input id="ew-home-location" type="search" value={search} onChange={(event) => {setSearch(event.target.value);setSearchedPlace(null);}} placeholder="Search a Canadian city or monitored area" autoComplete="off" /><button type="submit">Find on map →</button></div>{search.trim().length >= 2 && <div className="ew-home-place-results" aria-label="Location suggestions">{placeLoading && <span>Searching locations…</span>}{placeError && <span>{placeError}</span>}{placeMatches.map((place) => <button type="button" key={place.id} onClick={() => choosePlace(place)}>{place.name}{place.admin1 ? `, ${place.admin1}` : ""}</button>)}{riskAreas.filter((area) => (area.name ?? "").toLowerCase().includes(search.trim().toLowerCase())).slice(0, 4).map((area) => <button type="button" key={`area-${area.id}`} onClick={() => selectArea(area)}>{area.name} · monitored area</button>)}</div>}</form>
           <div className="ew-home-actions"><button type="button" onClick={() => navigateTo("explore")}>Explore wildfire map <span aria-hidden="true">↗</span></button><button type="button" className="ew-secondary-action" onClick={() => navigateTo("forecast")}>Explore ML outlook <span aria-hidden="true">→</span></button></div>
           <div className="ew-home-trust"><span><b>01</b> SATELLITE DETECTIONS</span><span><b>02</b> RISK ASSESSMENTS</span><span><b>03</b> EXPERIMENTAL ML</span></div>
           <p className="ew-home-caution">Research and educational prototype · Not an emergency alert or evacuation service</p>
@@ -507,12 +508,31 @@ function AppContent() {
             <RefreshMapLayout active={page === "explore"} hasSelection={Boolean(searchedPlace || selectedArea)} />
             <MapZoomObserver onZoom={setMapZoom} zoomTarget={clusterZoomTarget} />
             <FocusSelected area={searchedPlace ?? selectedArea} />
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              className="ew-inferno-tiles"
-              maxZoom={19}
-            />
+            {basemap === "standard" ? (
+              <TileLayer
+                key="standard-basemap"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                className="ew-inferno-tiles"
+                maxZoom={19}
+              />
+            ) : (
+              <TileLayer
+                key="satellite-basemap"
+                attribution='Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+              />
+            )}
+            {basemap === "hybrid" && (
+              <TileLayer
+                key="hybrid-labels"
+                attribution='Labels &copy; Esri'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+                zIndex={2}
+              />
+            )}
 
 
 
@@ -592,7 +612,7 @@ function AppContent() {
             );
           })}
         </MapContainer></div>
-        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button><div id="ew-map-controls-content" className="ew-map-controls-content" hidden={!mapControlsOpen}><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
+        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
@@ -602,7 +622,7 @@ function AppContent() {
         </label>
         <details className="ew-legend-disclosure" open={legendOpen}><summary onClick={(event) => { event.preventDefault(); setLegendOpen((open) => !open); }}>Map legend</summary><RiskLegend /></details>
         <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Bright flame icons meet the satellite confidence threshold; faded flame icons do not. Detection confidence is not the same as wildfire risk.</p></details>
-        </div></div></div>
+        </div>}</div></div>
         <div className="ew-map-side-window" aria-label="Location search and details">
         <aside className={`ew-side-panel ${selectedArea || selectedDetection || searchedPlace ? "ew-has-selection" : ""} ${detailsExpanded ? "ew-sheet-expanded" : ""}`}>
           <div className="ew-panel-top"><button type="button" className="ew-search-collapse" aria-expanded={searchExpanded} onClick={() => setSearchExpanded((v) => !v)}>{searchExpanded ? "− Hide search" : "⌕ Search places"}</button><div className={searchExpanded ? "ew-search-body" : "ew-search-body ew-search-body-hidden"}>
@@ -647,6 +667,8 @@ function AppContent() {
             <>
               <div className="ew-detail-heading"><div><span className="ew-overline">AREA ASSESSMENT</span><h2>{selectedArea.name ?? `Area ${selectedArea.id}`}</h2></div><button type="button" className="ew-back-button" onClick={() => { setSelectedArea(null); setShowFullDetails(false); setView("dashboard"); }}>← Back</button></div>
 
+              <div className="ew-selection-actions"><button type="button" onClick={() => navigateTo("forecast")}>Explore available forecasts →</button><button type="button" onClick={() => navigateTo("lab")}>Compare areas →</button></div>
+              <p className="ew-selection-disclaimer">Risk estimates are experimental. Satellite hotspots are observations, not confirmed fires or official emergency alerts.</p>
               {riskState(selectedArea) === "incomplete" && (
                 <p role="status">
                   Some inputs are missing. This risk assessment is incomplete.

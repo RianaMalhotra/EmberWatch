@@ -45,7 +45,7 @@ describe("data freshness on the dashboard", () => {
       counts: { total: 2, shown: 2, potential_wildfire: 2, low_confidence: 0, unavailable: 0 },
     });
     render(<App />);
-    (await screen.findByRole("button", { name: "Explore map" })).click();
+    (await screen.findByRole("button", { name: "Explore" })).click();
 
     const box = await screen.findByLabelText("Data freshness");
     await waitFor(() => expect(box).toHaveTextContent("historical records, not current fires"));
