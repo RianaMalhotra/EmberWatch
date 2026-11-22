@@ -30,7 +30,7 @@ def test_spoofed_role_headers_cannot_authorize(client):
 
 
 def test_staff_auth_fails_closed_without_config(monkeypatch):
-    for name in ("SUPABASE_URL", "SUPABASE_ANON_KEY", "STAFF_USER_IDS"):
+    for name in ("SUPABASE_URL", "SUPABASE_ANON_KEY", "REPORTS_STAFF_USER_IDS"):
         monkeypatch.delenv(name, raising=False)
     assert verify_staff("Bearer abc") is None
 
@@ -38,7 +38,7 @@ def test_staff_auth_fails_closed_without_config(monkeypatch):
 def test_staff_auth_requires_verified_allowlisted_user(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
     monkeypatch.setenv("SUPABASE_ANON_KEY", "public-anon-key")
-    monkeypatch.setenv("STAFF_USER_IDS", "staff-uuid")
+    monkeypatch.setenv("REPORTS_STAFF_USER_IDS", "staff-uuid")
 
     class FakeResponse:
         status = 200
