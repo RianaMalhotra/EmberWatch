@@ -1925,3 +1925,8 @@
 .ash-shell .ash-guide-launcher { display:block; margin:0 0 8px auto; padding:10px 14px; border:1px solid #e7a06d; border-radius:10px; background:#362521; color:#fff0e4; font:inherit; cursor:pointer; }
 @media(max-width:600px){ .ash-shell .ash-panel { max-width:calc(100vw - 24px); max-height:75dvh; } .ash-shell .ash-guide-launcher { max-width:calc(100vw - 32px); white-space:normal; } }
 @media(prefers-reduced-motion:reduce){ .ew-app *, .ash-shell *, .rf-panel * { animation-duration:0.01ms!important; transition-duration:0.01ms!important; scroll-behavior:auto!important; } }
+
+.ew-skip-link{position:absolute;top:8px;left:8px;z-index:9999;padding:12px;background:#fff0e4;color:#241e22;border-radius:6px;transform:translateY(-200%)}
+.ew-skip-link:focus{transform:none}
+.ew-main :focus-visible,.ew-top-nav :focus-visible{outline:3px solid #ffd08c;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.ew-main *, .ew-top-nav *{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
