@@ -84,6 +84,9 @@ describe("Ask Ash session security", () => {
     old.resolve(mockResponse("Stale private reply"));
     await waitFor(() => expect(screen.queryByText("Stale private reply")).toBeNull());
     expect(screen.getByText("Fresh session reply")).toBeTruthy();
-    expect(screen.getByRole("log").querySelector(".ash-message.ash-user")).toBeNull();
+    const transcript = screen.getByRole("log");
+    const userMessages = [...transcript.querySelectorAll(".ash-message.ash-user")].map((node) => node.textContent);
+    expect(userMessages).toEqual(["What is the risk in Toronto?"]);
+    expect(transcript.textContent).not.toContain("What\'s the risk in Kelowna?");
   });
 });
