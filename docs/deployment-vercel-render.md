@@ -176,8 +176,9 @@ Fill this in as you verify. "Not yet verified" means nobody has checked it on th
 | Render environment variables match section 1 | Not yet verified | | |
 | Vercel `VITE_API_BASE_URL` set for Production and Preview | Not yet verified | | |
 | Migrations 1 to 4 applied; section 2 queries pass | Not yet verified | | |
-| `scripts/smoke_check.py` passes against production | Not yet verified | paste the output table | |
-| CORS allows the production frontend and blocks others | Not yet verified | smoke check "CORS" rows | |
+| `scripts/smoke_check.py` passes against production | Passed 2026-11-22 (6 of 7; 1 warning) | `https://emberwatch-ccub.onrender.com`: health, database, detections, 13 areas all HTTP 200. `/api/health/freshness` returned 404 (deployed build older than main?) | 2026-11-22 | 
+| CORS allows the production frontend and blocks others | Passed | `https://ember-watch-xi.vercel.app` allowed; unknown origin gets no header | 2026-11-22 |
+| Render deploys the latest `main` | **Blocker / to check** | Freshness endpoint (added 2026-11-22) returns 404 in production. Confirm the deployed commit and whether auto-deploy is on. | 2026-11-22 |
 | Clean-install check on a fresh clone | Not yet verified | | |
 | Failure behaviour (section 6) confirmed on the deployed site | Not yet verified | | |
 | Map performance against the #9 targets | Not yet verified | | |
