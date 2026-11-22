@@ -25,3 +25,16 @@ verified fire data. No conversation history is stored server-side.
 PRA6: risk scoring, malformed detection and freshness behavior have regression
 tests in backend/tests. PRA4 usability testing remains assigned to the other
 team member; this work does not substitute for observations from two real users.
+
+## Authorization regression scope (main branch)
+
+The security CI checks actual registered Flask staff/admin/moderation routes
+across supported HTTP methods, common expected staff paths, forged role headers,
+public report status mutation attempts, and unauthenticated metrics access.
+A missing staff route returns 404, which is safe but **not proof of RBAC**.
+These tests run automatically on pushes and pull requests to main.
+
+PR #104's authentication/moderation code is not currently on main. Once it is
+merged, extend the suite with verified staff JWT access, ordinary-user JWT
+denial, expired/malformed JWT denial, report ownership/role checks, and audit
+record assertions. Do not close #59 or #53 solely based on these guards.
