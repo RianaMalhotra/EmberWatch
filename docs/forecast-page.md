@@ -1,0 +1,9 @@
+# Experimental trained ML weather-pattern outlook
+
+The AI forecast page now uses a **trained regularized logistic regression classifier** rather than the original hand-weighted weather index. Run `python ml/train_weather_classifier.py` to reproduce `frontend/src/data/weatherClassifier.json` from `ml/results/risk_validation.csv`. The training code uses only the Python standard library.
+
+**Training data:** 7 hand-selected Canadian wildfire events, each paired with the same date in the prior year and a winter day at that location (21 rows total). Labels represent **selected fire-event day vs selected comparison day**, not the absence or occurrence of fires across Canada. Features: temperature, relative humidity, wind speed, precipitation. The training script uses L2-regularized logistic regression with feature standardization and deterministic gradient descent. Model outputs are presented as **weather-pattern similarity scores** (0–100) and never as fire probabilities.
+
+**Evaluation:** Leave-one-event-out evaluation: fit on six event groups and compare the held-out fire day against both controls. Fire-day ranking above both controls occurred for 7/7 events. This is a very small, highly selected and biased comparison; it is **not an estimate of accuracy, discrimination on real non-fire days, calibration, or future wildfire forecasting skill**. It cannot establish safe deployment. A larger geographically and temporally representative labeled dataset, time-forward and location-held-out evaluation, calibration, and independent validation are required before presenting actual wildfire probabilities.
+
+**UI:** Four days of hourly Open-Meteo forecast weather are evaluated with the model; the displayed daily mean is an average of hourly similarity scores, with chart, day selection, inputs and timestamps. It is not a prediction of fire occurrence or spread. The page is an educational research prototype only.
