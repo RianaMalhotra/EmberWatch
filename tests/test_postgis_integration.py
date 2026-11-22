@@ -43,8 +43,8 @@ def test_real_database_ingestion_deduplication_and_api(database):
         assert insert_detections(conn,rows) == 0
         # Real PostGIS geography is generated from inserted coordinates.
         count, distance = conn.execute(
-            "SELECT count(*), min(extensions.st_distance(location, "
-            "extensions.st_setsrid(extensions.st_makepoint(-119.49,49.88),4326)::extensions.geography)) "
+            "SELECT count(*), min(ST_Distance(location, "
+            "ST_SetSRID(ST_MakePoint(-119.49,49.88),4326)::geography)) "
             "FROM public.detections"
         ).fetchone()
         assert count == 3
