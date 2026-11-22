@@ -1917,3 +1917,11 @@
   visibility:visible!important;
   opacity:1!important;
 }
+
+/* End-user usability: visible focus and keyboard selection */
+.ew-app :focus-visible, .ash-shell :focus-visible, .rf-panel :focus-visible { outline: 3px solid #ffd08c; outline-offset: 3px; }
+.ew-place-suggestions [aria-selected="true"] { background:#67402e; color:#fff; outline:2px solid #ffd08c; outline-offset:-2px; }
+.ash-shell { max-width:calc(100vw - 24px); }
+.ash-shell .ash-guide-launcher { display:block; margin:0 0 8px auto; padding:10px 14px; border:1px solid #e7a06d; border-radius:10px; background:#362521; color:#fff0e4; font:inherit; cursor:pointer; }
+@media(max-width:600px){ .ash-shell .ash-panel { max-width:calc(100vw - 24px); max-height:75dvh; } .ash-shell .ash-guide-launcher { max-width:calc(100vw - 32px); white-space:normal; } }
+@media(prefers-reduced-motion:reduce){ .ew-app *, .ash-shell *, .rf-panel * { animation-duration:0.01ms!important; transition-duration:0.01ms!important; scroll-behavior:auto!important; } }
