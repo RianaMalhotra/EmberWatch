@@ -34,6 +34,26 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("Ask Ash detection evidence", () => {
+  it("sends only a bounded observation sample with provenance fields", async () => {
+    const detections = Array.from({ length: 25 }, (_, index) => ({
+      latitude: 49.8, longitude: -119.4, confidence: 82,
+      classification: "potential_wildfire", timestamp: "2026-11-01T00:00:00Z", id: index,
+    }));
+    render(<AshDetective areas={areas} detections={detections} />);
+    openChat();
+    send("Explain these satellite detections");
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1));
+    const context = JSON.parse(globalThis.fetch.mock.calls[0][1].body).context;
+    expect(context.detection_count).toBe(25);
+    expect(context.detections).toHaveLength(20);
+    expect(context.detections[0]).toEqual({
+      latitude: 49.8, longitude: -119.4, confidence: 82,
+      classification: "potential_wildfire", timestamp: "2026-11-01T00:00:00Z",
+    });
+  });
+});
+
 describe("Ask Ash session security", () => {
   it("remembers area context for a follow-up and clears it on new chat", async () => {
     render(<AshDetective areas={areas} />);
