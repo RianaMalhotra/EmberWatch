@@ -105,11 +105,11 @@ Staff-only endpoints:
 - `PATCH /api/staff/reports/{id}/review` with `{"review_status":"verified"}` or `{"review_status":"rejected"}` changes only a pending report; already-reviewed reports cannot be silently overwritten
 
 Every request requires an actual Supabase Auth access token in `Authorization: Bearer <token>`.
-The Flask server verifies the token with `GET {SUPABASE_URL}/auth/v1/user`, then checks the returned authenticated user ID against the server-side `STAFF_USER_IDS` allowlist. Unverified JWT claims and `X-Staff`/`X-User-Role` headers are never accepted. Failed verification denies access.
+The Flask server verifies the token with `GET {SUPABASE_URL}/auth/v1/user`, then checks the returned authenticated user ID against the server-side `REPORTS_STAFF_USER_IDS` allowlist. Unverified JWT claims and `X-Staff`/`X-User-Role` headers are never accepted. Failed verification denies access.
 
 Required backend environment:
 - `SUPABASE_URL`: HTTPS Supabase project URL
 - `SUPABASE_ANON_KEY`: public/anon key for Auth user verification (never a service-role key)
-- `STAFF_USER_IDS`: comma-separated UUIDs of approved staff
+- `REPORTS_STAFF_USER_IDS`: comma-separated UUIDs of approved staff
 
 **Deployment gate:** Keep the reporting feature in preview until the migration, secure environment configuration, authenticated staff UI, and deployed end-to-end tests have been verified. This API alone does not complete #51, #53, or #64. The frontend must send the authenticated staff session's access token; no token should be hard-coded or placed in query strings.
