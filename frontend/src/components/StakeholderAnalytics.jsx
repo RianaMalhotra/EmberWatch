@@ -58,6 +58,8 @@ export default function StakeholderAnalytics({areas=[],detections=[],onExplore})
   const clusterCount=new Set(labels.filter(n=>n>=0)).size;
   const sortedAreas=useMemo(()=>areas.filter(a=>valid(a.risk_score)).slice().sort((a,b)=>Number(b.risk_score)-Number(a.risk_score)),[areas]);
   const selectedPoint=selected===null?null:filtered[selected]??null;
+  const knownDates=loaded.map(dateMs).filter(t=>t!==null);
+  const latestDate=knownDates.length?new Date(Math.max(...knownDates)).toLocaleDateString():"Unavailable";
   const exportRows=()=>download("emberwatch-observations.csv",[
     ["latitude","longitude","timestamp","confidence","classification","cluster_id"].join(","),
     ...filtered.map((d,i)=>[d.latitude,d.longitude,timestamp(d),d.confidence,d.classification,labels[i]].map(csvCell).join(","))
@@ -83,7 +85,7 @@ export default function StakeholderAnalytics({areas=[],detections=[],onExplore})
         <label>Approximate region<select value={province} onChange={e=>{setProvince(e.target.value);setSelected(null);}}>{Object.keys(provinces).map(p=><option key={p} value={p}>{p==="all"?"All loaded regions":p}</option>)}</select></label>
         <label>Window from newest record<select value={windowDays} onChange={e=>{setWindowDays(e.target.value);setSelected(null);}}><option value="all">All dates</option><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label>
       </div>
-      <div className="ew-analytics-metrics"><div><small>Filtered observations</small><strong>{filtered.length}</strong></div><div><small>Newest loaded observation</small><strong>{loaded.length?new Date(Math.max(...loaded.map(dateMs).filter(t=>t!==null))).toLocaleDateString():"Unavailable"}</strong></div><div><small>DBSCAN groups</small><strong>{clusterCount}</strong></div></div>
+      <div className="ew-analytics-metrics"><div><small>Filtered observations</small><strong>{filtered.length}</strong></div><div><small>Newest loaded observation</small><strong>{latestDate}</strong></div><div><small>DBSCAN groups</small><strong>{clusterCount}</strong></div></div>
       {mode==="research"&&<div className="ew-analytics-controls">
         <label>DBSCAN radius: {radius} km<input aria-label="DBSCAN radius" type="range" min="5" max="100" step="5" value={radius} onChange={e=>setRadius(Number(e.target.value))}/></label>
         <label>Minimum observations: {minimum}<input aria-label="Minimum observations" type="range" min="2" max="12" value={minimum} onChange={e=>setMinimum(Number(e.target.value))}/></label>
