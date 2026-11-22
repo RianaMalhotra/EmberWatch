@@ -1,0 +1,8 @@
+services:
+  api-tests:
+    build:
+      context: ./backend
+    command: ["python", "-m", "pytest", "-q"]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    profiles: ["test"]
