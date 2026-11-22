@@ -16,6 +16,7 @@ from config import (
 )
 from db import check_database, get_connection
 from services.observability import record_request, snapshot
+from services.freshness_metrics import detection_freshness
 
 from services.risk_scoring import (
     MODEL_VERSION,
@@ -180,6 +181,18 @@ def health_check():
         "status": "ok",
         "message": "Wildfire Detection API is running"
     }), 200
+
+@app.route("/api/health/freshness", methods=["GET"])
+def detection_freshness_health():
+    """Read-only freshness summary; timestamps are not proof of active fires."""
+    try:
+        with get_connection() as conn:
+            metrics = detection_freshness(conn)
+        return jsonify({"status": "ok", **metrics}), 200
+    except Exception:
+        app.logger.exception("Could not calculate detection freshness")
+        return jsonify({"status": "unavailable", "message": "Freshness metrics unavailable"}), 503
+
 
 @app.route("/api/health/db", methods=["GET"])
 def database_health_check():
