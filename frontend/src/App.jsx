@@ -302,6 +302,7 @@ function AppContent() {
   }
 
   const factors = selectedArea?.environmental_factors ?? {};
+  const mapClusters = useMemo(() => clusterDetections(detectionResult?.detections ?? [], mapZoom), [detectionResult?.detections, mapZoom]);
   const filteredAreas = useMemo(() => sortAreasByRisk(riskAreas)
     .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase())), [riskAreas, search]);
   function navigateTo(nextPage) {
@@ -495,7 +496,7 @@ function AppContent() {
       {/* #49: a rendering error in the map or details panel is contained here, so the
           status messages, search and Report a fire stay usable. */}
       <ErrorBoundary label="map and details" resetKeys={[riskAreas, detectionResult]}>
-      <details className="ew-quick-guide-disclosure" open><summary>Quick map guide · 3 steps</summary><section className="ew-quick-guide" aria-label="Quick map guide"><div><strong>1. Find a location</strong><span>Search a Canadian city or browse monitored areas.</span><button type="button" onClick={() => { setSearchExpanded(true); requestAnimationFrame(() => document.getElementById("ew-area-search")?.focus()); }}>Find a place</button></div><div><strong>2. Read the map</strong><span>Colored circles show modeled risk; flame icons show satellite heat observations, not confirmed fires.</span><button type="button" onClick={() => { setMapControlsOpen(true); setLegendOpen(true); }}>Show map legend</button></div><div><strong>3. Understand the score</strong><span>Risk is a model score out of 100, not the probability of a wildfire.</span><button type="button" onClick={() => navigateTo("learn")}>Understand risk</button></div></section></details><div className="ew-workspace ew-map-first">
+      <details className="ew-quick-guide-disclosure" open><summary>Quick map guide · 3 steps</summary><section className="ew-quick-guide" aria-label="Quick map guide"><div><strong>1. Find a location</strong><span>Search a Canadian city or browse monitored areas.</span><button type="button" onClick={() => { setSearchExpanded(true); requestAnimationFrame(() => document.getElementById("ew-area-search")?.focus()); }}>Find a place</button></div><div><strong>2. Read the map</strong><span>Colored circles show modeled risk; flame icons show satellite heat observations, not confirmed fires.</span><button type="button" onClick={() => { setMapControlsOpen(true); setLegendOpen(true); requestAnimationFrame(() => document.querySelector(".ew-legend-disclosure summary")?.focus()); }}>Show map legend</button></div><div><strong>3. Understand the score</strong><span>Risk is a model score out of 100, not the probability of a wildfire.</span><button type="button" onClick={() => navigateTo("learn")}>Understand risk</button></div></section></details><div className="ew-workspace ew-map-first">
         <div className="ew-ember-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
         <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> MAP <span className="ew-map-title-caption">Explore locations and satellite observations</span></div><div className="ew-map-frame">
           <MapContainer
@@ -574,7 +575,7 @@ function AppContent() {
              );
            })}
            
-          {mapLayer !== "risk" && clusterDetections(detectionResult?.detections ?? [], mapZoom).map((cluster) => {
+          {mapLayer !== "risk" && mapClusters.map((cluster) => {
             const detection = cluster.items[0];
             const clustered = cluster.items.length > 1;
             const icon = clustered ? divIcon({
