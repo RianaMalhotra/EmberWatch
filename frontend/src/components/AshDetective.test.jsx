@@ -110,3 +110,18 @@ describe("Ask Ash session security", () => {
     expect(transcript.textContent).not.toContain("What\'s the risk in Kelowna?");
   });
 });
+
+describe("Ash Detective project help", () => {
+  it.each([
+    ["Tell me about EmberWatch", "NASA FIRMS"],
+    ["Who are the stakeholders?", "local residents"],
+    ["How do I use this website?", "Open Explore"],
+  ])("answers %s without relying on the optional AI backend", async (question, expected) => {
+    globalThis.fetch = vi.fn(() => { throw new Error("Offline"); });
+    render(<AshDetective areas={areas} />);
+    openChat();
+    send(question);
+    expect(await screen.findByText(new RegExp(expected, "i"))).toBeTruthy();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+});
