@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../services/apiConfig";
 import AshMascot from "./AshMascot";
 import { summarizeDay, level } from "../utils/weatherClassifier";
 
-const starterQuestions = ["What is the four-day forecast?", "How does tomorrow compare?", "What's the risk in Kelowna?", "How current is the data?"];
+const starterQuestions = ["How do I use this website?", "What is the four-day forecast?", "How does tomorrow compare?", "What's the risk in Kelowna?", "How current is the data?"];
 const welcome = { role: "assistant", text: "Ash Detective, on the case. 🕵️ Ask about EmberWatch, its stakeholders, how to use the website, monitored areas, or the weather outlook." };
 const forecastQuestion = (q) => /forecast|outlook|tomorrow|next (?:few |four |4 )?days|weather pattern|similarity|temperature|humidity|precipitation|wind/.test(q.toLowerCase());
 async function loadForecast(area) {
@@ -136,6 +136,7 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
         <form className="ash-compose" onSubmit={(e) => { e.preventDefault(); ask(draft); }}><input aria-label="Ask Ash Detective" placeholder="Ask me anything about the map…" value={draft} maxLength={500} onChange={(e) => setDraft(e.target.value)} /><button type="submit" disabled={!draft.trim() || busy} aria-label="Send message">➤</button></form>
         <p className="ash-caution">May be incomplete or outdated · Not emergency advice</p>
       </section>}
+      <button type="button" className="ash-launcher" disabled={busy} onClick={() => { setOpen(true); ask("How do I use this website?"); }}><span>How to use EmberWatch · Ask Ash</span></button>
       <button type="button" className="ash-launcher" aria-label={open ? "Close Ash Detective" : "Chat with Ash Detective"} aria-expanded={open} onClick={() => setOpen((v) => !v)}><span aria-hidden="true"><AshMascot size={29} /></span><span>{open ? "Close case" : "Ask Ash"}</span></button>
     </div>
   );
