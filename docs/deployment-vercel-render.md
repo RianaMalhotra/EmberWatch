@@ -64,7 +64,19 @@ Apply every file in `supabase/migrations/` **in filename order**, once, to the S
 
 The SQL editor does not remember what you ran, so write each applied file and the date in the blockers log below. Migrations only go forward: there are no "down" scripts (see rollback below).
 
-Check the result in the SQL editor:
+### Automated check
+
+From the repository root, with `DATABASE_URL` in `backend/.env` (or the environment):
+
+```bash
+python scripts/check_migrations.py
+```
+
+It is read-only (the transaction is opened read-only, so a write is refused by the database), never prints the connection string, and prints a Markdown table to paste into #61: PostgreSQL version, PostGIS, the five tables, row level security, the terrain columns, the `detections_unique` constraint (including that it is the new `NULLS NOT DISTINCT` version) and row counts. Exit code 0 means nothing failed, 1 means a check failed or the database could not be reached. It confirms the schema matches the migration files; it does not replay them.
+
+### Manual check in the SQL editor
+
+The same checks by hand:
 
 ```sql
 select version();                                   -- must be PostgreSQL 15 or newer
@@ -175,7 +187,7 @@ Fill this in as you verify. "Not yet verified" means nobody has checked it on th
 |---|---|---|---|
 | Render environment variables match section 1 | Not yet verified | | |
 | Vercel `VITE_API_BASE_URL` set for Production and Preview | Not yet verified | | |
-| Migrations 1 to 4 applied; section 2 queries pass | Not yet verified | | |
+| Migrations 1 to 4 applied; `scripts/check_migrations.py` passes | Not yet verified | paste the output table | |
 | `scripts/smoke_check.py` passes against production | Passed 2026-11-22 (6 of 7; 1 warning) | `https://emberwatch-ccub.onrender.com`: health, database, detections, 13 areas all HTTP 200. `/api/health/freshness` returned 404 (deployed build older than main?) | 2026-11-22 | 
 | CORS allows the production frontend and blocks others | Passed | `https://ember-watch-xi.vercel.app` allowed; unknown origin gets no header | 2026-11-22 |
 | Render deploys the latest `main` | **Blocker / to check** | Freshness endpoint (added 2026-11-22) returns 404 in production. Confirm the deployed commit and whether auto-deploy is on. | 2026-11-22 |
