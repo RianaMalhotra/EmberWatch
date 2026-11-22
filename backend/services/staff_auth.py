@@ -18,7 +18,7 @@ def verify_staff(bearer_header):
         return None
     base = os.getenv("SUPABASE_URL", "").rstrip("/")
     anon_key = os.getenv("SUPABASE_ANON_KEY", "")
-    allowed = {value.strip().lower() for value in os.getenv("STAFF_USER_IDS", "").split(",") if value.strip()}
+    allowed = {value.strip().lower() for value in os.getenv("REPORTS_STAFF_USER_IDS", "").split(",") if value.strip()}
     parsed = urlparse(base)
     if not allowed or not anon_key or parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.path not in ("", "/"):
         return None
