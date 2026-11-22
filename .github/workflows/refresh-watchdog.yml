@@ -1,0 +1,21 @@
+name: FIRMS refresh watchdog
+on:
+  schedule:
+    - cron: "15 */3 * * *"
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  check-refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out watchdog code
+        uses: actions/checkout@v4
+      - name: Test watchdog freshness rules
+        run: python -m unittest discover -s scripts -p 'test_refresh_watchdog.py' -v
+      - name: Alert if scheduled refresh has not succeeded recently
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: python scripts/refresh_watchdog.py

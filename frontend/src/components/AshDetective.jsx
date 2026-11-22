@@ -18,9 +18,9 @@ async function loadForecast(area) {
   return { area: area.name, days: days.map(({ date, average, temperature, humidity, wind, precipitation }) => ({ date, similarity: average, temperature_c: temperature, humidity_pct: humidity, wind_kmh: wind, precipitation_mm: precipitation })), retrieved_at: new Date().toISOString() };
 }
 
-function localAnswer(question, areas, detections) {
+function localAnswer(question, areas, detections, rememberedArea = null) {
   const q = question.toLowerCase();
-  const area = areas.find((a) => a.name && q.includes(a.name.toLowerCase()));
+  const area = areas.find((a) => a.name && q.includes(a.name.toLowerCase())) ?? (/\b(it|its|there|that area|this area|same area|the risk|its data)\b/.test(q) ? rememberedArea : null);
   if (area) {
     const score = typeof area.risk_score === "number" && Number.isFinite(area.risk_score)
       ? `${area.risk_level ?? "Unclassified"} (${area.risk_score.toFixed(1)}/100)`
@@ -49,14 +49,25 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
   const [busy, setBusy] = useState(false);
   const endRef = useRef(null);
   const historyRef = useRef([]);
+  const lastAreaRef = useRef(null);
+  const conversationVersionRef = useRef(0);
   const [forecastCache, setForecastCache] = useState(null);
-  function clearChat() { historyRef.current = []; setMessages([welcome]); setForecastCache(null); setDraft(""); }
+  function clearChat() { conversationVersionRef.current += 1; lastAreaRef.current = null; historyRef.current = []; setMessages([welcome]); setForecastCache(null); setDraft(""); setBusy(false); }
   useEffect(() => { if (open) endRef.current?.scrollIntoView?.({ block: "end" }); }, [messages, open]);
+  useEffect(() => {
+    const onLogout = () => clearChat();
+    window.addEventListener("emberwatch:logout", onLogout);
+    return () => window.removeEventListener("emberwatch:logout", onLogout);
+  }, []);
   async function ask(raw) {
     const question = raw.trim().slice(0, 500);
+    const conversationVersion = conversationVersionRef.current;
     if (!question || busy) return;
     setDraft("");
     const prior = historyRef.current.slice(-12);
+    const mentionedArea = areas.find((a) => a.name && question.toLowerCase().includes(a.name.toLowerCase()));
+    const contextualArea = mentionedArea ?? selectedArea ?? lastAreaRef.current;
+    if (contextualArea) lastAreaRef.current = contextualArea;
     setMessages((old) => [...old, { role: "user", text: question }]);
     setBusy(true);
     let answer = "";
@@ -65,9 +76,9 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
     if (forecastQuestion(question)) {
       const previousArea = forecastCache && areas.find(a => a.name === forecastCache.area);
       const mentioned = areas.find(a => a.name && question.toLowerCase().includes(a.name.toLowerCase()));
-      const target = mentioned ?? selectedArea ?? previousArea ?? areas.find(a => Number.isFinite(a.latitude) && Number.isFinite(a.longitude));
+      const target = mentioned ?? contextualArea ?? previousArea ?? areas.find(a => Number.isFinite(a.latitude) && Number.isFinite(a.longitude));
       if (target && Number.isFinite(target.latitude) && Number.isFinite(target.longitude)) {
-        try { forecast = await loadForecast(target); setForecastCache(forecast); }
+        try { forecast = await loadForecast(target); if (conversationVersion === conversationVersionRef.current) setForecastCache(forecast); }
         catch { forecastError = "Forecast data is currently unavailable."; }
       } else forecastError = "No monitored area is available for a forecast.";
     }
@@ -76,7 +87,7 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, history: prior, context: {
           forecast, forecast_error: forecastError,
-          selected_area: selectedArea?.name ?? null,
+          selected_area: contextualArea?.name ?? null,
           current_page: currentPage,
           searched_place: searchedPlace?.name ?? null,
           areas: areas.slice(0, 100).map((a) => ({ name: a.name, risk_score: a.risk_score, risk_level: a.risk_level, observed_at: a.observed_at, is_complete: a.is_complete })),
@@ -88,9 +99,10 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
         if (typeof data.answer === "string" && data.answer.trim()) answer = data.answer;
       }
     } catch { /* An optional AI service may be offline; use transparent local guidance. */ }
+    if (conversationVersion !== conversationVersionRef.current) return;
     if (!answer && forecast) answer = `Four-day outlook for ${forecast.area}: ${forecast.days.map(d => `${d.date}: ${d.similarity}/100 (${level(d.similarity)})`).join("; ")}. These are similarities to historical fire-day weather, NOT wildfire probabilities. Forecast retrieved ${new Date(forecast.retrieved_at).toLocaleString()}.`;
     if (!answer && forecastError) answer = forecastError + " Open AI Forecast to try again.";
-    if (!answer) answer = localAnswer(question, areas, detections);
+    if (!answer) answer = localAnswer(question, areas, detections, contextualArea);
     historyRef.current = [...prior, { role: "user", content: question }, { role: "assistant", content: answer }].slice(-12);
     setMessages((old) => [...old, { role: "assistant", text: answer }]);
     setBusy(false);
