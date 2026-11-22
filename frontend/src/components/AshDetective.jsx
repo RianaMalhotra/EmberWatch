@@ -130,6 +130,11 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
     setMessages((old) => [...old, { role: "assistant", text: answer }]);
     setBusy(false);
   }
+  useEffect(() => {
+    const guide = () => { setOpen(true); if (!busy) ask("How do I use this website?"); };
+    window.addEventListener("emberwatch:guide", guide);
+    return () => window.removeEventListener("emberwatch:guide", guide);
+  });
   return (
     <div className="ash-shell">
       {open && <section className="ash-panel" aria-label="Ash Detective assistant" onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); launcherRef.current?.focus(); } }}>
