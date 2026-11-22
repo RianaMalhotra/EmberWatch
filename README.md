@@ -10,6 +10,10 @@
 
 EmberWatch addresses the difficulty of interpreting wildfire observations and environmental risk information across different sources in one accessible interface. It is intended for students, researchers, and members of the public who want to explore and understand wildfire-related data—not for emergency responders making operational decisions. The deployed React/Leaflet dashboard, Flask API, and Supabase PostgreSQL/PostGIS backend bring together monitored Canadian locations, historical and recent NASA FIRMS fire detections, environmental observations, and explainable area-level wildfire risk. **Detection confidence** (certainty associated with a satellite hotspot) and **risk** (a weighted estimate for a geographic area) are different quantities.
 
+## Sprint 6 integration status
+
+The dashboard's existing map/risk/report integrations and the new bounded **Satellite detection history** explorer are documented in [Sprint 6 integration verification](docs/sprint6-integration-verification.md). Open **More → Advanced analytics → Satellite detection history**, select a region and UTC date range, and choose **Search history**. The UI shows recorded observations, data gaps, truncated results and recoverable errors; it does not convert detection confidence into wildfire risk. Staff moderation and audit history depend on open PRs [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112), so the overall Sprint 6 integration issue is not complete until those are merged and verified. Check live PR status before treating these as released.
+
 ## Current functionality
 
 | Feature | Implementation and limitations |
@@ -23,7 +27,7 @@ EmberWatch addresses the difficulty of interpreting wildfire observations and en
 | Reliability and contracts (#50, #63) | JSON API errors, degraded/incomplete states, retry behavior, client response-contract tests, and backend tests with an 80% coverage gate. |
 | Historical model validation (#57) | Reproducible comparison of seven selected wildfire events against prior-year and winter dates. Fire days scored higher in all seven cases, but only one reached HIGH. This small, selected sample **does not establish accuracy or calibration**. |
 
-**Not yet merged into `main` (as of November 14, 2026):** PR [#100](https://github.com/RianaMalhotra/EmberWatch/pull/100) proposes further external-data and processing-failure hardening; PR [#101](https://github.com/RianaMalhotra/EmberWatch/pull/101) proposes a public fire-report submission backend. Do not treat their features as released until those PRs merge and required database migrations/deployment configuration are applied. See the [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls) for live status.
+**Integration dependencies (check live status):** Staff-report authentication/moderation and audit history are proposed in [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112). Until merged and deployed, do not claim that protected staff workflows are available. See the [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls) for live status.
 
 ## Feature highlight — interactive risk map
 
@@ -104,7 +108,7 @@ The diagram represents the implemented components, **not** a guarantee that sche
 | GET | `/api/risk-areas` | Database-backed monitored areas with scores, factors, coverage, timestamps, and possible warnings |
 | POST | `/api/risk-score` | Score supplied environmental inputs; optional location-based history lookup |
 | GET | `/api/detections?limit=200` | Classified detections, confidence, counts, and gaps |
-| GET | `/api/detections/history` | Historical detections with bounding-box/time filters |
+| GET | `/api/detections/history` | Historical detections with bounding-box/time filters; the advanced analytics UI supports UTC date and approximate region selection |
 
 The current response shapes and client validation are documented in [Sprint 4 integration contracts](docs/sprint4-integration-contracts.md). `GET /api/risk-areas` requires a reachable database; the original mock response examples are no longer the current contract.
 
