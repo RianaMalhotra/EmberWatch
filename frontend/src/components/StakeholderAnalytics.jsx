@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../services/apiConfig";
+import DetectionHistoryExplorer from "./DetectionHistoryExplorer";
 import "./StakeholderAnalytics.css";
 
 const provinces = {
@@ -111,6 +112,7 @@ export default function StakeholderAnalytics({areas=[],detections=[],onExplore})
       {!filtered.length?<p role="status">No observations match these filters. No values have been synthesized.</p>:<div className="ew-analytics-table-wrap"><table><thead><tr><th>Observed</th><th>Coordinates</th><th>Confidence</th><th>Cluster</th><th>Inspect</th></tr></thead><tbody>{filtered.slice(0,showAllObservations?100:8).map((d,i)=><tr key={d.id??i}><td>{timestamp(d)??"Unknown"}</td><td>{Number(d.latitude).toFixed(3)}, {Number(d.longitude).toFixed(3)}</td><td>{d.confidence??"Unknown"}</td><td>{labels[i]<0?"Noise":labels[i]+1}</td><td><button type="button" onClick={()=>setSelected(i)}>Details</button></td></tr>)}</tbody></table><small>Showing {Math.min(filtered.length,showAllObservations?100:8)} of {filtered.length} records. Exports include all filtered records. <button type="button" onClick={()=>setShowAllObservations(v=>!v)}>{showAllObservations?"Show fewer":"Show more observations"}</button></small></div>}
       {selectedPoint&&<aside className="ew-analytics-inspect"><h3>Satellite observation</h3><p>Timestamp: {timestamp(selectedPoint)??"Unavailable"}</p><p>Coordinates: {selectedPoint.latitude}, {selectedPoint.longitude}</p><p>Confidence: {String(selectedPoint.confidence??"Unavailable")}</p><p>Classification: {String(selectedPoint.classification??"Unavailable")}</p><p>Satellite observations do not confirm active wildfires.</p><button type="button" onClick={()=>setSelected(null)}>Close details</button></aside>}
     </div>
+    <DetectionHistoryExplorer onExplore={onExplore} />
     {mode==="operations"&&<div className="ew-analytics-panel ew-analytics-reports">
       <div className="ew-analytics-section-head"><div><span className="ew-analytics-kicker">COMMUNITY EVIDENCE / STAFF REVIEWED</span><h2>Verified community reports</h2><p>Actual submitted reports approved by staff. Locations are rounded to approximately 1 km precision for privacy. These are not official incident confirmations.</p></div><button type="button" onClick={()=>setReportRefresh(n=>n+1)}>↻ Refresh reports</button></div>
       <div className="ew-analytics-controls"><label>Reported observation<select value={reportType} onChange={e=>setReportType(e.target.value)}><option value="all">All verified types</option><option value="smoke">Smoke</option><option value="flames">Flames</option><option value="both">Smoke and flames</option></select></label></div>
