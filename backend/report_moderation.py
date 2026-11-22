@@ -3,12 +3,26 @@ import os
 import json
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from db import get_connection
 
 reports_bp = Blueprint("reports", __name__)
 STATUSES = frozenset({"unverified", "verified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"})
 ACTIVE = tuple(sorted(STATUSES - {"rejected", "out"}))
+PUBLIC_REPORT_FIELDS = ("id", "latitude", "longitude", "observed_type", "description", "observed_at", "review_status", "created_at")
+
+
+def _public_report(row):
+    """Never publish raw text or precise GPS for unreviewed community reports."""
+    report = dict(zip(PUBLIC_REPORT_FIELDS, row))
+    if report["review_status"] == "unverified":
+        report["description"] = None
+    # Apply approximate location to ALL public reports; staff need separate authorized detail.
+    for coordinate in ("latitude", "longitude"):
+        if report[coordinate] is not None:
+            report[coordinate] = round(float(report[coordinate]), 2)
+    return report
+
 
 def _staff():
     """Verify a Supabase access token with Supabase Auth and allowlist its user ID.
@@ -45,10 +59,11 @@ def active_reports():
                 (list(ACTIVE),),
             ).fetchall()
         return jsonify({"status": "success", "data": [
-            dict(zip(("id","latitude","longitude","observed_type","description","observed_at","review_status","created_at"), row))
+            _public_report(row)
             for row in rows
         ]}), 200
     except Exception:
+        current_app.logger.exception("Could not load public reports")
         return jsonify({"status": "unavailable", "message": "Reports unavailable"}), 503
 
 @reports_bp.patch("/api/reports/<int:report_id>/status")
@@ -75,6 +90,7 @@ def moderate_report(report_id):
             )
         return jsonify({"status": "success", "data": {"id": report_id, "review_status": status}}), 200
     except Exception:
+        current_app.logger.exception("Could not moderate report %s", report_id)
         return jsonify({"status": "unavailable", "message": "Moderation unavailable"}), 503
 
 @reports_bp.get("/api/reports/<int:report_id>/audit")
@@ -91,4 +107,5 @@ def report_audit(report_id):
             dict(zip(("old_status","new_status","staff_id","changed_at"), row)) for row in rows
         ]}), 200
     except Exception:
+        current_app.logger.exception("Could not load report audit %s", report_id)
         return jsonify({"status": "unavailable", "message": "Audit history unavailable"}), 503

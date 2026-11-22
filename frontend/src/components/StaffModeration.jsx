@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { moderatePublicReport, fetchReportAudit } from "../services/reportApi";
 import { signInStaff, signOutStaff, refreshStaff, staffAuthConfigured } from "../services/staffAuth";
 
-const STATUSES = ["confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"];
+const STATUSES = ["verified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"];
 export default function StaffModeration({ reports, onUpdated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

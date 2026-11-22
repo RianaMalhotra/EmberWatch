@@ -1,6 +1,8 @@
 """Issue #53: staff-only moderation and public report visibility."""
 import pytest
 from unittest.mock import patch
+from contextlib import contextmanager
+from urllib.error import HTTPError
 from app import app
 
 @pytest.fixture
@@ -22,9 +24,14 @@ def test_invalid_status_is_rejected(client, monkeypatch):
     assert response.status_code == 400
 
 def test_wrong_token_is_rejected(client, monkeypatch):
-    response = client.patch("/api/reports/1/status",
-        headers={"Authorization": "Bearer wrong"}, json={"status": "confirmed"})
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "public-anon-key")
+    monkeypatch.setenv("REPORTS_STAFF_USER_IDS", "allowed-uuid")
+    with patch("report_moderation.urlopen", side_effect=HTTPError("https://example.supabase.co/auth/v1/user", 401, "Invalid token", {}, None)) as auth:
+        response = client.patch("/api/reports/1/status",
+            headers={"Authorization": "Bearer wrong"}, json={"status": "confirmed"})
     assert response.status_code == 403
+    auth.assert_called_once()
 
 def test_public_reports_filter_excludes_rejected_and_out():
     from report_moderation import ACTIVE
@@ -64,3 +71,93 @@ def test_non_staff_identity_rejected(client, monkeypatch):
     with patch("report_moderation.urlopen", return_value=Response()):
         with app.test_request_context(headers={"Authorization": "Bearer access-token"}):
             assert _staff() is None
+
+
+class FakeConnection:
+    def __init__(self, responses=(), error=None):
+        self.responses = list(responses)
+        self.error = error
+        self.queries = []
+
+    def execute(self, sql, params=()):
+        self.queries.append((sql, params))
+        if self.error:
+            raise self.error
+        return self.responses.pop(0) if self.responses else FakeResult()
+
+class FakeResult:
+    def __init__(self, *, one=None, rows=()):
+        self.one = one
+        self.rows = rows
+
+    def fetchone(self):
+        return self.one
+
+    def fetchall(self):
+        return self.rows
+
+@contextmanager
+def db_with(conn):
+    yield conn
+
+def test_public_endpoint_redacts_unverified_and_rounds_all_coordinates(client):
+    rows = [
+        (1, 43.123456, -79.987654, "smoke", "private address 123", "2026-11-20", "unverified", "2026-11-20"),
+        (2, 45.123456, -80.987654, "smoke", "staff reviewed", "2026-11-20", "confirmed", "2026-11-20"),
+    ]
+    conn = FakeConnection([FakeResult(rows=rows)])
+    with patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.get("/api/reports")
+    assert response.status_code == 200
+    results = response.get_json()["data"]
+    assert results[0]["description"] is None
+    assert results[0]["latitude"] == 43.12
+    assert results[0]["longitude"] == -79.99
+    assert results[1]["description"] == "staff reviewed"
+    assert results[1]["latitude"] == 45.12
+    assert results[1]["longitude"] == -80.99
+    sql, parameters = conn.queries[0]
+    assert "review_status = any(%s)" in sql
+    assert "rejected" not in parameters[0] and "out" not in parameters[0]
+
+def test_public_endpoint_db_failure_is_503(client):
+    conn = FakeConnection(error=RuntimeError("db unavailable"))
+    with patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.get("/api/reports")
+    assert response.status_code == 503
+    assert response.get_json()["status"] == "unavailable"
+
+def test_moderation_updates_and_writes_audit(client):
+    conn = FakeConnection([FakeResult(one=("unverified",))])
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.patch("/api/reports/42/status", json={"status": "confirmed"})
+    assert response.status_code == 200
+    assert response.get_json()["data"]["review_status"] == "confirmed"
+    assert len(conn.queries) == 3
+    assert "for update" in conn.queries[0][0].lower()
+    assert conn.queries[1][1] == ("confirmed", 42)
+    assert conn.queries[2][1] == (42, "unverified", "confirmed", "staff-uuid")
+
+def test_moderation_missing_report_is_404(client):
+    conn = FakeConnection([FakeResult(one=None)])
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.patch("/api/reports/42/status", json={"status": "confirmed"})
+    assert response.status_code == 404
+    assert len(conn.queries) == 1
+
+def test_moderation_unchanged_status_skips_update_and_audit(client):
+    conn = FakeConnection([FakeResult(one=("confirmed",))])
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.patch("/api/reports/42/status", json={"status": "confirmed"})
+    assert response.status_code == 200
+    assert response.get_json()["data"]["unchanged"] is True
+    assert len(conn.queries) == 1
+
+def test_authorized_audit_returns_history(client):
+    records = [("unverified", "confirmed", "staff-uuid", "2026-11-20")]
+    conn = FakeConnection([FakeResult(rows=records)])
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.get("/api/reports/42/audit")
+    assert response.status_code == 200
+    assert response.get_json()["data"][0]["new_status"] == "confirmed"
+    assert conn.queries[0][1] == (42,)
