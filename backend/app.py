@@ -1,4 +1,7 @@
 import math
+import os
+import secrets
+import time
 from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request
@@ -12,6 +15,8 @@ from config import (
     get_trusted_proxy_count,
 )
 from db import check_database, get_connection
+from services.observability import record_request, snapshot
+from services.freshness_metrics import detection_freshness
 
 from services.risk_scoring import (
     MODEL_VERSION,
@@ -29,6 +34,31 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {"origins": get_cors_origins()}
 })
+
+
+@app.before_request
+def _start_request_timer():
+    from flask import g
+    g.request_started = time.perf_counter()
+
+
+@app.after_request
+def _record_request_metrics(response):
+    from flask import g
+    if request.path.startswith("/api/") and request.endpoint != "internal_metrics":
+        elapsed = (time.perf_counter() - getattr(g, "request_started", time.perf_counter())) * 1000
+        record_request(request.endpoint, response.status_code, elapsed)
+    return response
+
+
+@app.route("/api/internal/metrics", methods=["GET"])
+def internal_metrics():
+    """Aggregate in-process metrics; require an operator-configured secret."""
+    expected = os.environ.get("METRICS_TOKEN")
+    supplied = request.headers.get("Authorization", "")
+    if not expected or not secrets.compare_digest(supplied, "Bearer " + expected):
+        return jsonify({"status": "error", "message": "Not found"}), 404
+    return jsonify(snapshot()), 200
 
 
 @app.errorhandler(Exception)
@@ -76,6 +106,31 @@ def ash_detective():
             sanitized.append({k: area.get(k) for k in (
                 "name", "risk_score", "risk_level", "observed_at", "is_complete"
             )})
+    # Browser-supplied satellite observations are evidence, not instructions or
+    # proof of active fires. Bound the sample and reject malformed records.
+    import math
+    raw_detections = context.get("detections", [])
+    if not isinstance(raw_detections, list):
+        raw_detections = []
+    safe_detections = []
+    for detection in raw_detections[:20]:
+        if not isinstance(detection, dict):
+            continue
+        lat, lon, confidence = (detection.get(k) for k in ("latitude", "longitude", "confidence"))
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+               for v in (lat, lon, confidence)):
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180 and 0 <= confidence <= 100):
+            continue
+        classification = detection.get("classification")
+        if classification not in ("potential_wildfire", "low_confidence"):
+            continue
+        timestamp = detection.get("timestamp")
+        safe_detections.append({
+            "latitude": lat, "longitude": lon, "confidence": confidence,
+            "classification": classification,
+            "timestamp": timestamp[:40] if isinstance(timestamp, str) else None,
+        })
     forecast = context.get("forecast")
     if not isinstance(forecast, dict) or not isinstance(forecast.get("days"), list):
         forecast = None
@@ -99,6 +154,9 @@ def ash_detective():
         "A missing area is unmonitored, not safe or risk-free. "
         "Risk: LOW <40, MODERATE 40–<70, HIGH >=70. "
         "Flame icons are satellite hotspots, not confirmed fires; faded flames mean low confidence. "
+        "When asked about detections, use only supplied observation timestamps, coordinates, "
+        "confidence and classification. Never treat confidence as fire probability. "
+        "The sample is capped and may not represent all map detections. "
         "Never invent current wildfire incidents, evacuation advice, current weather, or "
         "real-time coverage. Say when data is unavailable or stale. "
         "For emergencies, refer to official local authorities and emergency services. "
@@ -118,6 +176,7 @@ def ash_detective():
                 "selected_area": str(context.get("selected_area", ""))[:100],
                 "searched_place": str(context.get("searched_place", ""))[:100],
                 "detection_count": context.get("detection_count"),
+                "detections": safe_detections,
                 "forecast": forecast,
                 "forecast_error": str(context.get("forecast_error", ""))[:150],
             }, default=str)[:14000]},
@@ -151,6 +210,18 @@ def health_check():
         "status": "ok",
         "message": "Wildfire Detection API is running"
     }), 200
+
+@app.route("/api/health/freshness", methods=["GET"])
+def detection_freshness_health():
+    """Read-only freshness summary; timestamps are not proof of active fires."""
+    try:
+        with get_connection() as conn:
+            metrics = detection_freshness(conn)
+        return jsonify({"status": "ok", **metrics}), 200
+    except Exception:
+        app.logger.exception("Could not calculate detection freshness")
+        return jsonify({"status": "unavailable", "message": "Freshness metrics unavailable"}), 503
+
 
 @app.route("/api/health/db", methods=["GET"])
 def database_health_check():
@@ -409,6 +480,47 @@ def get_risk_areas():
     if warnings:
         body["warnings"] = warnings
     return jsonify(body), 200
+
+
+@app.route("/api/reports/verified", methods=["GET"])
+def public_verified_reports():
+    """Public, read-only verified community observations (never emergency alerts).
+
+    Only staff-reviewed reports are exposed. Do not return submitter identifiers,
+    free-text descriptions, location source, or private moderation data.
+    """
+    try:
+        raw_limit = request.args.get("limit", "100")
+        limit = int(raw_limit)
+        if not 1 <= limit <= 200:
+            raise ValueError()
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "limit must be between 1 and 200"}), 400
+
+    try:
+        with get_connection() as conn:
+            rows = conn.execute("""
+                SELECT id, round(latitude::numeric, 2)::float8,
+                       round(longitude::numeric, 2)::float8,
+                       observed_type, observed_at, created_at
+                FROM public.fire_reports
+                WHERE review_status = 'verified'
+                ORDER BY observed_at DESC, id DESC
+                LIMIT %s
+            """, (limit,)).fetchall()
+    except Exception:
+        app.logger.exception("Could not load verified community reports")
+        return jsonify({"status": "unavailable", "message": "Verified reports unavailable"}), 503
+
+    reports = [{
+        "id": row[0], "latitude": row[1], "longitude": row[2],
+        "observed_type": row[3], "observed_at": row[4].isoformat() if row[4] else None,
+        "created_at": row[5].isoformat() if row[5] else None,
+        "review_status": "verified", "source": "community_report",
+    } for row in rows]
+    response = jsonify({"status": "success", "reports": reports, "count": len(reports)})
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return response, 200
 
 
 # A report is a few hundred bytes; refuse anything far bigger.

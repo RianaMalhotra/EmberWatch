@@ -1,0 +1,46 @@
+name: PostGIS database integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  postgis-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgis:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: emberwatch_test
+          POSTGRES_USER: emberwatch
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U emberwatch -d emberwatch_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgresql://emberwatch:test-only-password@localhost:5432/emberwatch_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Initialize isolated PostGIS schema
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          from pathlib import Path
+          with psycopg.connect(os.environ["TEST_DATABASE_URL"]) as conn:
+              conn.execute(Path("tests/postgis_contract_schema.sql").read_text())
+          PY
+      - name: Test real database ingestion and Flask response
+        run: python -m pytest tests/test_postgis_integration.py -q

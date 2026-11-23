@@ -1810,6 +1810,114 @@
 .ew-explore-lab-cta:hover{background:#78432b;transform:translateY(-1px)}
 .ew-explore-lab-cta span{color:#ffb77c}
 
+
+/* Location-first entry and compact assessment actions */
+.ew-home-place-search{position:relative;z-index:5;width:min(100%,560px);margin:24px 0 14px;text-align:left}
+.ew-home-place-search>label{display:block;margin-bottom:8px;color:#f8e6d3;font-weight:700;font-size:.88rem}
+.ew-home-place-row{display:flex;gap:8px;align-items:stretch}
+.ew-home-place-row input{flex:1;min-width:0;border:1px solid #986849;border-radius:10px;padding:13px 15px;background:#201a1a;color:#fff;font:inherit}
+.ew-home-place-row input::placeholder{color:#c9b9b0}
+.ew-home-place-row button,.ew-selection-actions button{border:1px solid #dba36b;border-radius:10px;padding:11px 15px;background:#a94c28;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.ew-home-place-results{position:absolute;top:100%;left:0;right:0;max-height:250px;overflow-y:auto;border:1px solid #986849;border-radius:10px;background:#211b1b;box-shadow:0 15px 35px #0008;padding:6px;z-index:10}
+.ew-home-place-results button{display:block;width:100%;text-align:left;background:transparent;color:#f8eee8;border:0;padding:11px 12px;border-radius:6px;cursor:pointer}
+.ew-home-place-results button:hover,.ew-home-place-results button:focus-visible{background:#4b3028}
+.ew-home-place-results span{display:block;padding:10px;color:#f5d7b6}
+.ew-selection-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.ew-selection-actions button{background:#362521;color:#ffe3c5}
+.ew-selection-disclaimer{font-size:.84rem;line-height:1.5;color:#d7c5b9}
+.ew-home-place-search :focus-visible,.ew-selection-actions button:focus-visible{outline:3px solid #ffca81;outline-offset:2px}
+@media(max-width:640px){.ew-home-place-row{flex-direction:column}.ew-home-place-row button{width:100%}.ew-home-place-search{margin-top:18px}}
+
+
+/* Explore basemap switcher — inside existing layers panel */
+.ew-basemap-picker{padding:12px 0 15px;margin-bottom:13px;border-bottom:1px solid rgba(245,181,126,.2)}
+.ew-basemap-label{display:block;color:#f2d3b5;font-size:.78rem;font-weight:700;letter-spacing:.035em;margin-bottom:9px}
+.ew-basemap-picker .ew-layer-switcher{display:flex;flex-wrap:wrap;gap:5px}
+.ew-basemap-picker .ew-layer-switcher button{flex:1;min-width:75px;white-space:nowrap}
+.ew-basemap-picker .ew-layer-switcher button[aria-pressed="true"]{background:#a84f2a;color:#fff7ee;border-color:#f1b078}
+.ew-basemap-picker .ew-layer-switcher button:focus-visible{outline:3px solid #ffd08c;outline-offset:2px}
+
+
+/* Map controls layout repair: prevent clipped labels, sideways scrolling and overflowing legend. */
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-map-controls.ew-map-controls-open{
+  box-sizing:border-box!important;
+  width:min(330px,calc(100% - 24px))!important;
+  max-width:calc(100% - 24px)!important;
+  max-height:min(78dvh,620px)!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-toggle{
+  flex:0 0 auto;min-width:0;gap:8px;white-space:normal;text-align:left;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-label{
+  min-width:0;white-space:normal;overflow-wrap:anywhere;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content{
+  box-sizing:border-box;display:flex;flex:1 1 auto;flex-direction:column;
+  align-items:stretch;min-width:0;width:100%;max-width:100%;
+  min-height:0;max-height:none!important;overflow-x:hidden!important;
+  overflow-y:auto!important;padding:12px 8px 9px;gap:12px;
+  scrollbar-width:thin;
+}
+.ew-explore-page .ew-map-controls-content>*{box-sizing:border-box;min-width:0;max-width:100%}
+.ew-explore-page .ew-map-controls-content .ew-layer-switcher{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;min-width:0;gap:4px}
+.ew-explore-page .ew-basemap-picker .ew-layer-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ew-explore-page .ew-map-controls-content .ew-layer-switcher button{
+  min-width:0!important;width:100%;max-width:100%;white-space:normal;
+  overflow-wrap:anywhere;line-height:1.25;padding:10px 5px;font-size:12px;
+}
+.ew-explore-page .ew-map-controls-content .ew-basemap-picker{width:100%;margin:0;padding:0 0 12px}
+.ew-explore-page .ew-map-controls-content .ew-zone-toggle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ew-explore-page .ew-map-controls-content .ew-zone-toggle input{flex-shrink:0}
+.ew-explore-page .ew-map-controls-content .ew-legend-disclosure,
+.ew-explore-page .ew-map-controls-content .ew-map-help{width:100%;min-width:0;overflow-wrap:anywhere}
+.ew-explore-page .ew-map-controls-content .legend,
+.ew-explore-page .ew-map-controls-content .legend-group,
+.ew-explore-page .ew-map-controls-content .legend-item{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.ew-explore-page .ew-map-controls-content .legend{display:flex;flex-direction:column;align-items:stretch}
+.ew-explore-page .ew-map-controls-content summary{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:800px){
+ .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open{
+  width:min(330px,calc(100% - 20px))!important;
+  max-width:calc(100% - 20px)!important;
+  max-height:min(72dvh,560px)!important;
+ }
+}
+
+
+/* Keep the opened layer menu content visible and scrollable.
+   Do not flex-shrink the contents into a zero-height region. */
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open{
+  height:auto!important;
+  min-height:0!important;
+  max-height:min(75dvh,600px)!important;
+  display:block!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain;
+}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open>.ew-map-controls-content{
+  display:flex!important;
+  position:relative!important;
+  flex:none!important;
+  height:auto!important;
+  min-height:min-content!important;
+  max-height:none!important;
+  overflow:visible!important;
+  visibility:visible!important;
+  opacity:1!important;
+  padding:12px 8px!important;
+}
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content .ew-basemap-picker,
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content .ew-layer-switcher,
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content .ew-zone-toggle,
+.ew-explore-page .ew-map-controls-open .ew-map-controls-content details{
+  visibility:visible!important;
+  opacity:1!important;
+}
+
 /* ------------------------------------------------------------------------
    #48 performance: cheaper effects over the live map.
    A 16.6 s Edge recording of the production build (4x CPU) spent 7.7 s in

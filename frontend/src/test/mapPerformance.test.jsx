@@ -85,7 +85,7 @@ async function renderDashboard(detectionCount, zoomLevel) {
   fetchDetections.mockResolvedValue({ detections, threshold: 20, counts: { shown: detections.length } });
 
   render(<App />);
-  await userEvent.click(await screen.findByRole("button", { name: "Explore map" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Explore" }));
   await screen.findAllByRole("button", { name: /Select area at/ });
   await waitFor(() => expect(screen.getAllByTestId("fire-marker").length).toBeGreaterThan(0));
 
