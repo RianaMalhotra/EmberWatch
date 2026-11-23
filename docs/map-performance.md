@@ -179,16 +179,44 @@ Run with at least 3 people who did not build the app, on desktop and on a phone.
 | 5 | "On this phone, tap an area and tell me its risk score." | Finds the score in the details panel without being told to scroll | Phone |
 | 6 | "Search for Kelowna. Is a risk score available there?" | Finds the place and understands whether it is a monitored area | Phone |
 
-Results:
+### Results
 
-| Task | P1 | P2 | P3 | Notes |
-|---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| 6 | | | | |
+Two participants, run on Nov 23, 2026, on the developer's laptop (current `main`, Microsoft Edge). Phone tasks used Edge's device emulation. Neither participant had seen EmberWatch before. A third participant is still planned.
+
+- **P1**: Arts & Science student
+- **P2**: Mechanical Engineering student
+
+| Task | P1 | P2 | Notes |
+|---|---|---|---|
+| 1. Highest-risk area | ✅ | ✅ | Found the orange (moderate) areas and reasoned "there's no red, so these must be the highest". Correct, but they had to work it out; the map never says which area is highest |
+| 2. Read a detection's confidence | ✅ | ✅ | Both found a flame and read its confidence |
+| 3. Does high confidence mean high area risk? | ⚠️ / ❌ | ⚠️ / ❌ | **Neither clearly separated confidence from risk.** One said: "what is this confidence score even about? I feel like I understand nothing." The other treated confidence as "how accurate the detection is" (correct), but judged it by how many flames were nearby: a flame in a dense cluster above 50 % is "accurate", a lone flame "has a chance but isn't fully accurate". (Which answer came from which participant was not recorded.) |
+| 4. Incomplete area and its missing inputs | ✅ | ✅ | Both found them, but asked why so much information is missing |
+| 5. Phone: tap an area, read its risk score | ⚠️ | ⚠️ | Found it, but the text was too small; they had to lean in to read |
+| 6. Phone: search for Kelowna | ✅ | ✅ | Found it; text again too small |
+
+### Findings
+
+1. **Detection confidence vs area risk is still not understood (task 3).** This is the key question for #48. Labels alone ("Confidence:", "risk score") did not explain the difference to first-time users.
+2. **Current and historical detections look identical.** P2 could not tell which flames are current fires and which are old records, which is important for a wildfire app.
+3. **Scope is unclear: the app covers Canada only.** The home page says it monitors 13 areas, but in small text that P2 said he "had no time to read". He panned to other countries and found no data.
+4. **"Information not available" appears often.** Missing values are repeated field by field, and P2 read this as the app being unfinished ("looks pretty but…").
+5. **Text is too small and too dense, with too many numbers**, on both desktop and phone. P1 was also unsure what to do first on the home page.
+6. **The browser Back button left the website** instead of returning to the previous page. **Fixed in #48** (below).
+7. Ask Ash could not answer "who made this website?". (Project-overview answers were added to Ask Ash on Nov 22; this may need re-checking on the deployed version.)
+
+### Improvements
+
+| Finding | Action |
+|---|---|
+| 6. Back leaves the site | **Fixed in this PR:** each page is a browser history entry (`#home`, `#explore`, …), so Back/Forward move between EmberWatch pages and links like `/#explore` open that page directly. Query parameters such as `?perf=1` are kept. Tests: `frontend/src/navigationHistory.test.jsx` |
+| 1. Confidence vs risk | Recommended: a one-line explanation next to each value ("Detection confidence: how sure the satellite is that this spot is a fire" / "Area risk: how fire-prone the area is today"), and a short "Risk vs detection" note in the legend. Re-test task 3 afterwards |
+| 2. Current vs historical | Recommended: style detections by age (e.g. bright for the last 72 h, faded for older) with a legend entry, and say "historical" on old flames' popups |
+| 3. Canada-only scope | Recommended: a prominent line on the home page and map ("Monitoring 13 areas across Canada"), and limit map panning to Canada |
+| 4. Missing data | Recommended: explain missing inputs once per area (what is missing, why, and that the score is re-weighted) instead of repeating "not available" per field |
+| 5. Readability | Recommended: larger base font for descriptions on desktop and phone, a short plain-language summary before detailed numbers, and numbers behind "Show details" |
+
+Items 1–5 change the dashboard design, so they are recorded as follow-up work rather than redesigned inside #48.
 
 ## Limitations
 
@@ -197,4 +225,4 @@ Results:
 - Flame markers are still one HTML element each. When zoomed in with 1000 detections, that is 1000 DOM elements, which panning has to move. A canvas-drawn marker would be lighter but would lose the emoji flame design.
 - At zoom 6 the clustering grid (0.55°) still left 651 separate markers for 1000 detections, so it reduces the count much less than at zoom 3–5.
 - Detections are limited to the 200 newest by default. Showing many thousands would need server-side clustering or tiling.
-- With fewer than 5 participants, the usability results show obvious problems but are not statistically meaningful.
+- Usability: 2 participants so far (a third is planned), both friends of the developer, tested on one laptop. That is enough to reveal obvious problems, which it did, but not to measure how common they are.

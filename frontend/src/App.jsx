@@ -97,6 +97,19 @@ function RefreshMapLayout({ active, hasSelection }) {
   return null;
 }
 
+// #48 usability: pages are addressable as #home, #explore, ... so the browser
+// Back/Forward buttons and shared links work.
+const PAGES = ["home", "explore", "forecast", "learn", "lab", "analytics"];
+
+function pageFromLocation() {
+  try {
+    const hash = window.location.hash.replace(/^#/, "");
+    return PAGES.includes(hash) ? hash : "home";
+  } catch {
+    return "home";
+  }
+}
+
 function AppContent() {
   const [riskAreas, setRiskAreas] = useState([]);
   const [homeMotion, setHomeMotion] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" ? !window.matchMedia("(prefers-reduced-motion: reduce)").matches : false);
@@ -112,7 +125,7 @@ function AppContent() {
   const [selectedDetection, setSelectedDetection] = useState(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [view, setView] = useState("dashboard");
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(pageFromLocation);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
@@ -304,10 +317,27 @@ function AppContent() {
     .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
   function navigateTo(nextPage) {
     if (nextPage === "explore") { setMapControlsOpen(true); setLegendOpen(true); }
+    // #48 usability: record each page in browser history, so Back returns to
+    // the previous EmberWatch page instead of leaving the site.
+    if (nextPage !== page && PAGES.includes(nextPage)) {
+      try {
+        window.history.pushState({ page: nextPage }, "", `${window.location.pathname}${window.location.search}#${nextPage}`);
+      } catch { /* history unavailable: navigation still works in-app */ }
+    }
     setPage(nextPage);
     setReporting(false);
     setMenuOpen(false);
   }
+
+  useEffect(() => {
+    function onPopState(event) {
+      setPage(PAGES.includes(event.state?.page) ? event.state.page : pageFromLocation());
+      setReporting(false);
+      setMenuOpen(false);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   // #48: stable handlers (setters and refs never change), so the memoised
   // DetectionLayer is not re-rendered just because App re-rendered.
