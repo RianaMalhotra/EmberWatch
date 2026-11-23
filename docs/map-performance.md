@@ -198,7 +198,7 @@ Two participants, run on Nov 23, 2026, on the developer's laptop (current `main`
 ### Findings
 
 1. **Detection confidence vs area risk is still not understood (task 3).** This is the key question for #48. Labels alone ("Confidence:", "risk score") did not explain the difference to first-time users.
-2. **Current and historical detections look identical.** P2 could not tell which flames are current fires and which are old records, which is important for a wildfire app.
+2. **Current and historical detections look identical.** P2 could not tell which flames are current fires and which are old records, which is important for a wildfire app. Both participants suggested **a button to switch between today's fires and historical ones**.
 3. **Scope is unclear: the app covers Canada only.** The home page says it monitors 13 areas, but in small text that P2 said he "had no time to read". He panned to other countries and found no data.
 4. **"Information not available" appears often.** Missing values are repeated field by field, and P2 read this as the app being unfinished ("looks pretty but…").
 5. **Text is too small and too dense, with too many numbers**, on both desktop and phone. P1 was also unsure what to do first on the home page.
@@ -211,12 +211,12 @@ Two participants, run on Nov 23, 2026, on the developer's laptop (current `main`
 |---|---|
 | 6. Back leaves the site | **Fixed in this PR:** each page is a browser history entry (`#home`, `#explore`, …), so Back/Forward move between EmberWatch pages and links like `/#explore` open that page directly. Query parameters such as `?perf=1` are kept. Tests: `frontend/src/navigationHistory.test.jsx` |
 | 1. Confidence vs risk | Recommended: a one-line explanation next to each value ("Detection confidence: how sure the satellite is that this spot is a fire" / "Area risk: how fire-prone the area is today"), and a short "Risk vs detection" note in the legend. Re-test task 3 afterwards |
-| 2. Current vs historical | Recommended: style detections by age (e.g. bright for the last 72 h, faded for older) with a legend entry, and say "historical" on old flames' popups |
+| 2. Current vs historical | **Fixed in this PR, as participants suggested:** a **Fire detections** switch in the map controls (**All / Last 24 h / Historical**) filters the flames by age; with no detections in the last 24 hours it says so. Detections without a valid time are never shown as current. Tests: `frontend/src/utils/detectionAge.test.js`, `frontend/src/detectionAge.app.test.jsx`. Still recommended: a visual difference (e.g. faded older flames) for the "All" view |
 | 3. Canada-only scope | Recommended: a prominent line on the home page and map ("Monitoring 13 areas across Canada"), and limit map panning to Canada |
 | 4. Missing data | Recommended: explain missing inputs once per area (what is missing, why, and that the score is re-weighted) instead of repeating "not available" per field |
 | 5. Readability | Recommended: larger base font for descriptions on desktop and phone, a short plain-language summary before detailed numbers, and numbers behind "Show details" |
 
-Items 1–5 change the dashboard design, so they are recorded as follow-up work rather than redesigned inside #48.
+Items 1, 3, 4 and 5 change the dashboard design, so they are recorded as follow-up work rather than redesigned inside #48.
 
 ## Limitations
 

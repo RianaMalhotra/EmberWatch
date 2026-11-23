@@ -38,6 +38,7 @@ import DetectionLayer from "./components/DetectionLayer";
 import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
 import { detectionLimit, perfEnd, perfStart } from "./utils/perfMarks";
+import { DETECTION_AGE_OPTIONS, RECENT_HOURS, filterDetectionsByAge } from "./utils/detectionAge";
 import StakeholderAnalytics from "./components/StakeholderAnalytics";
 import { findHotspotClusters } from "./utils/hotspotDbscan";
 import HotspotDiscoveryPanel from "./components/HotspotDiscoveryPanel";
@@ -130,6 +131,7 @@ function AppContent() {
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
   const [mapLayer, setMapLayer] = useState("both");
+  const [detectionAge, setDetectionAge] = useState("all");
   const [basemap, setBasemap] = useState("hybrid");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
   const [legendOpen, setLegendOpen] = useState(true);
@@ -172,6 +174,12 @@ function AppContent() {
   const [warnings, setWarnings] = useState([]);
   const [riskAttempt, setRiskAttempt] = useState(0);
   const [detectionAttempt, setDetectionAttempt] = useState(0);
+  // #48 usability: "Last 24 h" / "Historical" switch. Memoised so the
+  // DetectionLayer only updates when the data or the choice changes.
+  const shownDetections = useMemo(
+    () => filterDetectionsByAge(detectionResult?.detections, detectionAge),
+    [detectionResult, detectionAge],
+  );
   useEffect(() => {
     if (detectionResult) perfEnd("detections-load", { detections: detectionResult.detections.length });
   }, [detectionResult]);
@@ -626,7 +634,7 @@ function AppContent() {
            
           {mapLayer !== "risk" && (
             <DetectionLayer
-              detections={detectionResult?.detections}
+              detections={shownDetections}
               threshold={detectionResult?.threshold}
               zoom={mapZoom}
               onSelectDetection={selectDetection}
@@ -634,7 +642,7 @@ function AppContent() {
             />
           )}
         </MapContainer></div>
-        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
+        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div>{mapLayer !== "risk" && <div className="ew-basemap-picker"><span className="ew-basemap-label">Fire detections</span><div className="ew-layer-switcher" role="group" aria-label="Fire detections by age">{DETECTION_AGE_OPTIONS.map(([value, label]) => <button type="button" key={value} aria-pressed={detectionAge === value} onClick={() => setDetectionAge(value)}>{label}</button>)}</div>{detectionResult && detectionAge === "recent" && shownDetections.length === 0 && <span className="ew-basemap-label" role="status">No satellite detections in the last {RECENT_HOURS} hours.</span>}</div>}<label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
