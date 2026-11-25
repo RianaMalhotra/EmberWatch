@@ -373,6 +373,7 @@ function AppContent() {
           </button>
           {menuOpen && <nav id="ew-navigation" className="ew-navigation" aria-label="Map settings">
             <strong>More options</strong>
+            <div className="ew-mobile-primary-nav" aria-label="Main pages">{[["home","Overview"],["explore","Explore"],["learn","Learn"],["forecast","Forecast"]].map(([target,label]) => <button key={target} type="button" aria-current={page === target ? "page" : undefined} onClick={() => navigateTo(target)}>{label}</button>)}</div>
             <button type="button" onClick={() => navigateTo("lab")}>Investigation lab · Compare and replay</button>
             <button type="button" onClick={() => navigateTo("analytics")}>Advanced analytics · Operations & Research</button>
             <button type="button" onClick={() => { navigateTo("learn"); }}>How risk works</button>

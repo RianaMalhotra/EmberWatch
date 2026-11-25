@@ -1967,3 +1967,7 @@
  .ash-shell:not(:has(.ash-panel)) .ash-launcher {min-width:44px;min-height:44px;}
  .ash-shell:not(:has(.ash-panel)) .ash-launcher>span:last-child {display:none;}
 }
+
+/* Single mobile navigation: primary pages move into the existing More menu. */
+.ew-mobile-primary-nav {display:none;}
+@media(max-width:800px){.ew-header .ew-top-nav {display:none!important;} .ew-mobile-primary-nav {display:grid;gap:4px;} .ew-mobile-primary-nav button[aria-current="page"] {font-weight:700;border-color:#e7a06d;} .ew-header .ew-navigation {max-width:calc(100vw - 24px);max-height:75dvh;overflow-y:auto;} }
