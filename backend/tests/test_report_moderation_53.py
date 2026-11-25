@@ -189,3 +189,12 @@ def test_staff_reports_database_error_is_503(client):
         response = client.get("/api/staff/reports")
     assert response.status_code == 503
     assert response.get_json()["status"] == "unavailable"
+
+
+@pytest.mark.parametrize("previous,target,expected", [("rejected","out_of_control",409), ("out","being_held",409), ("rejected","verified",200), ("out","confirmed",200), ("verified","confirmed",200)])
+def test_status_transitions(client, previous, target, expected):
+    conn = FakeConnection([FakeResult(one=(previous,))])
+    with patch("report_moderation._staff", return_value="staff-uuid"), patch("report_moderation.get_connection", return_value=db_with(conn)):
+        response = client.patch("/api/reports/42/status", json={"status": target})
+    assert response.status_code == expected
+    assert len(conn.queries) == (3 if expected == 200 else 1)
