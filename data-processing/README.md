@@ -43,6 +43,22 @@ It scores thresholds from 0 to 100 (step 5). The "answer key" is **persistence**
 
 Options: `--radius-km`, `--window-hours`, `--min-recall`, and `--label type` (uses the FIRMS `type` column instead; for Canada ~99.9% of rows are type 0, so it can't separate thresholds).
 
+**Held-out evaluation (`ml/evaluate_threshold_split.py`, issue #56).** Chooses the threshold on training years only and scores it on a held-out year, printing a confusion matrix, precision, recall and false-positive rate. It reads `ml/results/backtest_<year>.csv`, so it needs no raw FIRMS data:
+
+```bash
+python ml/evaluate_threshold_split.py
+```
+
+**Export stored detections (`export_detections.py`, issue #56).** Read-only. Writes `data-processing/data/detections_<year>.csv` from `public.detections` (archive rows only), for when the raw and cleaned FIRMS files are not at hand. Needs `DATABASE_URL`.
+
+```bash
+python data-processing/export_detections.py 2023 2024 2025
+```
+
+**Burned-area check (`ml/evaluate_against_nbac.py`, issue #56).** Labels each detection by whether it lies inside an official NBAC burned-area polygon instead of using the persistence proxy. Needs the map libraries (`pip install -r ml/requirements-nbac.txt`) and the NBAC yearly zips, which go in `data-processing/data/` (git-ignored). Method and caveats: [docs/threshold-backtest.md](../docs/threshold-backtest.md).
+
+Results and caveats: [docs/threshold-backtest.md](../docs/threshold-backtest.md).
+
 Put the recommended value in `DEFAULT_MIN_DETECTION_CONFIDENCE` in `backend/config.py`. The threshold can also be overridden at runtime with the `MIN_DETECTION_CONFIDENCE` environment variable.
 
 ## Areas and environmental data (`load_environment_to_db.py`, issue #68)
