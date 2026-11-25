@@ -1950,3 +1950,20 @@
 .ew-quick-guide-disclosure>summary:focus-visible,.ew-quick-guide button:focus-visible{outline:3px solid #ffb36c;outline-offset:3px}
 .ew-quick-guide button{min-height:44px}
 @media(prefers-reduced-motion:reduce){.ew-quick-guide *, .ew-quick-guide-disclosure{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* #115 reviewer P1: keep controls in flow and give evidence room to wrap. */
+.ew-explore-page:not(.ew-page-hidden) .ew-workspace.ew-map-first {grid-template-columns:minmax(0,1fr) minmax(340px,40%)!important;}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-side-window {overflow-x:hidden;box-sizing:border-box;}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-side-panel {min-width:0!important;box-sizing:border-box;overflow-wrap:anywhere;}
+.ew-map-first .ew-side-panel :is(.ew-detail-panel,.ew-collapsed-details,.ew-expanded-details,.ew-factor-list,.ew-factor-row,.ew-metric) {min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;white-space:normal;}
+.ew-map-first .ew-side-panel .ew-factor-row {flex-wrap:wrap;}
+.ew-main {padding-bottom:100px!important;}
+@media(max-width:800px){
+ .ew-explore-page:not(.ew-page-hidden) .ew-workspace.ew-map-first {grid-template-columns:minmax(0,1fr)!important;}
+ .ew-header {position:relative!important;height:auto!important;min-height:0!important;flex-wrap:wrap;}
+ .ew-top-nav {position:static!important;order:3;flex:1 0 100%;width:100%;box-sizing:border-box;}
+ .ew-top-nav button {min-width:0;padding:10px 4px;}
+ .ew-explore-page:not(.ew-page-hidden) .ew-map-side-window {width:100%;max-height:none;}
+ .ash-shell:not(:has(.ash-panel)) .ash-launcher {min-width:44px;min-height:44px;}
+ .ash-shell:not(:has(.ash-panel)) .ash-launcher>span:last-child {display:none;}
+}

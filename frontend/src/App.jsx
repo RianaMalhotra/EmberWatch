@@ -127,13 +127,14 @@ function AppContent() {
   const [suggestionIndex, setSuggestionIndex] = useState(-1);
   const [mapLayer, setMapLayer] = useState("both");
   const [basemap, setBasemap] = useState("hybrid");
-  const [mapControlsOpen, setMapControlsOpen] = useState(true);
-  const [legendOpen, setLegendOpen] = useState(true);
+  const [mapControlsOpen, setMapControlsOpen] = useState(() => !window.matchMedia?.("(max-width: 800px)").matches);
+  const [legendOpen, setLegendOpen] = useState(() => !window.matchMedia?.("(max-width: 800px)").matches);
   const [mapZoom, setMapZoom] = useState(6);
   useEffect(() => {
     if (page === "explore") {
-      setMapControlsOpen(true);
-      setLegendOpen(true);
+      const desktop = !window.matchMedia?.("(max-width: 800px)").matches;
+      setMapControlsOpen(desktop);
+      setLegendOpen(desktop);
     }
   }, [page]);
   const [clusterZoomTarget, setClusterZoomTarget] = useState(null);
@@ -308,7 +309,7 @@ function AppContent() {
   const filteredAreas = useMemo(() => sortAreasByRisk(riskAreas)
     .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase())), [riskAreas, search]);
   function navigateTo(nextPage) {
-    if (nextPage === "explore") { setMapControlsOpen(true); setLegendOpen(true); }
+    if (nextPage === "explore") { const desktop = !window.matchMedia?.("(max-width: 800px)").matches; setMapControlsOpen(desktop); setLegendOpen(desktop); }
     setPage(nextPage);
     setReporting(false);
     setMenuOpen(false);
@@ -498,7 +499,7 @@ function AppContent() {
       {/* #49: a rendering error in the map or details panel is contained here, so the
           status messages, search and Report a fire stay usable. */}
       <ErrorBoundary label="map and details" resetKeys={[riskAreas, detectionResult]}>
-      <details className="ew-quick-guide-disclosure" open><summary>Quick map guide · 3 steps</summary><section className="ew-quick-guide" aria-label="Quick map guide"><div><strong>1. Find a location</strong><span>Search a Canadian city or browse monitored areas.</span><button type="button" onClick={() => { setSearchExpanded(true); requestAnimationFrame(() => document.getElementById("ew-area-search")?.focus()); }}>Find a place</button></div><div><strong>2. Read the map</strong><span>Colored circles show modeled risk; flame icons show satellite heat observations, not confirmed fires.</span><button type="button" onClick={() => { setMapControlsOpen(true); setLegendOpen(true); requestAnimationFrame(() => document.querySelector(".ew-legend-disclosure summary")?.focus()); }}>Show map legend</button></div><div><strong>3. Understand the score</strong><span>Risk is a model score out of 100, not the probability of a wildfire.</span><button type="button" onClick={() => navigateTo("learn")}>Understand risk</button></div></section></details><div className="ew-workspace ew-map-first">
+      <details className="ew-quick-guide-disclosure" open={!window.matchMedia?.("(max-width: 800px)").matches}><summary>Quick map guide · 3 steps</summary><section className="ew-quick-guide" aria-label="Quick map guide"><div><strong>1. Find a location</strong><span>Search a Canadian city or browse monitored areas.</span><button type="button" onClick={() => { setSearchExpanded(true); requestAnimationFrame(() => document.getElementById("ew-area-search")?.focus()); }}>Find a place</button></div><div><strong>2. Read the map</strong><span>Colored circles show modeled risk; flame icons show satellite heat observations, not confirmed fires.</span><button type="button" onClick={() => { setMapControlsOpen(true); setLegendOpen(true); requestAnimationFrame(() => document.querySelector(".ew-legend-disclosure summary")?.focus()); }}>Show map legend</button></div><div><strong>3. Understand the score</strong><span>Risk is a model score out of 100, not the probability of a wildfire.</span><button type="button" onClick={() => navigateTo("learn")}>Understand risk</button></div></section></details><div className="ew-workspace ew-map-first">
         <div className="ew-ember-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
         <div className="ew-map-column"><div className="ew-map-title"><span className="ew-map-title-dot" /> MAP <span className="ew-map-title-caption">Explore locations and satellite observations</span></div><div className="ew-map-frame">
           <MapContainer

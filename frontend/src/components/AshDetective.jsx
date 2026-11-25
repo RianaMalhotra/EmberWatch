@@ -88,7 +88,9 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
     if (contextualArea) lastAreaRef.current = contextualArea;
     setMessages((old) => [...old, { role: "user", text: question }]);
     setBusy(true);
-    let answer = projectGuide(question) ?? "";
+    const explicitRiskPlace = /\b(?:fire\s+risk|wildfire\s+risk|risk)\s+(?:in|for|at|of)\s+([^?!.]+)[?!.]*$/i.exec(question);
+    const unknownRiskPlace = explicitRiskPlace && !mentionedArea && !/^(?:this|that|the|same)\s+(?:area|place|location|city)$/i.test(explicitRiskPlace[1].trim());
+    let answer = projectGuide(question) ?? (unknownRiskPlace ? `I don’t have a loaded monitored-area risk assessment for ${explicitRiskPlace[1].trim()}. Search for the location on Explore to inspect available observations. No risk score or current fire status can be inferred.` : "");
     if (answer) { historyRef.current = [...prior, { role: "user", content: question }, { role: "assistant", content: answer }].slice(-12); setMessages(old => [...old, { role: "assistant", text: answer }]); setBusy(false); return; }
     let forecast = null;
     let forecastError = "";
@@ -144,7 +146,6 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
         <form className="ash-compose" onSubmit={(e) => { e.preventDefault(); ask(draft); }}><input ref={inputRef} aria-label="Ask Ash Detective" placeholder="Ask me anything about the map…" value={draft} maxLength={500} onChange={(e) => setDraft(e.target.value)} /><button type="submit" disabled={!draft.trim() || busy} aria-label="Send message">➤</button></form>
         <p className="ash-caution">May be incomplete or outdated · Not emergency advice</p>
       </section>}
-      <button type="button" className="ash-guide-launcher" disabled={busy} onClick={() => { setOpen(true); ask("How do I use this website?"); }}><span>How to use EmberWatch · Ask Ash</span></button>
       <button type="button" ref={launcherRef} className="ash-launcher" aria-label={open ? "Close Ash Detective" : "Chat with Ash Detective"} aria-expanded={open} onClick={() => setOpen((v) => !v)}><span aria-hidden="true"><AshMascot size={29} /></span><span>{open ? "Close case" : "Ask Ash"}</span></button>
     </div>
   );
