@@ -71,3 +71,5 @@
 .ew-app .ew-analytics-reports{order:4}
 .ew-app .ew-analytics-disclaimer{order:5}
 @media(max-width:760px){.ew-app .ew-analytics-hero{padding:16px;grid-template-columns:1fr}.ew-app .ew-analytics-hero-tags{display:none}}
+
+.ew-app .ew-analytics .ew-analytics-disclaimer,.ew-app .ew-analytics-panel p,.ew-app .ew-analytics-metrics small,.ew-app .ew-analytics-inline-stats small{font-size:14px;line-height:1.55;color:#e1d3c9;overflow-wrap:anywhere}

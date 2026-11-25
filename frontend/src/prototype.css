@@ -1971,3 +1971,6 @@
 /* Single mobile navigation: primary pages move into the existing More menu. */
 .ew-mobile-primary-nav {display:none;}
 @media(max-width:800px){.ew-header .ew-top-nav {display:none!important;} .ew-mobile-primary-nav {display:grid;gap:4px;} .ew-mobile-primary-nav button[aria-current="page"] {font-weight:700;border-color:#e7a06d;} .ew-header .ew-navigation {max-width:calc(100vw - 24px);max-height:75dvh;overflow-y:auto;} }
+
+/* P2: readable feature descriptions and platform stat captions. */
+.ew-home-inferno .ew-feature-tiles button>span:nth-child(2),.ew-home-inferno .ew-home-intelligence>div :is(span,small,p){font-size:14px;line-height:1.5;color:#e1cfc2;overflow-wrap:anywhere}

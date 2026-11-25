@@ -30,6 +30,7 @@ export default function RiskLegend() {
         <span className="legend-item"><Dot stroke="#374151" dashed />Dashed outline: incomplete (some inputs missing)</span>
         <span className="legend-item"><Dot fill="#e5e7eb" stroke={UNAVAILABLE_COLOR} dashed />Grey: risk unavailable (not enough data)</span>
       </div>
+      <div className="legend-group"><span className="legend-title">Search selection</span><span className="legend-item"><Dot fill="#2563eb" stroke="#e0f2fe" />Selected location (not a risk level)</span></div>
       <div className="legend-group">
         <span className="legend-title">Satellite detections</span>
         <span className="legend-item"><span className="ew-legend-flame" aria-hidden="true">🔥</span> Potential wildfire (satellite hotspot)</span>

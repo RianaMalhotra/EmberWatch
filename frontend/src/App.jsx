@@ -569,7 +569,7 @@ function AppContent() {
                 <Popup><strong>Public report — {report.review_status === "unverified" ? "Unverified" : report.review_status.replaceAll("_", " ")}</strong><p>{[report.observed_type, report.description].filter(Boolean).join(" — ")}</p>{report.review_status === "unverified" && <small>Location is approximate; description is hidden pending review.</small>}<p>Reported: {new Date(report.observed_at).toLocaleString()}</p><small>Community report, not a satellite detection or official emergency alert.</small></Popup>
               </CircleMarker>
             ))}
-            {searchedPlace && <CircleMarker center={[searchedPlace.latitude, searchedPlace.longitude]} radius={11} pathOptions={{color:"#ffb36c",fillColor:"#ff7843",fillOpacity:0.8,weight:3}}><Tooltip permanent direction="top"><strong>{searchedPlace.name}</strong><br />Selected location</Tooltip></CircleMarker>}
+            {searchedPlace && <CircleMarker center={[searchedPlace.latitude, searchedPlace.longitude]} radius={11} pathOptions={{color:"#e0f2fe",fillColor:"#2563eb",fillOpacity:0.9,weight:3}}><Tooltip permanent direction="top"><strong>{searchedPlace.name}</strong><br />Selected location</Tooltip></CircleMarker>}
             {/* Draw non-interactive risk zones below clickable area and detection markers. */}
             {mapLayer !== "detections" && showZones && riskAreas
               .filter((area) => Number.isFinite(area.latitude) && Number.isFinite(area.longitude))
