@@ -71,6 +71,9 @@ function DetectionLayer({ detections, threshold, zoom, onSelectDetection, onZoom
         key={`detection-${cluster.key}`}
         position={[cluster.latitude, cluster.longitude]}
         icon={icon}
+        // Accessible names for the markers, matching the labels added in #115.
+        title={clustered ? `${cluster.items.length} satellite observations` : `Satellite observation, ${detection.classification === "low_confidence" ? "low confidence" : "meets confidence threshold"}`}
+        alt={clustered ? `${cluster.items.length} satellite observations` : "Satellite heat observation"}
         eventHandlers={{
           click: () => (clustered ? onZoomToCluster(cluster) : onSelectDetection(detection)),
         }}
