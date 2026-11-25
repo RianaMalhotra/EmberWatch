@@ -1,0 +1,5 @@
+split,train_years,test_years,threshold,precision,recall,false_positive_rate,youden_j,kept_share,true_positives,false_positives,false_negatives,true_negatives,train_recall,train_false_positive_rate
+time-ordered,2023+2024,2025,0,0.9509,1.0,1.0,0.0,1.0,148641,7672,0,0,1.0,1.0
+leave-one-year-out,2024+2025,2023,0,0.9717,1.0,1.0,0.0,1.0,314840,9163,0,0,1.0,1.0
+leave-one-year-out,2023+2025,2024,0,0.9494,1.0,1.0,0.0,1.0,140087,7460,0,0,1.0,1.0
+leave-one-year-out,2023+2024,2025,0,0.9509,1.0,1.0,0.0,1.0,148641,7672,0,0,1.0,1.0
