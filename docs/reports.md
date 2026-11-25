@@ -98,18 +98,16 @@ Delete test rows afterwards: `delete from public.fire_reports where description 
 - **Reports are not shown on the map yet.** Displaying and reviewing them is #53.
 
 
-## Sprint 5 staff moderation API (proposed)
+## Sprint 5 staff moderation (implemented by #104)
 
-Staff-only endpoints:
-- `GET /api/staff/reports?status=unverified` lists full reports, including descriptions; status may be omitted to include all review states
-- `PATCH /api/staff/reports/{id}/review` with `{"review_status":"verified"}` or `{"review_status":"rejected"}` changes only a pending report; already-reviewed reports cannot be silently overwritten
+The server-side moderation routes and authentication are defined in
+`backend/report_moderation.py`, not in separate staff services:
 
-Every request requires an actual Supabase Auth access token in `Authorization: Bearer <token>`.
-The Flask server verifies the token with `GET {SUPABASE_URL}/auth/v1/user`, then checks the returned authenticated user ID against the server-side `REPORTS_STAFF_USER_IDS` allowlist. Unverified JWT claims and `X-Staff`/`X-User-Role` headers are never accepted. Failed verification denies access.
+- `GET /api/staff/reports` returns a complete staff-only queue, including unverified, rejected, and out reports with original descriptions. The response is not public data and must not be exposed to unauthenticated clients.
+- `PATCH /api/reports/{id}/status` accepts JSON such as `{"status":"verified"}` for an allowed transition; it checks the existing status, rejects invalid transitions with HTTP 409, and records a timestamped audit entry with the verified staff ID on changes.
+- `GET /api/reports/{id}/audit` returns the report's audit history to authorized staff.
+- `GET /api/reports` includes active community reports but hides rejected/out reports and redacts unverified descriptions and precise GPS coordinates.
 
-Required backend environment:
-- `SUPABASE_URL`: HTTPS Supabase project URL
-- `SUPABASE_ANON_KEY`: public/anon key for Auth user verification (never a service-role key)
-- `REPORTS_STAFF_USER_IDS`: comma-separated UUIDs of approved staff
+Access requires a valid Supabase Auth bearer token verified by the backend, with the authenticated user UUID included in the server-side `REPORTS_STAFF_USER_IDS` allowlist. The backend requires `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Never trust client-provided role headers or unverified token claims.
 
-**Deployment gate:** Keep the reporting feature in preview until the migration, secure environment configuration, authenticated staff UI, and deployed end-to-end tests have been verified. This API alone does not complete #51, #53, or #64. The frontend must send the authenticated staff session's access token; no token should be hard-coded or placed in query strings.
+For configuration, state transition rules, and manual verification instructions, see [Sprint 5 moderation and Auth](sprint5-moderation-auth.md). Review evidence for #53 is tracked in merged PR #104. Changes to the moderation lifecycle should be made against this implementation rather than creating competing routes.
