@@ -8,6 +8,7 @@ from db import get_connection
 
 reports_bp = Blueprint("reports", __name__)
 STATUSES = frozenset({"unverified", "verified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"})
+ALLOWED_TRANSITIONS = {"unverified":["verified","confirmed","rejected"],"verified":["confirmed","rejected"],"confirmed":["out_of_control","being_held","under_control","out","rejected"],"out_of_control":["being_held","under_control","out","rejected"],"being_held":["out_of_control","under_control","out","rejected"],"under_control":["out_of_control","being_held","out","rejected"],"out":["confirmed"],"rejected":["verified"]}
 ACTIVE = tuple(sorted(STATUSES - {"rejected", "out"}))
 PUBLIC_REPORT_FIELDS = ("id", "latitude", "longitude", "observed_type", "description", "observed_at", "review_status", "created_at")
 
@@ -92,7 +93,7 @@ def moderate_report(report_id):
         return jsonify({"status": "error", "message": "Staff authorization required"}), 403
     body = request.get_json(silent=True)
     status = body.get("status") if isinstance(body, dict) else None
-    if status not in STATUSES or status == "unverified":
+    if not isinstance(status, str) or status not in STATUSES or status == "unverified":
         return jsonify({"status": "error", "message": "Invalid moderation status"}), 400
     try:
         with get_connection() as conn:
@@ -102,6 +103,8 @@ def moderate_report(report_id):
             previous = row[0]
             if previous == status:
                 return jsonify({"status": "success", "data": {"id": report_id, "review_status": status, "unchanged": True}}), 200
+            if status not in ALLOWED_TRANSITIONS.get(previous, ()):
+                return jsonify({"status": "error", "message": "Invalid status transition"}), 409
             conn.execute("update public.fire_reports set review_status=%s where id=%s", (status, report_id))
             conn.execute(
                 "insert into public.fire_report_audit(report_id,old_status,new_status,staff_id) values (%s,%s,%s,%s)",
