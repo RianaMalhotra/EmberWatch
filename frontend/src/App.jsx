@@ -6,7 +6,6 @@ import ReportFire from "./components/ReportFire";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { REPORTS_ENABLED, fetchPublicReports } from "./services/reportApi";
 
-const PUBLIC_REPORT_STYLE = Object.freeze({ color: "#7052a3", fillColor: "#c9b2e9", fillOpacity: 0.8, weight: 3, dashArray: "3 3" });
 import StaffModeration from "./components/StaffModeration";
 import { fetchDetections } from "./services/detectionApi";
 import { describeLoadError } from "./utils/loadError";
@@ -43,6 +42,8 @@ import StakeholderAnalytics from "./components/StakeholderAnalytics";
 import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
 import { findHotspotClusters } from "./utils/hotspotDbscan";
 import HotspotDiscoveryPanel from "./components/HotspotDiscoveryPanel";
+
+const PUBLIC_REPORT_STYLE = Object.freeze({ color: "#7052a3", fillColor: "#c9b2e9", fillOpacity: 0.8, weight: 3, dashArray: "3 3" });
 
 const fireMarkerIcon = (lowConfidence) => divIcon({
   className: "ew-fire-marker-wrap",
