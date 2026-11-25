@@ -18,12 +18,14 @@ python -m pip install -r requirements.txt
 python -m pytest -q --cov=services.detection_pipeline --cov=services.detection_validation --cov=services.detection_filter --cov=services.risk_scoring --cov-report=term-missing --cov-report=xml:coverage.xml
 ```
 
-Data processing (FIRMS cleaning, loading and validation, threshold backtest; no database needed). CI runs this as the "Data Processing Tests" job (#46):
+Data processing (FIRMS cleaning, loading and validation, threshold backtest and held-out evaluation; no database needed). CI runs this as the "Data Processing Tests" job (#46):
 
 ```bash
 python -m pip install pytest
 python -m pytest tests -q
 ```
+
+The burned-area check tests (`tests/test_evaluate_against_nbac_maps.py`) need geopandas, shapely and pyproj, which CI does not install, so they are skipped there. Run them locally with `pip install -r ml/requirements-nbac.txt` and then `python -m pytest tests -q`.
 
 Frontend:
 
