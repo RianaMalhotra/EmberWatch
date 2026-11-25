@@ -30,6 +30,13 @@ describe("DetectionLayer marker labels", () => {
     screen.getAllByTestId("marker").forEach((m) => expect(m.getAttribute("data-alt")).toBe("Satellite heat observation"));
   });
 
+  it("explains that confidence is not area risk (#48 usability, task 3)", () => {
+    render(<DetectionLayer zoom={12} threshold={20} onSelectDetection={() => {}} onZoomToCluster={() => {}}
+      detections={[detection(1, 50, -100)]} />);
+    expect(screen.getByText(/how sure the satellite is that this spot is a heat source/i)).toBeInTheDocument();
+    expect(screen.getByText(/not the area's wildfire risk/i)).toBeInTheDocument();
+  });
+
   it("names clusters by how many observations they hold", () => {
     render(<DetectionLayer zoom={3} threshold={20} onSelectDetection={() => {}} onZoomToCluster={() => {}}
       detections={[detection(1, 51, -101), detection(2, 51.01, -101.01), detection(3, 51.02, -101.02)]} />);

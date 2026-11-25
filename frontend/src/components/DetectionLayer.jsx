@@ -92,6 +92,12 @@ function DetectionLayer({ detections, threshold, zoom, onSelectDetection, onZoom
                 <br />Detected: {formatDetectionTime(detection.timestamp)}
                 <br />Confidence: {formatConfidence(detection.confidence)}
               </p>
+              {/* #48 usability, task 3: neither participant could tell detection
+                  confidence from area risk, so say what confidence means here. */}
+              <p className="ew-confidence-explainer">
+                Confidence is how sure the satellite is that this spot is a heat source.
+                It is not the area&apos;s wildfire risk (the coloured circles show that).
+              </p>
               {!detection.meets_threshold && (
                 <p>Below the {threshold}% confidence threshold. Treat with caution.</p>
               )}

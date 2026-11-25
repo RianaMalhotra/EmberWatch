@@ -210,13 +210,13 @@ Two participants, run on Nov 23, 2026, on the developer's laptop (current `main`
 | Finding | Action |
 |---|---|
 | 6. Back leaves the site | **Fixed in this PR:** each page is a browser history entry (`#home`, `#explore`, …), so Back/Forward move between EmberWatch pages and links like `/#explore` open that page directly. Query parameters such as `?perf=1` are kept. Tests: `frontend/src/navigationHistory.test.jsx` |
-| 1. Confidence vs risk | Recommended: a one-line explanation next to each value ("Detection confidence: how sure the satellite is that this spot is a fire" / "Area risk: how fire-prone the area is today"), and a short "Risk vs detection" note in the legend. Re-test task 3 afterwards |
+| 1. Confidence vs risk | **Partly addressed in this PR:** every flame popup now explains the value: "Confidence is how sure the satellite is that this spot is a heat source. It is not the area's wildfire risk (the coloured circles show that)." Test: `frontend/src/components/DetectionLayer.labels.test.jsx`. Task 3 is re-tested with the third participant (see Results). **Follow-up, tracked separately:** the same explanation in the details panel and a short "Risk vs detection" note in the legend. Both live in `App.jsx` sections that #115 is also changing (it adds "not a confirmed wildfire or an environmental risk score" to the details panel), so they are left until #115 merges, to avoid conflicting rewrites |
 | 2. Current vs historical | **Fixed in this PR, as participants suggested:** a **Fire detections** switch in the map controls (**All / Last 24 h / Historical**) filters the flames by age; with no detections in the last 24 hours it says so. Detections without a valid time are never shown as current. Tests: `frontend/src/utils/detectionAge.test.js`, `frontend/src/detectionAge.app.test.jsx`. Still recommended: a visual difference (e.g. faded older flames) for the "All" view |
 | 3. Canada-only scope | Recommended: a prominent line on the home page and map ("Monitoring 13 areas across Canada"), and limit map panning to Canada |
 | 4. Missing data | Recommended: explain missing inputs once per area (what is missing, why, and that the score is re-weighted) instead of repeating "not available" per field |
 | 5. Readability | Recommended: larger base font for descriptions on desktop and phone, a short plain-language summary before detailed numbers, and numbers behind "Show details" |
 
-Items 1, 3, 4 and 5 change the dashboard design, so they are recorded as follow-up work rather than redesigned inside #48.
+Items 3, 4 and 5 (and the rest of item 1) change the dashboard design, so they are recorded as follow-up work rather than redesigned inside #48.
 
 ## Limitations
 
@@ -224,5 +224,6 @@ Items 1, 3, 4 and 5 change the dashboard design, so they are recorded as follow-
 - Mobile was measured with Chrome's device emulation and CPU throttling, not on physical phones (unless noted in the results).
 - Flame markers are still one HTML element each. When zoomed in with 1000 detections, that is 1000 DOM elements, which panning has to move. A canvas-drawn marker would be lighter but would lose the emoji flame design.
 - At zoom 6 the clustering grid (0.55°) still left 651 separate markers for 1000 detections, so it reduces the count much less than at zoom 3–5.
+- **Mobile INP is still 555 ms** (iPhone 16 emulation, 4× CPU slowdown), above the 500 ms "poor" line, even after halving it from 1,118 ms. Desktop is good (125 ms). This is tracked as follow-up optimization; the likely next step is fewer DOM markers (canvas markers or server-side clustering) and lighter panel updates on tap.
 - Detections are limited to the 200 newest by default. Showing many thousands would need server-side clustering or tiling.
 - Usability: 2 participants so far (a third is planned), both friends of the developer, tested on one laptop. That is enough to reveal obvious problems, which it did, but not to measure how common they are.
