@@ -26,11 +26,13 @@ from services.risk_scoring import (
 )
 from services.detection_pipeline import get_classified_detections
 from services.detection_history import get_historical_detections, history_params
+from report_moderation import reports_bp
 from services.report_store import RateLimited, client_key, save_report
 from services.report_validation import validate_report
 from services.client_ip import client_ip
 
 app = Flask(__name__)
+app.register_blueprint(reports_bp)
 CORS(app, resources={
     r"/api/*": {"origins": get_cors_origins()}
 })
