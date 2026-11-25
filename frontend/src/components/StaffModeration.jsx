@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { moderatePublicReport, fetchReportAudit, fetchStaffReports } from "../services/reportApi";
 import { signInStaff, signOutStaff, refreshStaff, staffAuthConfigured } from "../services/staffAuth";
 
-const STATUSES = ["verified", "confirmed", "rejected", "out_of_control", "being_held", "under_control", "out"];
+const ALLOWED_TRANSITIONS = {"unverified":["verified","confirmed","rejected"],"verified":["confirmed","rejected"],"confirmed":["out_of_control","being_held","under_control","out","rejected"],"out_of_control":["being_held","under_control","out","rejected"],"being_held":["out_of_control","under_control","out","rejected"],"under_control":["out_of_control","being_held","out","rejected"],"out":["confirmed"],"rejected":["verified"]};
+const optionsFor = (report) => [report.review_status, ...(ALLOWED_TRANSITIONS[report.review_status] || [])].filter((s) => s !== "unverified");
+const selectedStatus = (report, selected) => optionsFor(report).includes(selected) ? selected : (optionsFor(report).includes("confirmed") ? "confirmed" : optionsFor(report)[0]);
 export default function StaffModeration({ onUpdated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,10 +93,10 @@ export default function StaffModeration({ onUpdated }) {
       {reports.map((report) => <article key={report.id} style={{ borderTop: "1px solid #bbb", padding: 10 }}>
         <strong>Report #{report.id} — {report.review_status}</strong>
         <p>{[report.observed_type, report.description].filter(Boolean).join(" — ")} · {report.latitude}, {report.longitude}</p>
-        <label>New status <select aria-label={`Status for report ${report.id}`} value={status[report.id] || "confirmed"} onChange={(e) => setStatus((prev) => ({ ...prev, [report.id]: e.target.value }))}>
-          {STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll("_", " ")}</option>)}
+        <label>New status <select aria-label={`Status for report ${report.id}`} value={selectedStatus(report, status[report.id])} onChange={(e) => setStatus((prev) => ({ ...prev, [report.id]: e.target.value }))}>
+          {optionsFor(report).map((s) => <option key={s} value={s}>{s.replaceAll("_", " ")}</option>)}
         </select></label>
-        <button type="button" disabled={busy} onClick={() => withStaff(async (token) => { await moderatePublicReport(report.id, status[report.id] || "confirmed", token); setReload((n) => n + 1); onUpdated?.(); })}>Save status</button>
+        <button type="button" disabled={busy} onClick={() => withStaff(async (token) => { await moderatePublicReport(report.id, selectedStatus(report, status[report.id]), token); setStatus((prev) => ({ ...prev, [report.id]: undefined })); setReload((n) => n + 1); onUpdated?.(); })}>Save status</button>
         <button type="button" disabled={busy} onClick={() => withStaff(async (token) => { const rows = await fetchReportAudit(report.id, token); setAudit((prev) => ({ ...prev, [report.id]: rows })); })}>View audit history</button>
         {audit[report.id] && <ul>{audit[report.id].map((entry, i) => <li key={i}>{entry.old_status} → {entry.new_status} by {entry.staff_id} at {new Date(entry.changed_at).toLocaleString()}</li>)}</ul>}
       </article>)}
