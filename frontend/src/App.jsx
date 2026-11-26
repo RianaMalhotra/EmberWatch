@@ -431,6 +431,7 @@ function AppContent() {
             <button type="button" onClick={() => navigateTo("analytics")}>Advanced analytics · Operations & Research</button>
             <button type="button" onClick={() => { navigateTo("learn"); }}>How risk works</button>
             <button type="button" onClick={() => { setPage("explore"); setReporting(true); setMenuOpen(false); }}>Report a Fire {REPORTS_ENABLED ? "" : "(preview)"}</button>
+            <button type="button" onClick={() => { navigateTo("explore"); setModerating(true); }}>Staff moderation · Sign in</button>
             <p>EmberWatch is an educational risk explorer, not an emergency alert service.</p>
           </nav>}
         </div>
