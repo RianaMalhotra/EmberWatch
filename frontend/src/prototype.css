@@ -1956,3 +1956,27 @@
   background: radial-gradient(circle, #ffb27a 0, #ff652b 30%, rgba(255, 101, 43, 0) 70%);
   will-change: transform, opacity;
 }
+
+/* Detection density and accessible map controls */
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open {
+  width:min(350px,calc(100% - 24px))!important;
+  scrollbar-width:thin;
+  scrollbar-color:#95694f #22272c;
+}
+.ew-map-controls-open .ew-map-controls-toggle {position:sticky;top:0;z-index:2;}
+.ew-explore-page .ew-map-controls-content .ew-layer-switcher button {
+  white-space:nowrap;overflow-wrap:normal;font-size:11px;padding:9px 2px;
+}
+.ew-explore-page .ew-map-controls-content .ew-legend-disclosure {
+  max-height:none;overflow:visible;
+}
+.ew-explore-page .ew-map-controls-content .legend-group {
+  display:flex;flex-wrap:wrap;gap:7px;line-height:1.45;
+}
+.ew-heat-legend {display:grid;gap:7px;padding:10px 0;color:#f2d9c8;line-height:1.45;}
+.ew-heat-scale {height:10px;border-radius:4px;background:linear-gradient(to right,#2563eb,#22c55e,#facc15,#f97316,#dc2626);}
+.ew-heat-labels {display:flex;justify-content:space-between;}
+@media(max-width:480px){
+ .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open {width:min(290px,calc(100% - 20px))!important;max-height:55dvh!important;}
+ .ew-explore-page .ew-map-controls-content .ew-layer-switcher[aria-label="Map layers"] {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
