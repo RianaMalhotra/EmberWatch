@@ -199,7 +199,7 @@ describe("historical detection API client (#46)", () => {
     let requested;
     globalThis.fetch = async (url) => {
       requested = url;
-      return { ok: true, json: async () => sample };
+      return { ok: true, json: async () => ({ ...sample, truncated: false }) };
     };
     const result = await fetchDetectionHistory(filters);
     const url = new URL(requested, "https://example.com");
@@ -213,7 +213,7 @@ describe("historical detection API client (#46)", () => {
     let requested;
     globalThis.fetch = async (url) => {
       requested = url;
-      return { ok: true, json: async () => sample };
+      return { ok: true, json: async () => ({ ...sample, truncated: false }) };
     };
     await fetchDetectionHistory({
       ...filters,
@@ -234,6 +234,13 @@ describe("historical detection API client (#46)", () => {
     await expect(fetchDetectionHistory({ ...filters, end: filters.start })).rejects.toThrow(/earlier/);
     await expect(fetchDetectionHistory({ ...filters, limit: 1001 })).rejects.toThrow(/limit/);
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it("rejects history responses with missing truncation or invalid status", async () => {
+    for (const body of [{ ...sample, status: "error", truncated: false }, { ...sample }, { ...sample, truncated: "false" }]) {
+      globalThis.fetch = async () => ({ ok: true, json: async () => body });
+      await expect(fetchDetectionHistory(filters)).rejects.toThrow(/Invalid historical detection data/);
+    }
   });
 
   it("reports server errors without presenting historical data", async () => {
