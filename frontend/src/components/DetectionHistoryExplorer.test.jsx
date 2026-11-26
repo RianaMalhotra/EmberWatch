@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DetectionHistoryExplorer from "./DetectionHistoryExplorer";
 import { fetchDetectionHistory } from "../services/detectionApi";
@@ -51,6 +51,22 @@ describe("Sprint 6 history workflow (#58)", () => {
     expect(screen.queryByText(/historical observations returned/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Search history" }));
     expect(await screen.findByText(/No stored observations matched/)).toBeInTheDocument();
+  });
+
+  it("keeps pending results associated with the submitted region when controls change", async () => {
+    const user = userEvent.setup();
+    let resolve;
+    fetchDetectionHistory.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+    render(<DetectionHistoryExplorer onExplore={() => {}} />);
+    await search(user);
+    await user.selectOptions(screen.getByLabelText("Region"), "west");
+    await act(async () => { resolve({ detections: [], truncated: false }); });
+    expect(await screen.findByText(/Results for Canada \(bounding box\)/)).toBeInTheDocument();
+    expect(fetchDetectionHistory).toHaveBeenCalledTimes(1);
+    fetchDetectionHistory.mockResolvedValueOnce({ detections: [], truncated: false });
+    await user.click(screen.getByRole("button", { name: "Search history" }));
+    expect(await screen.findByText(/Results for Western Canada/)).toBeInTheDocument();
+    expect(fetchDetectionHistory).toHaveBeenLastCalledWith(expect.objectContaining({ west: -140, east: -110 }));
   });
 
   it("requires dates and keeps navigation functional", async () => {
