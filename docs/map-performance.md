@@ -162,7 +162,9 @@ Results (Microsoft Edge, production build, 4× CPU, 200 detections; per-second v
 | **Desktop, production, after marker + CSS fix** | **125 ms** | **74 ms** | **31 ms** | **65 ms** | Good (under 200 ms) |
 | Mobile emulation (iPhone 16), production, after marker + CSS fix | 1,118 ms | 184 ms | 31 ms | 261 ms | Poor. 833 ms of JavaScript in the slowest tap; markers re-added on zoom (see third bottleneck). Session included a page load |
 | **Mobile emulation (iPhone 16), production, after key fix** | **555 ms** | 258 ms | 39 ms | 210 ms | Halved, but still above 500 ms (poor) on a 4× slowed phone; see remaining work |
-| Desktop, production, 1000 detections | | | | | |
+| Desktop, production, **1000 detections** | 104 ms | 289 ms | 53 ms | 341 ms | Good INP, but Edge counted only 4 interactions, so it is a small sample. The app's own timings (click until the panel has updated, two frames later) were higher: area select median 221 ms (156–547 ms, n = 6), flame select median 274 ms (165–1,623 ms, n = 6; the 1,623 ms was the first flame click). Main thread busy about 63 % of the 230 s recording (scripting + rendering), with long tasks throughout. Browser extensions were running (about 3.6 s in total). Measured Nov 26, 2026 |
+
+**Reading the 1,000-detection row.** INP only measures until the browser shows its *first* frame after a click; the app's `[map-perf]` timings wait until the details panel has finished updating, so they are closer to what the user waits for. With 1,000 flames, desktop still stays under 300 ms for a typical click, but scripting and rendering per second are 4–5× higher than with 200 detections, and the main thread is rarely idle. 1,000 detections is therefore usable on desktop but not light; the follow-up in *Remaining work* (canvas markers or server-side clustering) applies here too. The 1,000-detection mobile run was not measured.
 
 Target: interactions under 100 ms feel instant (RAIL guideline); markers drawn within about 1 s of the data arriving.
 
@@ -178,22 +180,27 @@ Run with at least 3 people who did not build the app, on desktop and on a phone.
 | 4 | "Pick an area whose risk assessment is incomplete. What information is missing?" | Finds a dashed circle and reads the missing inputs | Desktop |
 | 5 | "On this phone, tap an area and tell me its risk score." | Finds the score in the details panel without being told to scroll | Phone |
 | 6 | "Search for Kelowna. Is a risk score available there?" | Finds the place and understands whether it is a monitored area | Phone |
+| 7 | "Show only fires from the last 24 hours." (added for P3, to test the new switch) | Finds **Fire detections → Last 24 h** without help | Desktop |
 
 ### Results
 
-Two participants, run on Nov 23, 2026, on the developer's laptop (current `main`, Microsoft Edge). Phone tasks used Edge's device emulation. Neither participant had seen EmberWatch before. A third participant is still planned.
+P1 and P2 were run on Nov 23, 2026, on the developer's laptop (current `main`, Microsoft Edge); phone tasks used Edge's device emulation. P3 was run on Nov 26, 2026. None of them had seen EmberWatch before.
 
 - **P1**: Arts & Science student
 - **P2**: Mechanical Engineering student
+- **P3**: first-year Arts & Science student (life sciences). Given one minute to browse freely first, then the tasks.
 
-| Task | P1 | P2 | Notes |
-|---|---|---|---|
-| 1. Highest-risk area | ✅ | ✅ | Found the orange (moderate) areas and reasoned "there's no red, so these must be the highest". Correct, but they had to work it out; the map never says which area is highest |
-| 2. Read a detection's confidence | ✅ | ✅ | Both found a flame and read its confidence |
-| 3. Does high confidence mean high area risk? | ⚠️ / ❌ | ⚠️ / ❌ | **Neither clearly separated confidence from risk.** One said: "what is this confidence score even about? I feel like I understand nothing." The other treated confidence as "how accurate the detection is" (correct), but judged it by how many flames were nearby: a flame in a dense cluster above 50 % is "accurate", a lone flame "has a chance but isn't fully accurate". (Which answer came from which participant was not recorded.) |
-| 4. Incomplete area and its missing inputs | ✅ | ✅ | Both found them, but asked why so much information is missing |
-| 5. Phone: tap an area, read its risk score | ⚠️ | ⚠️ | Found it, but the text was too small; they had to lean in to read |
-| 6. Phone: search for Kelowna | ✅ | ✅ | Found it; text again too small |
+**Note on P3's build.** P3's main session was accidentally run on the build from PR #115 (the usability-improvements branch), not this branch, so it did not include this PR's popup text or age switch. Tasks 3 and 7 were therefore repeated with P3 on this branch's build (commit `02cfeb8`) the same day. Both results are reported below and kept separate.
+
+| Task | P1 | P2 | P3 | Notes |
+|---|---|---|---|---|
+| 1. Highest-risk area | ✅ | ✅ | ✅ | Found the orange (moderate) areas and reasoned "there's no red, so these must be the highest". Correct, but they had to work it out; the map never says which area is highest |
+| 2. Read a detection's confidence | ✅ | ✅ | ✅ | Both found a flame and read its confidence |
+| 3. Does high confidence mean high area risk? | ⚠️ / ❌ | ⚠️ / ❌ | #115 build: ⚠️ · **this PR: ✅** | **P1 and P2 did not clearly separate confidence from risk.** One said: "what is this confidence score even about? I feel like I understand nothing." The other treated confidence as "how accurate the detection is" (correct), but judged it by how many flames were nearby: a flame in a dense cluster above 50 % is "accurate", a lone flame "has a chance but isn't fully accurate". (Which answer came from which participant was not recorded.) **P3, #115 build:** trusted the confidence value fully ("I will trust that it's correct"), without separating it from area risk. **P3, this PR's build:** opened a flame and answered by reading the new popup explanation aloud. The text is found and answers the question at the moment it is needed; reading it aloud does not show she would remember the difference without the popup. |
+| 4. Incomplete area and its missing inputs | ✅ | ✅ | ✅ | Both found them, but asked why so much information is missing |
+| 5. Phone: tap an area, read its risk score | ⚠️ | ⚠️ | ✅ | Found it, but the text was too small; they had to lean in to read |
+| 6. Phone: search for Kelowna | ✅ | ✅ | ✅ | Found it; text again too small. P3 found it but saw no information for the area and thought the site might still be loading or lagging |
+| 7. Show only the last 24 hours | – | – | ✅ (this PR) | Found **Fire detections → Last 24 h** on her own |
 
 ### Findings
 
@@ -201,17 +208,27 @@ Two participants, run on Nov 23, 2026, on the developer's laptop (current `main`
 2. **Current and historical detections look identical.** P2 could not tell which flames are current fires and which are old records, which is important for a wildfire app. Both participants suggested **a button to switch between today's fires and historical ones**.
 3. **Scope is unclear: the app covers Canada only.** The home page says it monitors 13 areas, but in small text that P2 said he "had no time to read". He panned to other countries and found no data.
 4. **"Information not available" appears often.** Missing values are repeated field by field, and P2 read this as the app being unfinished ("looks pretty but…").
-5. **Text is too small and too dense, with too many numbers**, on both desktop and phone. P1 was also unsure what to do first on the home page.
+5. **Text is too small and too dense, with too many numbers**, on both desktop and phone (all three participants mentioned small text). P1 was also unsure what to do first on the home page.
 6. **The browser Back button left the website** instead of returning to the previous page. **Fixed in #48** (below).
 7. Ask Ash could not answer "who made this website?". (Project-overview answers were added to Ask Ash on Nov 22; this may need re-checking on the deployed version.)
+8. **All three participants trusted the confidence number fully.** P3 said "I will trust that it's correct". Confidence is the satellite's own estimate, not a verified result; the popup now says what it measures, but not that it can be wrong.
+9. **Empty states look like loading (P3).** When a place had no information, she read the blank area as the site still loading or lagging. Suggested: one line saying *why* nothing is shown (e.g. "No satellite detections near Kelowna in the loaded records").
+10. **Choosing a monitored area zooms to its centre, not to its fires (P3).** She expected to be taken to where fires are happening in that area.
+11. **Feature request (P3):** when an area is selected, list its fires from the last week by date in the side panel.
+12. **Vegetation data (P3):** every area is "incomplete: missing Vegetation Index"; she suggested adding it.
+13. Positive: P3 said it "looks amazing", understood overall what it does, completed the tasks quickly, and asked whether it is for the general public (it is).
 
 ### Improvements
 
 | Finding | Action |
 |---|---|
 | 6. Back leaves the site | **Fixed in this PR:** each page is a browser history entry (`#home`, `#explore`, …), so Back/Forward move between EmberWatch pages and links like `/#explore` open that page directly. Query parameters such as `?perf=1` are kept. Tests: `frontend/src/navigationHistory.test.jsx` |
-| 1. Confidence vs risk | **Partly addressed in this PR:** every flame popup now explains the value: "Confidence is how sure the satellite is that this spot is a heat source. It is not the area's wildfire risk (the coloured circles show that)." Test: `frontend/src/components/DetectionLayer.labels.test.jsx`. Task 3 is re-tested with the third participant (see Results). **Follow-up, tracked separately:** the same explanation in the details panel and a short "Risk vs detection" note in the legend. Both live in `App.jsx` sections that #115 is also changing (it adds "not a confirmed wildfire or an environmental risk score" to the details panel), so they are left until #115 merges, to avoid conflicting rewrites |
+| 1. Confidence vs risk | **Partly addressed in this PR:** every flame popup now explains the value: "Confidence is how sure the satellite is that this spot is a heat source. It is not the area's wildfire risk (the coloured circles show that)." Test: `frontend/src/components/DetectionLayer.labels.test.jsx`. Re-tested with P3: she answered task 3 by reading this text aloud (see Results). **Follow-up, tracked separately:** the same explanation in the details panel and a short "Risk vs detection" note in the legend. Both live in `App.jsx` sections that #115 is also changing (it adds "not a confirmed wildfire or an environmental risk score" to the details panel), so they are left until #115 merges, to avoid conflicting rewrites |
 | 2. Current vs historical | **Fixed in this PR, as participants suggested:** a **Fire detections** switch in the map controls (**All / Last 24 h / Historical**) filters the flames by age; with no detections in the last 24 hours it says so. Detections without a valid time are never shown as current. Tests: `frontend/src/utils/detectionAge.test.js`, `frontend/src/detectionAge.app.test.jsx`. Still recommended: a visual difference (e.g. faded older flames) for the "All" view |
+| 8. Overtrust in confidence | Follow-up: add "an estimate, not a confirmed fire" to the popup or legend |
+| 9. Empty states look like loading | Follow-up: one-line explanation when a place has no data |
+| 10–11. Area zoom and weekly fire list | Follow-up feature: zoom to the area's detections and list them by date in the side panel |
+| 12. Vegetation index missing | Follow-up (data): no vegetation source is loaded for any area |
 | 3. Canada-only scope | Recommended: a prominent line on the home page and map ("Monitoring 13 areas across Canada"), and limit map panning to Canada |
 | 4. Missing data | Recommended: explain missing inputs once per area (what is missing, why, and that the score is re-weighted) instead of repeating "not available" per field |
 | 5. Readability | Recommended: larger base font for descriptions on desktop and phone, a short plain-language summary before detailed numbers, and numbers behind "Show details" |
@@ -226,4 +243,4 @@ Items 3, 4 and 5 (and the rest of item 1) change the dashboard design, so they a
 - At zoom 6 the clustering grid (0.55°) still left 651 separate markers for 1000 detections, so it reduces the count much less than at zoom 3–5.
 - **Mobile INP is still 555 ms** (iPhone 16 emulation, 4× CPU slowdown), above the 500 ms "poor" line, even after halving it from 1,118 ms. Desktop is good (125 ms). This is tracked as follow-up optimization; the likely next step is fewer DOM markers (canvas markers or server-side clustering) and lighter panel updates on tap.
 - Detections are limited to the 200 newest by default. Showing many thousands would need server-side clustering or tiling.
-- Usability: 2 participants so far (a third is planned), both friends of the developer, tested on one laptop. That is enough to reveal obvious problems, which it did, but not to measure how common they are.
+- Usability: 3 participants, all friends of the developer, tested on one laptop; P3's main session used the #115 build, and only tasks 3 and 7 were repeated on this branch. That is enough to reveal obvious problems, which it did, but not to measure how common they are.
