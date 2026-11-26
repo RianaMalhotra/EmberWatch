@@ -4,7 +4,7 @@ import secrets
 import time
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, current_app
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
@@ -17,6 +17,7 @@ from config import (
 from db import check_database, get_connection
 from services.observability import record_request, snapshot
 from services.freshness_metrics import detection_freshness
+from services.fire_history import get_historical_fire_records
 
 from services.risk_scoring import (
     MODEL_VERSION,
@@ -294,6 +295,30 @@ def get_detections():
 
     return jsonify({"status": "success", "source": "database", **result}), 200
 
+
+@app.get("/api/fires/history")
+def historical_fire_records():
+    try:
+        # Validate filters before opening a database connection.
+        history_params(request.args)
+
+        with get_connection() as conn:
+            result = get_historical_fire_records(conn, request.args)
+
+        return jsonify({"status": "success", **result}), 200
+
+    except ValueError as error:
+        return jsonify({
+            "status": "error",
+            "message": str(error),
+        }), 400
+
+    except Exception:
+        current_app.logger.exception("Could not load historical fire records")
+        return jsonify({
+            "status": "unavailable",
+            "message": "Historical fire records unavailable",
+        }), 503
 
 @app.route("/api/detections/history", methods=["GET"])
 def get_detection_history():
