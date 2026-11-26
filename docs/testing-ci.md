@@ -37,7 +37,7 @@ npm run lint
 npm run build
 ```
 
-The target for identified critical functions is **at least 80% statement coverage**. This PR initially **reports** coverage without asserting the threshold, because the baseline must be measured from a completed CI run first. Review the report, add missing tests, then introduce `--cov-fail-under=80` once the suite reaches the target. Do not claim 80% is met before reviewing the report.
+The target for identified critical functions is **at least 80% statement coverage**. #30 first only reported coverage; the gate is now enforced: the Backend Tests job in `.github/workflows/tests.yml` runs pytest with `--cov-fail-under=80` over the seven critical service modules, so CI fails below 80%. Measured coverage on `main` (Nov 26, 2026, commit `6dcb585`) was 99%; see [Acceptance traceability](acceptance-traceability.md).
 
 ## Branch protection
 
