@@ -69,7 +69,7 @@ Maintainer-reported manual checks: public submission and markers, staff login, s
 - Reporting and moderation: #101, #104, #112, #115.
 - Performance and analytics: #105, #107, #111 (consult GitHub for current merge status).
 - Heatmap and responsive controls: commits 0da462d, ef27916, 94379bb, b65f593 and 496a8a6.
-- Sprint 7 gaps: context-aware legend, dedicated canvas heatmap regression tests, broader mobile/browser checks, ongoing ingestion/freshness checks, model calibration and missing NDVI. Review API failure paths and report-specific test coverage before final release.
+- Sprint 7 gaps: context-aware legend, broader mobile/browser checks, ongoing ingestion/freshness checks, model calibration and missing NDVI. Strengthen reporting request timeouts and moderation/audit response validation; review report-specific failure coverage before final release.
 - Heatmap density is relative to the loaded, filtered observations and screen zoom; it is not a count per square kilometre or a fire spread model.
 
-**Closure gate:** Existing CI and manual journeys are reported passing. Documentation is updated; dedicated heatmap regression coverage and independent contract/failure-path review remain outstanding. Do not claim these have been completed.
+**Closure evidence:** Heatmap integration regression test added in c19361a covers toggle, age filtering, canvas cleanup and marker restoration. Maintainer reported CI passing after that commit. Client contract review found detection validation/timeouts and report submission/staff-list validation present; reporting timeouts and moderation/audit schema hardening remain Sprint 7 follow-ups. Manual verification and CI results are maintainer-reported, not independently rerun. Documentation matches the integrated feature scope.
