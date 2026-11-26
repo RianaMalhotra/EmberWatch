@@ -144,6 +144,8 @@ Apply the relevant migrations in `supabase/migrations/` before running loaders. 
 
 ## Tests and verification
 
+**Acceptance traceability:** [docs/acceptance-traceability.md](docs/acceptance-traceability.md) maps every acceptance criterion of the selected user stories (#2, #3, #4, #5, #6, #8, #9, #10, #12, #13) to its issue, pull request, test result and demo step, and lists the remaining gaps (#66).
+
 Run the following commands from the indicated directories.
 
 **Backend tests and coverage** (from `backend/`):
