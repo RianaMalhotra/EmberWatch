@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchDetectionHistory } from "../services/detectionApi";
 import { formatConfidence, formatCoordinates, formatDetectionTime } from "../utils/detectionFormat";
 
+const REGION_LABELS = { canada: "Canada (bounding box)", west: "Western Canada (approximate)", central: "Central Canada (approximate)", east: "Eastern Canada (approximate)" };
+
 const REGIONS = {
   canada: { south: 42, north: 83, west: -141, east: -52 },
   west: { south: 48, north: 60, west: -140, east: -110 },
@@ -49,7 +51,7 @@ export default function DetectionHistoryExplorer({ onExplore }) {
   return <section className="ew-analytics-panel ew-history" aria-label="Satellite detection history">
     <h2>Satellite detection history</h2>
     <p>Query previously ingested NASA FIRMS observations by broad region and UTC date. Historical heat observations are not confirmed fires or current wildfire alerts.</p>
-    <form onSubmit={event => { event.preventDefault(); if (!invalid) { setQuery({ ...REGIONS[region], start: utcDay(start), end: new Date(Date.parse(utcDay(end)) + 86400000).toISOString(), limit: 200 }); setRevision(n => n + 1); } }}>
+    <form onSubmit={event => { event.preventDefault(); if (!invalid) { setQuery({ ...REGIONS[region], region, start: utcDay(start), end: new Date(Date.parse(utcDay(end)) + 86400000).toISOString(), limit: 200 }); setRevision(n => n + 1); } }}>
       <div className="ew-analytics-controls">
         <label>Region
           <select value={region} onChange={event => setRegion(event.target.value)}>
@@ -69,6 +71,7 @@ export default function DetectionHistoryExplorer({ onExplore }) {
     {state === "loading" && <p role="status">Loading historical satellite detections…</p>}
     {state === "error" && <p role="alert">History unavailable: {error} Existing map and risk information remain accessible.</p>}
     {state === "ready" && result && <>
+      <p>Results for {REGION_LABELS[query.region]} · {query.start.slice(0, 10)} through {new Date(Date.parse(query.end) - 86400000).toISOString().slice(0, 10)} (UTC).</p>
       <p role="status">{result.detections.length} historical observations returned for this query.{result.truncated ? " The result limit was reached: narrow your region or date range to see more." : ""}</p>
       {result.detections.length === 0 ? <p>No stored observations matched this region and date range. This does not establish that no fires occurred.</p> :
         <div className="ew-analytics-table-wrap"><table><thead><tr><th>Observed</th><th>Location</th><th>Confidence</th><th>Classification</th></tr></thead><tbody>
