@@ -12,7 +12,7 @@ This Sprint 6 work integrates the existing interactive dashboard and historic FI
 | Query historical detections | More → Advanced analytics → Satellite detection history | New explicit region/UTC date form; bounded 200-row query, truncation disclosure, error and empty handling; `DetectionHistoryExplorer.test.jsx` |
 | Submit a public report | More → Report a Fire | Form is submission-enabled only with `VITE_ENABLE_REPORTS=true` and a configured backend. An unverified report is not an emergency-service notification |
 | View verified reports | More → Advanced analytics → Operations dashboard | `GET /api/reports/verified`; only staff-reviewed reports appear, with rounded coordinates. Missing endpoint/error is shown, not replaced by dummy reports |
-| Review and moderate reports | Staff workflow | **Dependency:** open PRs #104 and #112 provide role-based access, report moderation and audit/history functionality. Cannot be claimed complete on `main` until merged and deployed |
+| Review and moderate reports | Staff workflow | Merged PR #104 provides staff authorization, moderation and audit history; merged #112 adds regression tests and documentation. Production verification remains pending |
 
 ## Data flow / API contracts
 
@@ -29,7 +29,7 @@ flowchart LR
   H -->|GET /api/detections/history| B
   P -->|POST /api/reports| B
   P -->|GET /api/reports/verified| B
-  S[Staff moderation UI - pending PRs] -->|Authenticated staff endpoints| B
+  S[Staff moderation UI - deployment verification pending] -->|Authenticated staff endpoints| B
 ```
 
 The historical endpoint requires WGS84 south/north/west/east and two timezone-aware ISO-8601 instants; start is inclusive and end exclusive. The form uses whole UTC calendar days, translating the inclusive last day into the next UTC midnight as the exclusive API boundary. Regions are approximate rectangles and may include territory outside provincial boundaries. Each query is capped at 200 returned detections. A `truncated` response tells the user to narrow the query.
@@ -54,13 +54,13 @@ cd ..
 python -m pytest tests -q
 ```
 
-For a live-data smoke test, confirm `/api/health`, `/api/health/db`, `/api/risk-areas`, `/api/detections` and a filtered `/api/detections/history` query with existing data. Then verify that empty and failing requests do not render invented records. Staff moderation must be checked independently against its protected endpoints, authentication state, and migration once its dependency PRs are merged. Unit tests do not establish live health.
+For a live-data smoke test, confirm `/api/health`, `/api/health/db`, `/api/risk-areas`, `/api/detections` and a filtered `/api/detections/history` query with existing data. Then verify that empty and failing requests do not render invented records. Staff moderation must be checked independently against its protected endpoints, authentication state, and migration after the required migrations and deployment configuration are verified. Unit tests do not establish live health.
 
 ## Related PRs, remaining gaps, Sprint 7 handoff
 
 - Existing dashboard and cross-feature contracts: #91, #97, #98, #99; verified report feed is present in `main`.
-- Public-report submission: #101; staff moderation/report history: #104 and #112 (**open dependencies**, check their state before merging).
+- Public-report submission: #101; staff moderation/report history: #104 and #112 (merged; production verification pending).
 - Detection-performance work: #105; ML hotspots: #107; threshold evaluation: #111 (open at the time of this write).
-- **Sprint 7**: merge and verify staff moderation end-to-end, apply migrations and secrets, validate real reports and staff audit history, reconcile remaining PRs, verify scheduled data ingestion/freshness and actual deployment, decide whether a true interpolated heatmap is required, and record further accessibility/usability or cross-feature defects.
+- **Sprint 7**: verify staff moderation end-to-end, apply migrations and secrets, validate real reports and staff audit history, reconcile remaining PRs, verify scheduled data ingestion/freshness and actual deployment, deliver a heatmap or explicitly agree on a scoped alternative under #58, and record further accessibility/usability or cross-feature defects.
 
-**Issue #58 closure gate:** CI must pass, docs must match merged code, and the staff moderation/history journey must be available and verified together with the public reporting flow. Until those dependencies are satisfied, this PR records substantial integration progress rather than claiming all acceptance criteria are complete.
+**Issue #58 closure gate:** CI must pass, docs must match merged code, the heatmap requirement must be delivered or explicitly rescoped, and the staff moderation/history journey must be available and verified together with the public reporting flow. Deployment blockers are tracked under #61 and #114; keep public reporting disabled until verified. Until those dependencies are satisfied, this PR records substantial integration progress rather than claiming all acceptance criteria are complete.
