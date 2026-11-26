@@ -1981,16 +1981,16 @@
  .ew-explore-page .ew-map-controls-content .ew-layer-switcher[aria-label="Map layers"] {grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
+
 .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open {
- display:flex!important;flex-direction:column!important;overflow:hidden!important;min-height:0!important;
+ display:block!important; height:auto!important; overflow-y:auto!important;overflow-x:hidden!important;
 }
 .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open>.ew-map-controls-content {
- flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;
+ display:block!important;position:static!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;visibility:visible!important;opacity:1!important;
 }
-.ew-map-controls-open .ew-map-controls-toggle {position:relative;top:auto;flex-shrink:0;}
-.ew-explore-page .ew-map-controls-content>* {flex-shrink:0;}
+.ew-map-controls-open .ew-map-controls-toggle {position:static;top:auto;}
+.ew-explore-page .ew-map-controls-content>* {margin-bottom:10px!important;}
 .ew-explore-page .ew-map-controls-content .ew-legend-disclosure[open] {height:auto!important;max-height:none!important;overflow:visible!important;}
 @media(max-width:480px){
- .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open {width:min(255px,calc(100% - 70px))!important;max-height: min(48dvh,calc(100% - 60px))!important;}
- .ew-explore-page .ew-map-controls-content .ew-layer-switcher {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open {width:min(255px,calc(100% - 70px))!important;max-height:48dvh!important;}
 }
