@@ -15,7 +15,7 @@ This matrix maps every acceptance criterion of the selected user stories to the 
 | ❌ Gap | Not implemented or not verified |
 | ⏸ Deferred | Story intentionally postponed |
 
-> **Production caveat.** Everything below was verified locally (automated tests, local production build). Live checks on the deployed site are separate: the `fire_reports` table **does not exist in the production Supabase database yet** (checked Nov 26, 2026; migration `20261112000000_fire_reports.sql` not applied), so public reporting and staff moderation cannot work live until it is. README already states that public reporting is disabled pending deployment verification ([#61](https://github.com/RianaMalhotra/EmberWatch/issues/61), [#114](https://github.com/RianaMalhotra/EmberWatch/pull/114)).
+> **Production caveat.** Everything below was verified locally (automated tests, local production build). Live checks on the deployed site are separate. On Nov 26, 2026, migrations 3–5 (`detections_unique_nulls`, `fire_reports`, `report_moderation`) were applied to the production Supabase project `ash-detectives`, and `scripts/check_migrations.py` passes all 11 checks ([#114](https://github.com/RianaMalhotra/EmberWatch/pull/114)). However, the Render backend is still running commit `65a9f4c` (Oct 27, 2026), so the reporting and moderation endpoints are **not live yet**, and public reporting stays disabled in Vercel until Render is redeployed and smoke-checked ([#61](https://github.com/RianaMalhotra/EmberWatch/issues/61)).
 
 ## How to reproduce the test results
 
@@ -231,7 +231,7 @@ Story: [#13](https://github.com/RianaMalhotra/EmberWatch/issues/13)
 
 | Gap | Criteria | Suggested issue |
 |---|---|---|
-| Apply the `fire_reports` and moderation migrations in production, then verify reporting and moderation live | 13.x (live), 9.B4 | [#61](https://github.com/RianaMalhotra/EmberWatch/issues/61) |
+| Redeploy the Render backend from current `main` (still on `65a9f4c`), then verify reporting and moderation live (migrations already applied Nov 26) | 13.x (live), 9.B4 | [#61](https://github.com/RianaMalhotra/EmberWatch/issues/61) |
 | Five-participant usability test with the defined risk/confidence/missing-data scenarios | 6.1, 6.3, 6.5 | [#60](https://github.com/RianaMalhotra/EmberWatch/issues/60) |
 | Playwright load and interaction p95 on the deployed site; k6/Locust API load test; 10,000-point workload | 9.Q1, 9.Q2, 9.Q3, 9.B1 | [#60](https://github.com/RianaMalhotra/EmberWatch/issues/60) |
 | Rank factors by contribution (weight × sub-score), show the top 3 and an area-specific summary | 3.4, 5.1, 5.3 | new issue |
