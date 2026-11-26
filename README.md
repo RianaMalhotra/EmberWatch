@@ -183,7 +183,7 @@ python ml/validate_risk_model.py
 
 GitHub Actions runs backend, data-processing, and frontend checks on pull requests targeting `main`. See [GitHub Actions](https://github.com/RianaMalhotra/EmberWatch/actions) for current CI status.
 
-Unit tests and mocked service tests **do not** prove live Supabase connectivity or deployed data freshness. For a deployment smoke check, verify `/api/health`, `/api/health/db`, populated `/api/risk-areas`, and `/api/detections`, then confirm the map handles successful, empty, and failed responses. Data loader instructions are in [Environmental data](https://github.com/RianaMalhotra/EmberWatch/blob/main/docs/environmental-data.md) and [Detection provenance](https://github.com/RianaMalhotra/EmberWatch/blob/main/docs/detection-data-provenance.md).
+Unit tests and mocked service tests **do not** prove live Supabase connectivity or deployed data freshness. For a deployment smoke check, run `python scripts/smoke_check.py https://<backend-host> --frontend-origin https://<frontend-host>` (it checks `/api/health`, `/api/health/db`, populated `/api/risk-areas`, `/api/detections` and CORS; see the [Deployment guide](docs/deployment-vercel-render.md)), then confirm the map handles successful, empty, and failed responses. Data loader instructions are in [Environmental data](https://github.com/RianaMalhotra/EmberWatch/blob/main/docs/environmental-data.md) and [Detection provenance](https://github.com/RianaMalhotra/EmberWatch/blob/main/docs/detection-data-provenance.md).
 
 ## Repository layout
 
