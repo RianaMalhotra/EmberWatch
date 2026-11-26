@@ -12,7 +12,7 @@ EmberWatch addresses the difficulty of interpreting wildfire observations and en
 
 ## Sprint 6 integration status
 
-The dashboard's existing map/risk/report integrations and the new bounded **Satellite detection history** explorer are documented in [Sprint 6 integration verification](docs/sprint6-integration-verification.md). Open **More → Advanced analytics → Satellite detection history**, select a region and UTC date range, and choose **Search history**. The UI shows recorded observations, data gaps, truncated results and recoverable errors; it does not convert detection confidence into wildfire risk. Staff moderation and audit history are implemented by merged PRs [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112), so the overall Sprint 6 integration issue is not complete until production verification and the heatmap requirement are addressed. Public reporting remains disabled pending deployment verification (#61, #114).
+Sprint 6 integrates map selection, environmental risk explanations, satellite history, detection-density heatmap, public reports and authenticated staff moderation. See [Sprint 6 integration verification](docs/sprint6-integration-verification.md) for manual verification and remaining gaps. Use Explore → Map layers & legend → Show detection heatmap; the All, Last 24 h and Historical filters apply to the displayed observations. Public reporting and staff moderation were manually verified on production on November 26, 2026.
 
 ## Current functionality
 
@@ -21,13 +21,15 @@ The dashboard's existing map/risk/report integrations and the new bounded **Sate
 | Interactive dashboard | React/Vite and Leaflet map with selectable monitored areas, detection markers, area details, and loading/empty/error states. |
 | Database-backed area risk | `GET /api/risk-areas` loads monitored areas and environmental inputs from Supabase and computes risk scores. It does **not** return the original three hard-coded mock areas. Unavailable database data produces an error rather than invented observations. |
 | Risk zones (#44) | Optional **50 km circular risk-zone overlay** shaded by computed risk; dashed outlines distinguish incomplete assessments. These are model footprints, **not** a continuous interpolated heatmap or fire-spread prediction. |
+| Detection heatmap | Optional screen-space density of displayed satellite observations; replaces flame markers, respects age filters, and is not fire severity or modeled risk. |
+| Public reports and staff moderation | Public submission and map markers; authenticated staff review and audit history. Community reports are not emergency alerts. |
 | Explainable risk (#21, #45, #57) | Weighted 0–100 risk score, LOW/MODERATE/HIGH classification, factor scores, missing inputs, coverage, and model version (`weighted-index-v1`). Area detail exposes contributing environmental factors. |
 | Satellite detections (#43, #46) | `GET /api/detections` returns classified database-backed FIRMS observations, timestamps, confidence, and data gaps. `GET /api/detections/history` supports validated geographic and UTC time filters. |
 | Data ingestion and freshness (#93, #94) | Scripts and GitHub Actions workflows for Open-Meteo weather refresh and recent NASA FIRMS ingestion. The UI indicates stale observations; scheduled workflows and external feeds can fail and must be verified in deployment. |
 | Reliability and contracts (#50, #63) | JSON API errors, degraded/incomplete states, retry behavior, client response-contract tests, and backend tests with an 80% coverage gate. |
 | Historical model validation (#57) | Reproducible comparison of seven selected wildfire events against prior-year and winter dates. Fire days scored higher in all seven cases, but only one reached HIGH. This small, selected sample **does not establish accuracy or calibration**. |
 
-**Integration dependencies (check live status):** Staff-report authentication/moderation and audit history are implemented by merged PRs [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112). Until the required database migrations, deployment and end-to-end checks are verified, do not claim that protected staff workflows are available. See the [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls) for live status.
+**Reporting:** Public submission, map markers, staff sign-in, moderation and audit history were manually verified on November 26, 2026. See [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104), [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112) and [#115](https://github.com/RianaMalhotra/EmberWatch/pull/115).
 
 ## Feature highlight — interactive risk map
 
@@ -92,7 +94,10 @@ flowchart LR
   INGEST --> DB[(Supabase PostgreSQL / PostGIS)]
   DB --> API[Flask API on Render]
   API --> UI[React / Vite on Vercel]
-  UI --> MAP[Leaflet dashboard]
+  UI --> MAP[Leaflet dashboard and detection density]
+  UI -->|Public reports and staff bearer tokens| API
+  UI -->|Staff sign-in| AUTH[Supabase Auth]
+  API -->|Staff token validation| AUTH
   API --> MODEL[Weighted risk scoring]
   MODEL --> API
 ```
@@ -109,6 +114,13 @@ The diagram represents the implemented components, **not** a guarantee that sche
 | POST | `/api/risk-score` | Score supplied environmental inputs; optional location-based history lookup |
 | GET | `/api/detections?limit=200` | Classified detections, confidence, counts, and gaps |
 | GET | `/api/detections/history` | Historical detections with bounding-box/time filters; the advanced analytics UI supports UTC date and approximate region selection |
+
+| POST | `/api/reports` | Submit an unverified community report |
+| GET | `/api/reports` | Public report feed |
+| GET | `/api/reports/verified` | Staff-reviewed report feed |
+| GET | `/api/staff/reports` | Protected staff report list |
+| PATCH | `/api/reports/{id}/status` | Protected status update |
+| GET | `/api/reports/{id}/audit` | Protected audit history |
 
 The current response shapes and client validation are documented in [Sprint 4 integration contracts](docs/sprint4-integration-contracts.md). `GET /api/risk-areas` requires a reachable database; the original mock response examples are no longer the current contract.
 
@@ -139,6 +151,8 @@ npm run dev
 ```
 
 Open the URL printed by Vite (typically `http://localhost:5173`). If `VITE_API_BASE_URL` is unset, the frontend uses same-origin API paths and needs an appropriate reverse proxy. Configure `CORS_ORIGINS` on the backend to allow the frontend origin. Keep `DATABASE_URL`, API keys, and other secrets in ignored local environment files or deployment secrets, **never** in frontend `VITE_*` variables or committed files.
+
+For reporting, apply `20261112000000_fire_reports.sql` and configure backend `REPORT_HASH_SALT`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `REPORTS_STAFF_USER_IDS` (authorized Supabase Auth UUIDs). Set `TRUSTED_PROXY_COUNT=1` only for the verified single-proxy Render deployment. Set frontend `VITE_ENABLE_REPORTS=true`, `VITE_SUPABASE_URL` (project base URL, without /rest/v1), and `VITE_SUPABASE_ANON_KEY` (public/publishable key only). Never expose service-role keys or the report hash salt.
 
 Apply the relevant migrations in `supabase/migrations/` before running loaders. Use the Supabase **session pooler** connection string. See [Database setup](docs/database.md), [Deployment guide](docs/deployment-vercel-render.md), and [Integration contracts](docs/sprint4-integration-contracts.md).
 
@@ -206,7 +220,7 @@ tests/            Cross-component and data-processing tests
 - Satellite detections can include non-wildfire heat sources and may be delayed; historical records must not be presented as confirmed current fires.
 - NDVI remains unavailable. Missing environmental values lower coverage, and stale observations may make risk estimates unrepresentative of present conditions.
 - Scheduled data refresh, live database connectivity, and deployment health require ongoing verification.
-- Further model calibration, broader unbiased evaluation, public-report workflow integration, and reliability hardening remain follow-up work.
+- Further model calibration, broader unbiased evaluation, additional report workflow regression coverage, and reliability hardening remain follow-up work.
 
 ## Milestone 5 — Sprint 3 review and final-milestone plan
 
