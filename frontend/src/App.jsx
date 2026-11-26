@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./prototype.css";
 import { fetchRiskAreas } from "./services/riskApi";
 import ReportFire from "./components/ReportFire";
@@ -28,30 +28,24 @@ import {
   riskStatusText,
   weatherObservedText,
 } from "./utils/riskFormat";
-import { MapContainer, TileLayer, CircleMarker, Circle, Marker, Popup, Tooltip, useMap } from "react-leaflet";
-import { divIcon } from "leaflet";
+import { MapContainer, TileLayer, CircleMarker, Circle, Tooltip, useMap } from "react-leaflet";
 import { RISK_ZONE_RADIUS_M, riskZoneStyle } from "./utils/riskZone";
 import "leaflet/dist/leaflet.css";
 import { explainFactors } from "./utils/riskExplanation";
 import { sortAreasByRisk } from "./utils/riskFormat";
 import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
+import { MapZoomObserver } from "./components/DetectionClusters";
+import DetectionLayer from "./components/DetectionLayer";
 import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
+import { detectionLimit, perfEnd, perfStart } from "./utils/perfMarks";
+import { DETECTION_AGE_OPTIONS, RECENT_HOURS, filterDetectionsByAge } from "./utils/detectionAge";
 import StakeholderAnalytics from "./components/StakeholderAnalytics";
-import { clusterDetections, MapZoomObserver } from "./components/DetectionClusters";
 import { findHotspotClusters } from "./utils/hotspotDbscan";
 import HotspotDiscoveryPanel from "./components/HotspotDiscoveryPanel";
 
 const PUBLIC_REPORT_STYLE = Object.freeze({ color: "#7052a3", fillColor: "#c9b2e9", fillOpacity: 0.8, weight: 3, dashArray: "3 3" });
-
-const fireMarkerIcon = (lowConfidence) => divIcon({
-  className: "ew-fire-marker-wrap",
-  html: `<span class="ew-fire-marker ${lowConfidence ? "ew-fire-marker-low" : "ew-fire-marker-likely"}" aria-hidden="true">🔥</span>`,
-  iconSize: [26, 30],
-  iconAnchor: [13, 25],
-  popupAnchor: [0, -23],
-});
 
 const factorUnits = {
   temperature_c: "°C",
@@ -108,6 +102,19 @@ function RefreshMapLayout({ active, hasSelection }) {
   return null;
 }
 
+// #48 usability: pages are addressable as #home, #explore, ... so the browser
+// Back/Forward buttons and shared links work.
+const PAGES = ["home", "explore", "forecast", "learn", "lab", "analytics"];
+
+function pageFromLocation() {
+  try {
+    const hash = window.location.hash.replace(/^#/, "");
+    return PAGES.includes(hash) ? hash : "home";
+  } catch {
+    return "home";
+  }
+}
+
 function AppContent() {
   const [riskAreas, setRiskAreas] = useState([]);
   const [homeMotion, setHomeMotion] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" ? !window.matchMedia("(prefers-reduced-motion: reduce)").matches : false);
@@ -123,11 +130,12 @@ function AppContent() {
   const [selectedDetection, setSelectedDetection] = useState(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [view, setView] = useState("dashboard");
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(pageFromLocation);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
   const [mapLayer, setMapLayer] = useState("both");
+  const [detectionAge, setDetectionAge] = useState("all");
   const [basemap, setBasemap] = useState("hybrid");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
   const [legendOpen, setLegendOpen] = useState(true);
@@ -143,6 +151,10 @@ function AppContent() {
   const [searchExpanded, setSearchExpanded] = useState(true);
   const menuRef = useRef(null);
   const detailsRef = useRef(null);
+
+  // #48: opt-in timings (?perf=1), see docs/map-performance.md.
+  useEffect(() => { if (selectedArea) perfEnd("area-select", { area: selectedArea.id }); }, [selectedArea]);
+  useEffect(() => { if (selectedDetection) perfEnd("detection-select"); }, [selectedDetection]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -170,6 +182,15 @@ function AppContent() {
   const [warnings, setWarnings] = useState([]);
   const [riskAttempt, setRiskAttempt] = useState(0);
   const [detectionAttempt, setDetectionAttempt] = useState(0);
+  // #48 usability: "Last 24 h" / "Historical" switch. Memoised so the
+  // DetectionLayer only updates when the data or the choice changes.
+  const shownDetections = useMemo(
+    () => filterDetectionsByAge(detectionResult?.detections, detectionAge),
+    [detectionResult, detectionAge],
+  );
+  useEffect(() => {
+    if (detectionResult) perfEnd("detections-load", { detections: detectionResult.detections.length });
+  }, [detectionResult]);
 
   // #18: detections load separately from risk areas, so if one request fails
   // the other still shows (see #4, reliable handling of failures).
@@ -178,8 +199,9 @@ function AppContent() {
 
     async function loadDetections() {
       setDetectionLoading(true);
+      perfStart("detections-load");
       try {
-        const result = await fetchDetections();
+        const result = await fetchDetections(detectionLimit());
 
         if (!active) return;
 
@@ -322,12 +344,51 @@ function AppContent() {
     .filter((area) => (area.name ?? `Area ${area.id}`).toLowerCase().includes(search.trim().toLowerCase()));
   function navigateTo(nextPage) {
     if (nextPage === "explore") { setMapControlsOpen(true); setLegendOpen(true); }
+    // #48 usability: record each page in browser history, so Back returns to
+    // the previous EmberWatch page instead of leaving the site.
+    if (nextPage !== page && PAGES.includes(nextPage)) {
+      try {
+        window.history.pushState({ page: nextPage }, "", `${window.location.pathname}${window.location.search}#${nextPage}`);
+      } catch { /* history unavailable: navigation still works in-app */ }
+    }
     setPage(nextPage);
     setReporting(false);
     setMenuOpen(false);
   }
 
+  useEffect(() => {
+    function onPopState(event) {
+      setPage(PAGES.includes(event.state?.page) ? event.state.page : pageFromLocation());
+      setReporting(false);
+      setMenuOpen(false);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  // #48: stable handlers (setters and refs never change), so the memoised
+  // DetectionLayer is not re-rendered just because App re-rendered.
+  const selectDetection = useCallback((detection) => {
+    perfStart("detection-select");
+    setSelectedDetection(detection);
+    setSelectedArea(null);
+    setSearchedPlace(null);
+    setDetailsExpanded(false);
+    setView("information");
+    setShowFullDetails(false);
+    if (window.matchMedia?.("(max-width: 860px)").matches) {
+      requestAnimationFrame(() => detailsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+    }
+  }, []);
+
+  const zoomToCluster = useCallback((cluster) => {
+    setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude });
+    setMapZoom(8);
+    setSelectedDetection(null);
+  }, []);
+
   function selectArea(area) {
+    perfStart("area-select");
     navigateTo("explore");
     setSelectedArea(area);
     setDetailsExpanded(false);
@@ -598,40 +659,17 @@ function AppContent() {
              );
            })}
            
-          {mapLayer !== "risk" && clusterDetections(detectionResult?.detections ?? [], mapZoom).map((cluster) => {
-            const detection = cluster.items[0];
-            const clustered = cluster.items.length > 1;
-            const icon = clustered ? divIcon({
-              className: "ew-fire-cluster-wrap",
-              html: `<span class="ew-fire-cluster" aria-hidden="true">🔥 <b>${cluster.items.length}</b></span>`,
-              iconSize: [48, 36], iconAnchor: [24, 18],
-            }) : fireMarkerIcon(detection.classification === "low_confidence");
-            return (
-              <Marker
-                key={`detection-${cluster.key}`}
-                position={[cluster.latitude, cluster.longitude]}
-                icon={icon}
-                eventHandlers={{ click: () => {
-                  if (clustered) { setClusterZoomTarget({ latitude: cluster.latitude, longitude: cluster.longitude }); setMapZoom(8); setSelectedDetection(null); return; }
-                  setSelectedDetection(detection); setSelectedArea(null); setSearchedPlace(null);
-                  setDetailsExpanded(false); setView("information"); setShowFullDetails(false);
-                  if (window.matchMedia?.("(max-width: 860px)").matches) requestAnimationFrame(() => detailsRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
-                } }}
-              >
-                <Popup>
-                  {clustered ? <><strong>{cluster.items.length} satellite observations</strong><p>Zoom in to see individual hotspots. These may be historical.</p></> : <>
-                    <strong>{classificationLabel(detection)}</strong>
-                    <p>Location: {formatCoordinates(detection.latitude, detection.longitude)}
-                    <br />Detected: {formatDetectionTime(detection.timestamp)}
-                    <br />Confidence: {formatConfidence(detection.confidence)}</p>
-                    {!detection.meets_threshold && <p>Below the {detectionResult.threshold}% confidence threshold. Treat with caution.</p>}
-                  </>}
-                </Popup>
-              </Marker>
-            );
-          })}
+          {mapLayer !== "risk" && (
+            <DetectionLayer
+              detections={shownDetections}
+              threshold={detectionResult?.threshold}
+              zoom={mapZoom}
+              onSelectDetection={selectDetection}
+              onZoomToCluster={zoomToCluster}
+            />
+          )}
         </MapContainer></div>
-        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div><label className="ew-zone-toggle">
+        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div>{mapLayer !== "risk" && <div className="ew-basemap-picker"><span className="ew-basemap-label">Fire detections</span><div className="ew-layer-switcher" role="group" aria-label="Fire detections by age">{DETECTION_AGE_OPTIONS.map(([value, label]) => <button type="button" key={value} aria-pressed={detectionAge === value} onClick={() => setDetectionAge(value)}>{label}</button>)}</div>{detectionResult && detectionAge === "recent" && shownDetections.length === 0 && <span className="ew-basemap-label" role="status">No satellite detections in the last {RECENT_HOURS} hours.</span>}</div>}<label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
