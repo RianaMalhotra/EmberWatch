@@ -707,6 +707,12 @@
   cursor:not-allowed
 }
 
+.ew-history-selected {
+  outline: 2px solid #7052a3;
+  outline-offset: -2px;
+  background: rgba(112, 82, 163, 0.12);
+}
+
 /* PR #90: touch-friendly controls, mobile details, and risk score visualization. */
 .ew-score-bar { height: 8px; border-radius: 999px; background: #edf1ec; overflow: hidden; margin: 6px 0 14px; }
 .ew-score-bar span { display: block; height: 100%; border-radius: inherit; }

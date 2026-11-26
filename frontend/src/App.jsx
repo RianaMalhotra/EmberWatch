@@ -37,6 +37,7 @@ import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
 import { MapZoomObserver } from "./components/DetectionClusters";
 import DetectionLayer from "./components/DetectionLayer";
+import DetectionHistoryExplorer from "./components/DetectionHistoryExplorer";
 
 function DetectionHeatmap({ detections }) {
   const map = useMap();
@@ -210,6 +211,7 @@ function AppContent() {
   const [detectionResult, setDetectionResult] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   const [publicReports, setPublicReports] = useState([]);
+  const [historySearchRequest, setHistorySearchRequest] = useState(null);
   const [reportError, setReportError] = useState(null);
   const [reportAttempt, setReportAttempt] = useState(0);
   const [moderating, setModerating] = useState(() => new URLSearchParams(window.location.search).has("staff"));
@@ -554,8 +556,32 @@ function AppContent() {
       </div>
       {reporting && <div className="ew-report-panel"><ReportFire onClose={() => setReporting(false)} onSubmitted={() => setReportAttempt((n) => n + 1)} /></div>}
       {(REPORTS_ENABLED || moderating) && <div className="ew-report-tools">{moderating && <button type="button" onClick={() => setModerating(false)}>Close staff moderation</button>} {REPORTS_ENABLED && <button type="button" onClick={() => setReportAttempt((n) => n + 1)}>Refresh public reports</button>}{reportError && <span className="ew-report-error" aria-label="Public reports error">{reportError}</span>}</div>}
-      {moderating && <StaffModeration onUpdated={() => setReportAttempt((n) => n + 1)} />}
+      {moderating && (
+        <StaffModeration
+          onUpdated={() => setReportAttempt((n) => n + 1)}
+          onViewHistory={(report) => {
+            const latitude = Number(report.latitude);
+            const longitude = Number(report.longitude);
 
+            if (
+              !Number.isFinite(latitude) ||
+              !Number.isFinite(longitude) ||
+              !report.observed_at
+            ) {
+              return;
+            }
+
+            setHistorySearchRequest({
+              reportId: report.id,
+              latitude,
+              longitude,
+              observedAt: report.observed_at,
+            });
+
+            navigateTo("explore");
+          }}
+        />
+      )}
       {loading && (
         <p>Loading wildfire risk data...</p>
       )}
@@ -834,6 +860,19 @@ function AppContent() {
         </div></aside></div>
       </div>
       </ErrorBoundary>
+
+        <section className="ew-history-section">
+        <DetectionHistoryExplorer
+          searchRequest={historySearchRequest}
+          onExplore={() => {
+            document.querySelector(".ew-map-frame")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }}
+        />
+        </section>
+
       </div></main>
       <AshDetective areas={riskAreas} detections={detectionResult?.detections ?? []} selectedArea={selectedArea} searchedPlace={searchedPlace} currentPage={page} />
     </div>
