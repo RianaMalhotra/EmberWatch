@@ -12,7 +12,7 @@ EmberWatch addresses the difficulty of interpreting wildfire observations and en
 
 ## Sprint 6 integration status
 
-The dashboard's existing map/risk/report integrations and the new bounded **Satellite detection history** explorer are documented in [Sprint 6 integration verification](docs/sprint6-integration-verification.md). Open **More → Advanced analytics → Satellite detection history**, select a region and UTC date range, and choose **Search history**. The UI shows recorded observations, data gaps, truncated results and recoverable errors; it does not convert detection confidence into wildfire risk. Staff moderation and audit history depend on open PRs [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112), so the overall Sprint 6 integration issue is not complete until those are merged and verified. Check live PR status before treating these as released.
+The dashboard's existing map/risk/report integrations and the new bounded **Satellite detection history** explorer are documented in [Sprint 6 integration verification](docs/sprint6-integration-verification.md). Open **More → Advanced analytics → Satellite detection history**, select a region and UTC date range, and choose **Search history**. The UI shows recorded observations, data gaps, truncated results and recoverable errors; it does not convert detection confidence into wildfire risk. Staff moderation and audit history are implemented by merged PRs [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112), so the overall Sprint 6 integration issue is not complete until production verification and the heatmap requirement are addressed. Public reporting remains disabled pending deployment verification (#61, #114).
 
 ## Current functionality
 
@@ -27,7 +27,7 @@ The dashboard's existing map/risk/report integrations and the new bounded **Sate
 | Reliability and contracts (#50, #63) | JSON API errors, degraded/incomplete states, retry behavior, client response-contract tests, and backend tests with an 80% coverage gate. |
 | Historical model validation (#57) | Reproducible comparison of seven selected wildfire events against prior-year and winter dates. Fire days scored higher in all seven cases, but only one reached HIGH. This small, selected sample **does not establish accuracy or calibration**. |
 
-**Integration dependencies (check live status):** Staff-report authentication/moderation and audit history are proposed in [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112). Until merged and deployed, do not claim that protected staff workflows are available. See the [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls) for live status.
+**Integration dependencies (check live status):** Staff-report authentication/moderation and audit history are implemented by merged PRs [#104](https://github.com/RianaMalhotra/EmberWatch/pull/104) and [#112](https://github.com/RianaMalhotra/EmberWatch/pull/112). Until the required database migrations, deployment and end-to-end checks are verified, do not claim that protected staff workflows are available. See the [pull requests](https://github.com/RianaMalhotra/EmberWatch/pulls) for live status.
 
 ## Feature highlight — interactive risk map
 
