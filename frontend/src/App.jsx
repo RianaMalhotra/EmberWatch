@@ -37,6 +37,43 @@ import RiskLegend from "./components/RiskLegend";
 import AshDetective from "./components/AshDetective";
 import { MapZoomObserver } from "./components/DetectionClusters";
 import DetectionLayer from "./components/DetectionLayer";
+
+function DetectionHeatmap({ detections }) {
+  const map = useMap();
+  useEffect(() => {
+    const canvas = document.createElement("canvas");
+    canvas.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:350";
+    canvas.setAttribute("aria-hidden","true");
+    map.getContainer().appendChild(canvas);
+    function draw() {
+      const {x:w,y:h}=map.getSize();
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext("2d");
+      if(!ctx || !w || !h) return;
+      for(const d of detections) {
+        if(!Number.isFinite(d.latitude)||!Number.isFinite(d.longitude)) continue;
+        const p=map.latLngToContainerPoint([d.latitude,d.longitude]), r=24;
+        if(p.x < -r || p.y < -r || p.x > w+r || p.y > h+r) continue;
+        const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
+        g.addColorStop(0,"rgba(0,0,0,0.18)");g.addColorStop(1,"rgba(0,0,0,0)");
+        ctx.fillStyle=g;ctx.fillRect(p.x-r,p.y-r,2*r,2*r);
+      }
+      const img=ctx.getImageData(0,0,w,h), stops=[[37,99,235],[34,197,94],[250,204,21],[249,115,22],[220,38,38]];
+      for(let i=0;i<img.data.length;i+=4){
+        const a=img.data[i+3];if(!a)continue;
+        const t=a/255*4,j=Math.min(3,Math.floor(t)),f=t-j;
+        for(let k=0;k<3;k++)img.data[i+k]=Math.round(stops[j][k]*(1-f)+stops[j+1][k]*f);
+        img.data[i+3]=Math.min(210,a*2);
+      }
+      ctx.putImageData(img,0,0);canvas.style.visibility="visible";
+    }
+    const hide=()=>{canvas.style.visibility="hidden";};
+    draw();map.on("moveend zoomend resize",draw);map.on("movestart zoomstart",hide);
+    return()=>{map.off("moveend zoomend resize",draw);map.off("movestart zoomstart",hide);canvas.remove();};
+  },[map,detections]);
+  return null;
+}
+
 import ForecastPage from "./components/ForecastPage";
 import InvestigationLab from "./components/InvestigationLab";
 import { detectionLimit, perfEnd, perfStart } from "./utils/perfMarks";
@@ -135,6 +172,7 @@ function AppContent() {
   const [showDataNotes, setShowDataNotes] = useState(false);
   const [showAreaList, setShowAreaList] = useState(false);
   const [mapLayer, setMapLayer] = useState("both");
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [detectionAge, setDetectionAge] = useState("all");
   const [basemap, setBasemap] = useState("hybrid");
   const [mapControlsOpen, setMapControlsOpen] = useState(true);
@@ -660,7 +698,8 @@ function AppContent() {
              );
            })}
            
-          {mapLayer !== "risk" && (
+          {mapLayer !== "risk" && showHeatmap && <DetectionHeatmap detections={shownDetections} />}
+          {mapLayer !== "risk" && !showHeatmap && (
             <DetectionLayer
               detections={shownDetections}
               threshold={detectionResult?.threshold}
@@ -670,7 +709,7 @@ function AppContent() {
             />
           )}
         </MapContainer></div>
-        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div>{mapLayer !== "risk" && <div className="ew-basemap-picker"><span className="ew-basemap-label">Fire detections</span><div className="ew-layer-switcher" role="group" aria-label="Fire detections by age">{DETECTION_AGE_OPTIONS.map(([value, label]) => <button type="button" key={value} aria-pressed={detectionAge === value} onClick={() => setDetectionAge(value)}>{label}</button>)}</div>{detectionResult && detectionAge === "recent" && shownDetections.length === 0 && <span className="ew-basemap-label" role="status">No satellite detections in the last {RECENT_HOURS} hours.</span>}</div>}<label className="ew-zone-toggle">
+        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div>{mapLayer !== "risk" && <div className="ew-basemap-picker"><span className="ew-basemap-label">Fire detections</span><div className="ew-layer-switcher" role="group" aria-label="Fire detections by age">{DETECTION_AGE_OPTIONS.map(([value, label]) => <button type="button" key={value} aria-pressed={detectionAge === value} onClick={() => setDetectionAge(value)}>{label}</button>)}</div>{detectionResult && detectionAge === "recent" && shownDetections.length === 0 && <span className="ew-basemap-label" role="status">No satellite detections in the last {RECENT_HOURS} hours.</span>}</div>}{mapLayer !== "risk" && <label className="ew-zone-toggle"><input type="checkbox" checked={showHeatmap} onChange={(event) => setShowHeatmap(event.target.checked)} /> Show detection heatmap</label>}<label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
@@ -678,7 +717,7 @@ function AppContent() {
           />{" "}
           Show 50 km risk zones
         </label>
-        <details className="ew-legend-disclosure" open={legendOpen}><summary onClick={(event) => { event.preventDefault(); setLegendOpen((open) => !open); }}>Map legend</summary><RiskLegend /></details>
+        <details className="ew-legend-disclosure" open={legendOpen}><summary onClick={(event) => { event.preventDefault(); setLegendOpen((open) => !open); }}>Map legend</summary><RiskLegend />{mapLayer !== "risk" && showHeatmap && <div className="ew-heat-legend"><strong>Satellite detection density</strong><div aria-hidden="true" className="ew-heat-scale" /><div className="ew-heat-labels"><span>Low</span><span>High</span></div><small>Relative density of displayed observations, not fire severity or predicted spread.</small></div>}</details>
         <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Bright flame icons meet the satellite confidence threshold; faded flame icons do not. Detection confidence is not the same as wildfire risk.</p></details>
         </div>}</div></div>
         <div className="ew-map-side-window" aria-label="Location search and details">
