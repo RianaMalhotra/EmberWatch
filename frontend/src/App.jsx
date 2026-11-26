@@ -42,12 +42,12 @@ function DetectionHeatmap({ detections }) {
   const map = useMap();
   useEffect(() => {
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:350";
+    canvas.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:450";
     canvas.setAttribute("aria-hidden","true");
     map.getContainer().appendChild(canvas);
     function draw() {
       const {x:w,y:h}=map.getSize();
-      canvas.width=w; canvas.height=h;
+      canvas.width=w; canvas.height=h; canvas.style.visibility="visible";
       const ctx=canvas.getContext("2d");
       if(!ctx || !w || !h) return;
       for(const d of detections) {
@@ -55,7 +55,7 @@ function DetectionHeatmap({ detections }) {
         const p=map.latLngToContainerPoint([d.latitude,d.longitude]), r=24;
         if(p.x < -r || p.y < -r || p.x > w+r || p.y > h+r) continue;
         const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
-        g.addColorStop(0,"rgba(0,0,0,0.18)");g.addColorStop(1,"rgba(0,0,0,0)");
+        g.addColorStop(0,"rgba(0,0,0,0.42)");g.addColorStop(1,"rgba(0,0,0,0)");
         ctx.fillStyle=g;ctx.fillRect(p.x-r,p.y-r,2*r,2*r);
       }
       const img=ctx.getImageData(0,0,w,h), stops=[[37,99,235],[34,197,94],[250,204,21],[249,115,22],[220,38,38]];
@@ -63,7 +63,7 @@ function DetectionHeatmap({ detections }) {
         const a=img.data[i+3];if(!a)continue;
         const t=a/255*4,j=Math.min(3,Math.floor(t)),f=t-j;
         for(let k=0;k<3;k++)img.data[i+k]=Math.round(stops[j][k]*(1-f)+stops[j+1][k]*f);
-        img.data[i+3]=Math.min(210,a*2);
+        img.data[i+3]=Math.min(235,a*3);
       }
       ctx.putImageData(img,0,0);canvas.style.visibility="visible";
     }
