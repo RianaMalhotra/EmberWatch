@@ -21,4 +21,13 @@ describe("satellite detection clustering", () => {
   it("does not create clusters for missing coordinates", () => {
     expect(clusterDetections([{ id: 4, latitude: null, longitude: NaN }], 3)).toHaveLength(0);
   });
+  it("gives a lone detection the same key at every zoom level (#48)", () => {
+    const keyAt = (zoom) => clusterDetections(observations, zoom).find((c) => c.items[0].id === 3).key;
+    expect(new Set([3, 4, 5, 6, 8, 10].map(keyAt))).toEqual(new Set(["3"]));
+  });
+  it("never lets a cluster key collide with a detection id", () => {
+    const keys = clusterDetections(observations, 3).map((c) => c.key);
+    expect(keys).toContain("3");
+    expect(keys.find((key) => key !== "3")).toMatch(/^cluster-/);
+  });
 });
