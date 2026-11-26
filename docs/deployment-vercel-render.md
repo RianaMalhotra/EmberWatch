@@ -30,6 +30,9 @@ Never put a secret in a `VITE_*` variable: Vite embeds those into the browser bu
 | `OPENAI_API_KEY` | Optional | Enables Ask Ash model answers. Without it `POST /api/ash-detective` answers 503 and the page uses its local guidance. Keep it secret. |
 | `ASH_DETECTIVE_MODEL` | Optional | Model name for Ask Ash. Default `gpt-4o-mini`. |
 | `METRICS_TOKEN` | Optional | Bearer token for `GET /api/internal/metrics`. Unset means that route answers 404. Metrics are kept in memory per worker process, so with 2 gunicorn workers each request may see a different worker's numbers. |
+| `SUPABASE_URL` | Needed for staff moderation | HTTPS URL of the Supabase project (for example `https://<project-ref>.supabase.co`). Used only to verify staff sign-in tokens with Supabase Auth. Not a secret, but backend-only. |
+| `SUPABASE_ANON_KEY` | Needed for staff moderation | The public (publishable) Supabase API key that the Auth endpoint accepts. Never use the service-role key. |
+| `REPORTS_STAFF_USER_IDS` | Needed for staff moderation | Comma-separated Supabase Auth user UUIDs allowed to moderate reports. **Backend only**: never put it in a `VITE_*` variable. If any of these three is missing, the staff routes answer 403 and nobody can moderate (fails closed). Details: [sprint5-moderation-auth.md](sprint5-moderation-auth.md). |
 | `MIN_DETECTION_CONFIDENCE` | Optional | 0 to 100. Default `20`. The value is provisional; change it only after a team decision (see [threshold backtest](threshold-backtest.md)). A bad value makes `/api/detections` answer 500. |
 | `DB_STATEMENT_TIMEOUT_MS` | Optional | Cancels a database query that runs longer than this. Opt-in because some Supabase poolers reject startup options; check `/api/health/db` after setting it. |
 
@@ -41,6 +44,7 @@ The full list with comments is in `backend/.env.example`. A test (`tests/test_en
 |---|---|---|
 | `VITE_API_BASE_URL` | **Required** | The Render origin only: no `/api`, no trailing slash. Read at **build time**, so redeploy after changing it. |
 | `VITE_ENABLE_REPORTS` | Optional | `true` makes the Report a Fire form send reports. Unset, the form runs as a preview and sends nothing. `POST /api/reports` (#52) is merged, so turn it on once `REPORT_HASH_SALT` and the `fire_reports` migration are in place. Also read at build time. |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Needed for staff sign-in | The Supabase project URL and the **public** key only, so staff can sign in on the moderation page. Never the service-role key, and never the staff allowlist. Read at build time. |
 
 ### GitHub Actions secrets (repository settings)
 
@@ -61,6 +65,7 @@ Apply every file in `supabase/migrations/` **in filename order**, once, to the S
 | 2 | `20261018000000_area_terrain.sql` | Terrain columns on `areas` |
 | 3 | `20261031000000_detections_unique_nulls.sql` | Duplicate check that treats a missing satellite as one value. **Needs PostgreSQL 15 or newer** (`NULLS NOT DISTINCT`) |
 | 4 | `20261112000000_fire_reports.sql` | `fire_reports` table and row level security |
+| 5 | `20261114000000_report_moderation.sql` | More review statuses on `fire_reports`, and the `fire_report_audit` table (who changed which report, and when) with row level security. **Apply after migration 4.** Needed by the staff moderation routes |
 
 The SQL editor does not remember what you ran, so write each applied file and the date in the blockers log below. Migrations only go forward: there are no "down" scripts (see rollback below).
 
@@ -72,7 +77,7 @@ From the repository root, with `DATABASE_URL` in `backend/.env` (or the environm
 python scripts/check_migrations.py
 ```
 
-It is read-only (the transaction is opened read-only, so a write is refused by the database), never prints the connection string, and prints a Markdown table to paste into #61: PostgreSQL version, PostGIS, the five tables, row level security, the terrain columns, the `detections_unique` constraint (including that it is the new `NULLS NOT DISTINCT` version) and row counts. Exit code 0 means nothing failed, 1 means a check failed or the database could not be reached. It confirms the schema matches the migration files; it does not replay them.
+It is read-only (the transaction is opened read-only, so a write is refused by the database), never prints the connection string, and prints a Markdown table to paste into #61: PostgreSQL version, PostGIS, the six tables, row level security, the terrain columns, the `detections_unique` constraint (including that it is the new `NULLS NOT DISTINCT` version), the extra review statuses from migration 5, and row counts. Exit code 0 means nothing failed, 1 means a check failed or the database could not be reached. It confirms the schema matches the migration files; it does not replay them.
 
 ### Manual check in the SQL editor
 
@@ -83,7 +88,8 @@ select version();                                   -- must be PostgreSQL 15 or 
 select extname from pg_extension where extname = 'postgis';
 select to_regclass('public.detections'), to_regclass('public.areas'),
        to_regclass('public.environmental_observations'),
-       to_regclass('public.risk_assessments'), to_regclass('public.fire_reports');
+       to_regclass('public.risk_assessments'), to_regclass('public.fire_reports'),
+       to_regclass('public.fire_report_audit');
 select column_name from information_schema.columns
  where table_schema = 'public' and table_name = 'areas'
    and column_name in ('province', 'elevation_m', 'slope_deg', 'terrain_source', 'terrain_retrieved_at');
@@ -91,10 +97,10 @@ select conname from pg_constraint
  where conrelid = 'public.detections'::regclass and conname = 'detections_unique';
 select relname, relrowsecurity from pg_class
  where relnamespace = 'public'::regnamespace
-   and relname in ('detections', 'areas', 'environmental_observations', 'risk_assessments', 'fire_reports');
+   and relname in ('detections', 'areas', 'environmental_observations', 'risk_assessments', 'fire_reports', 'fire_report_audit');
 ```
 
-Expected: PostGIS listed, five table names (none empty), five terrain columns, one `detections_unique` row, and `relrowsecurity = true` on all five tables. More in [database.md](database.md).
+Expected: PostGIS listed, six table names (none empty), five terrain columns, one `detections_unique` row, and `relrowsecurity = true` on all six tables. More in [database.md](database.md).
 
 ## 3. Render backend
 
@@ -177,7 +183,7 @@ Do the smoke check (section 5) after every step below.
 - `VITE_*` values are fixed at build time.
 - The performance targets in [requirements.md](requirements.md) (#9) have not been measured on the deployed site yet. Record the measured numbers in the blockers log when they exist.
 - Metrics are per worker process and reset when the service restarts.
-- Staff moderation settings (the Supabase auth and staff allowlist variables) will be added here when that work is merged.
+- Staff moderation depends on Supabase Auth being reachable. If it is down, the staff routes fail closed (403) and the public pages are unaffected.
 
 ## 9. Release readiness log (evidence and blockers for #62)
 
@@ -185,16 +191,16 @@ Fill this in as you verify. "Not yet verified" means nobody has checked it on th
 
 | Item | Status | Evidence / blocker | Date |
 |---|---|---|---|
-| Render environment variables match section 1 | Not yet verified | | |
-| Vercel `VITE_API_BASE_URL` set for Production and Preview | Not yet verified | | |
-| Migrations 1 to 4 applied; `scripts/check_migrations.py` passes | **Blocker: migrations 3 and 4 not applied** | Run 2026-11-22 against the database in a local `.env` (believed to be the shared project, to be confirmed). OK: PostgreSQL 17, PostGIS, terrain columns, 13 areas, 628,200 detections. Missing: `fire_reports` (migration 4); `detections_unique` is still the old version (migration 3). Pre-check for migration 3 passed (0 rows without a satellite, no duplicates), so it is safe to apply. | 2026-11-22 |
+| Render environment variables match section 1 | Partly verified (reported by Riana) | `TRUSTED_PROXY_COUNT=1` and `REPORT_HASH_SALT` are set and `CORS_ORIGINS` is verified. Not yet confirmed: `DATABASE_URL` project, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `REPORTS_STAFF_USER_IDS`, `OPENAI_API_KEY`, `METRICS_TOKEN`. | 2026-11-26 |
+| Vercel `VITE_API_BASE_URL` set for Production and Preview | Production verified; Preview not yet | Production: the live site's data requests go to the Render address (browser Network tab). `VITE_ENABLE_REPORTS` is off (reporting stays disabled until go-live). | 2026-11-22 |
+| Migrations 1 to 5 applied; `scripts/check_migrations.py` passes | **Blocker: migrations 3 and 4 not applied; 5 is new and not applied** | Run 2026-11-22 against the database in a local `.env` (believed, not yet confirmed, to be the one Render uses): PostgreSQL 17, PostGIS, terrain columns, 13 areas and 628,200 detections are fine. Missing: `fire_reports` (migration 4) and the old `detections_unique` (migration 3). Pre-check for migration 3 passed (0 rows without a satellite, no duplicates), so it is safe. Migration 5 (`report_moderation`) was added by #104 on 2026-11-25 and needs migration 4 first. Apply 3, 4, 5 in order; waiting on Faria. | 2026-11-26 |
 | `scripts/smoke_check.py` passes against production | Passed 2026-11-22 (6 of 7; 1 warning) | `https://emberwatch-ccub.onrender.com`: health, database, detections, 13 areas all HTTP 200. `/api/health/freshness` returned 404 (deployed build older than main?) | 2026-11-22 | 
 | CORS allows the production frontend and blocks others | Passed | `https://ember-watch-xi.vercel.app` allowed; unknown origin gets no header | 2026-11-22 |
-| Render deploys the latest `main` | **Blocker / to check** | Freshness endpoint (added 2026-11-22) returns 404 in production. Confirm the deployed commit and whether auto-deploy is on. | 2026-11-22 |
+| Render deploys the latest `main` | **Blocker: production is out of date** | Render follows `main` with auto-deploy enabled (reported by Riana) but is still running commit `65a9f4c` (2026-10-27), hundreds of commits behind. Probes confirm old code: `/api/detections/history`, `/api/ash-detective`, `/api/reports/verified` and `/api/health/freshness` return Flask's HTML 404. Current `main` boots under gunicorn with `RENDER=true` in a test run, so the cause is not obvious: check the Render Events and deploy logs for failed deploys (a failed deploy leaves the last good version running). | 2026-11-26 |
 | Clean-install check on a fresh clone | Not yet verified | | |
 | Failure behaviour (section 6) confirmed on the deployed site | Not yet verified | | |
 | Map performance against the #9 targets | Not yet verified | | |
-| Rollback tried once (Vercel and Render) | Not yet verified | | |
+| Rollback tried once (Vercel and Render) | Vercel done; Render available, not tested | Vercel: rolled back and restored, production back on `ea40903` and loading normally (Riana). Render: rollback is available in the dashboard but has not been tried; test it after the redeploy. | 2026-11-26 |
 
 ## Acceptance checklist (from #95)
 

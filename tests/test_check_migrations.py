@@ -33,6 +33,7 @@ class FakeConnection:
             cm.TABLES_SQL: [(name, True) for name in cm.TABLES],
             cm.COLUMNS_SQL: [(name,) for name in cm.TERRAIN_COLUMNS],
             cm.CONSTRAINT_SQL: [("UNIQUE NULLS NOT DISTINCT (a, b)",)],
+            cm.STATUS_CONSTRAINT_SQL: [("CHECK (review_status IN ('unverified', 'under_control', 'out'))",)],
             cm.NULL_SATELLITE_SQL: [(0,)], cm.NULL_DUPLICATES_SQL: [(0,)],
             "areas": [(13,)], "detections": [(5000,)], "fire_reports": [(0,)],
         }
@@ -76,6 +77,25 @@ def test_a_missing_table_is_named_and_rls_cannot_be_confirmed():
     assert "fire_reports" in result_for(results, "Tables exist").detail
     assert result_for(results, "Row level security").outcome == cm.FAIL
     assert not any(item.name == "Rows in fire_reports" for item in results)
+
+
+def test_missing_audit_table_means_migration_5_is_missing():
+    tables = [(name, True) for name in cm.TABLES if name != "fire_report_audit"]
+    results = cm.run_checks(FakeConnection(**{cm.TABLES_SQL: tables}))
+    assert "fire_report_audit" in result_for(results, "Tables exist").detail
+
+
+def test_old_review_status_constraint_fails():
+    old = [("CHECK (review_status IN ('unverified', 'verified', 'rejected'))",)]
+    results = cm.run_checks(FakeConnection(**{cm.STATUS_CONSTRAINT_SQL: old}))
+    assert result_for(results, "Review statuses").outcome == cm.FAIL
+    assert "migration 5" in result_for(results, "Review statuses").detail
+
+
+def test_status_check_is_skipped_when_fire_reports_is_missing():
+    tables = [(name, True) for name in cm.TABLES if name not in ("fire_reports", "fire_report_audit")]
+    results = cm.run_checks(FakeConnection(**{cm.TABLES_SQL: tables}))
+    assert not any(item.name.startswith("Review statuses") for item in results)
 
 
 def test_row_level_security_off_is_named():
@@ -132,7 +152,7 @@ def test_main_reports_and_closes_the_connection(capsys):
     code = cm.main(env={"DATABASE_URL": SECRET_URL}, connect=lambda url: conn)
     out = capsys.readouterr().out
     assert code == 0 and conn.closed
-    assert "| Tables exist (migrations 1 and 4) | PASS |" in out
+    assert "| Tables exist (migrations 1, 4 and 5) | PASS |" in out
     assert SECRET_URL not in out and "hunter2" not in out
 
 

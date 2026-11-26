@@ -17,7 +17,7 @@ from collections import namedtuple
 PASS, FAIL, WARN = "PASS", "FAIL", "WARN"
 Result = namedtuple("Result", "name outcome detail")
 
-TABLES = ("detections", "areas", "environmental_observations", "risk_assessments", "fire_reports")
+TABLES = ("detections", "areas", "environmental_observations", "risk_assessments", "fire_reports", "fire_report_audit")
 TERRAIN_COLUMNS = ("province", "elevation_m", "slope_deg", "terrain_source", "terrain_retrieved_at")
 MIN_POSTGRES_VERSION = 150000  # migration 3 uses NULLS NOT DISTINCT (PostgreSQL 15+)
 
@@ -35,6 +35,11 @@ CONSTRAINT_SQL = (
     "select pg_get_constraintdef(oid) from pg_constraint "
     "where conrelid = to_regclass('public.detections') and conname = 'detections_unique'"
 )
+STATUS_CONSTRAINT_SQL = (
+    "select pg_get_constraintdef(oid) from pg_constraint "
+    "where conrelid = to_regclass('public.fire_reports') and conname = 'fire_reports_review_status_check'"
+)
+NEW_STATUS = "under_control"  # one of the statuses migration 5 adds
 NULL_SATELLITE_SQL = "select count(*) from public.detections where satellite is null"
 NULL_DUPLICATES_SQL = (
     "select count(*) from (select 1 from public.detections where satellite is null "
@@ -76,7 +81,7 @@ def run_checks(conn):
 
     found = {name: rls for name, rls in conn.execute(TABLES_SQL, (list(TABLES),)).fetchall()}
     missing = [name for name in TABLES if name not in found]
-    results.append(Result("Tables exist (migrations 1 and 4)", FAIL if missing else PASS,
+    results.append(Result("Tables exist (migrations 1, 4 and 5)", FAIL if missing else PASS,
                           f"missing: {', '.join(missing)}" if missing else f"all {len(TABLES)} found"))
 
     no_rls = [name for name in TABLES if name in found and not found[name]]
@@ -97,6 +102,15 @@ def run_checks(conn):
     else:
         results.append(Result("detections_unique (migration 3)", FAIL,
                               "constraint exists but is the old version (without NULLS NOT DISTINCT)"))
+
+    # Migration 5 widens the allowed review statuses; the staff routes need that.
+    if "fire_reports" in found:
+        row = conn.execute(STATUS_CONSTRAINT_SQL).fetchone()
+        if row is not None and NEW_STATUS in str(row[0]):
+            results.append(Result("Review statuses (migration 5)", PASS, "the moderation statuses are allowed"))
+        else:
+            results.append(Result("Review statuses (migration 5)", FAIL,
+                                  "fire_reports does not allow the moderation statuses yet: apply migration 5"))
 
     # Migration 3 turns "no satellite" into one value, so it fails if two rows with
     # no satellite share a location and time. Check that before applying it.
