@@ -904,6 +904,10 @@ function AppContent() {
         <section className="ew-history-section">
         <DetectionHistoryExplorer
           searchRequest={historySearchRequest}
+          onClear={() => {
+            setHistoricalMap(null);
+            setHistorySearchRequest(null);
+          }}
           onShowOnMap={(history) => {
             setHistoricalMap(history);
             document.querySelector(".ew-map-column")?.scrollIntoView({ behavior: "smooth", block: "start" });

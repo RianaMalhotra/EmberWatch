@@ -50,6 +50,7 @@ function formatStatus(status) {
 export default function DetectionHistoryExplorer({
   onExplore,
   onShowOnMap,
+  onClear,
   searchRequest,
   onUseCaseStudy,
 }) {
@@ -285,6 +286,19 @@ export default function DetectionHistoryExplorer({
           <button type="submit" disabled={invalid || state === "loading"}>
             {state === "loading" ? "Searching history…" : "Search history"}
           </button>
+
+          <button type="button" onClick={() => {
+            setQuery(null);
+            setResult(null);
+            setState("idle");
+            setError("");
+            setRegion("canada");
+            setStart("");
+            setEnd("");
+            setCustomBounds(null);
+            setSelectedRecordId(null);
+            onClear?.();
+          }}>Clear history</button>
 
           <button type="button" onClick={onExplore}>
             Open current map

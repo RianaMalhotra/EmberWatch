@@ -228,6 +228,20 @@ describe("Sprint 5 historical fire records (#54)", () => {
     expect(screen.getByText(/result limit was reached/)).toBeInTheDocument();
   });
   
+  it("clears historical results and resets the map through its callback", async () => {
+    const user = userEvent.setup();
+    const onClear = vi.fn();
+    fetchFireHistory.mockResolvedValue({ status: "success", data: [], truncated: false });
+    render(<DetectionHistoryExplorer onClear={onClear} />);
+    await search(user);
+    await screen.findByText(/No historical records matched/);
+    await user.click(screen.getByRole("button", { name: "Clear history" }));
+    expect(screen.queryByText(/historical records returned/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("History start date")).toHaveValue("");
+    expect(screen.getByLabelText("History end date")).toHaveValue("");
+    expect(onClear).toHaveBeenCalledOnce();
+  });
+
   it("requires dates and keeps navigation functional", async () => {
     const user = userEvent.setup();
     const onExplore = vi.fn();
