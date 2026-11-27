@@ -47,7 +47,11 @@ function formatStatus(status) {
     .replace(/\b\w/g, character => character.toUpperCase());
 }
 
-export default function DetectionHistoryExplorer({ onExplore, searchRequest }) {
+export default function DetectionHistoryExplorer({
+  onExplore,
+  searchRequest,
+  onUseCaseStudy,
+}) {
   const [region, setRegion] = useState("canada");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -303,6 +307,7 @@ export default function DetectionHistoryExplorer({ onExplore, searchRequest }) {
                     <th>Status</th>
                     <th>End time</th>
                     <th>Lifecycle</th>
+                    <th>Investigation</th>
                   </tr>
                 </thead>
 
@@ -409,6 +414,15 @@ export default function DetectionHistoryExplorer({ onExplore, searchRequest }) {
                                   `Linked detection: ${record.linked_detection_id}`}
                               </small>
                             )}
+                        </td>
+
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => onUseCaseStudy?.(record)}
+                          >
+                            Use as case study →
+                          </button>
                         </td>
                       </tr>
                     );

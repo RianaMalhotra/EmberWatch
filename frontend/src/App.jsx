@@ -212,6 +212,7 @@ function AppContent() {
   const [detectionError, setDetectionError] = useState(null);
   const [publicReports, setPublicReports] = useState([]);
   const [historySearchRequest, setHistorySearchRequest] = useState(null);
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState(null);
   const [reportError, setReportError] = useState(null);
   const [reportAttempt, setReportAttempt] = useState(0);
   const [moderating, setModerating] = useState(() => new URLSearchParams(window.location.search).has("staff"));
@@ -510,7 +511,14 @@ function AppContent() {
         </div>
       </section>}
             {page === "forecast" && <ForecastPage areas={riskAreas} />}
-      {page === "lab" && <InvestigationLab areas={riskAreas} detections={detectionResult?.detections ?? []} onExplore={() => navigateTo("explore")} />}
+      {page === "lab" && (
+        <InvestigationLab
+          areas={riskAreas}
+          detections={detectionResult?.detections ?? []}
+          caseStudy={selectedCaseStudy}
+          onExplore={() => navigateTo("explore")}
+        />
+      )}
       {page === "analytics" && <StakeholderAnalytics areas={riskAreas} detections={detectionResult?.detections ?? []} onExplore={() => navigateTo("explore")} />}
       {page === "learn" && <section className="ew-learn ew-risk-editorial" aria-label="Understanding wildfire risk">
         <div className="ew-risk-hero">
@@ -864,6 +872,10 @@ function AppContent() {
         <section className="ew-history-section">
         <DetectionHistoryExplorer
           searchRequest={historySearchRequest}
+          onUseCaseStudy={(record) => {
+            setSelectedCaseStudy(record);
+            navigateTo("lab");
+          }}
           onExplore={() => {
             document.querySelector(".ew-map-frame")?.scrollIntoView({
               behavior: "smooth",
