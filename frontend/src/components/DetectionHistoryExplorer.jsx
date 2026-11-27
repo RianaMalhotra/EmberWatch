@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchFireHistory } from "../services/detectionApi";
 import {
   formatConfidence,
@@ -54,6 +54,8 @@ export default function DetectionHistoryExplorer({
   searchRequest,
   onUseCaseStudy,
 }) {
+  const showMapRef = useRef(onShowOnMap);
+  useEffect(() => { showMapRef.current = onShowOnMap; }, [onShowOnMap]);
   const [region, setRegion] = useState("canada");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -87,6 +89,7 @@ export default function DetectionHistoryExplorer({
         if (!active) return;
         setResult(data);
         setState("ready");
+        showMapRef.current?.({ query, records: data.data ?? [], truncated: data.truncated });
       })
       .catch(err => {
         if (!active) return;
@@ -353,7 +356,6 @@ export default function DetectionHistoryExplorer({
               : ""}
           </p>
 
-          {onShowOnMap && <div className="ew-analytics-actions"><button type="button" disabled={!result.data?.length} onClick={() => onShowOnMap({ query, records: result.data, truncated: result.truncated })}>Show results on map</button></div>}
 
           {records.length === 0 ? (
             <p>
