@@ -43,7 +43,21 @@ function HistoricalMapLayer({ history }) {
   const map = useMap();
   useEffect(() => {
     const { south, west, north, east } = history.query;
-    map.fitBounds([[south, west], [north, east]], { padding: [24, 24], maxZoom: 9 });
+    const points = history.records
+      .filter(record => Number.isFinite(record.latitude) && Number.isFinite(record.longitude))
+      .map(record => [record.latitude, record.longitude]);
+    const frame = requestAnimationFrame(() => {
+      map.invalidateSize({ pan: false });
+      map.stop();
+      if (points.length === 1) {
+        map.setView(points[0], 10, { animate: false });
+      } else {
+        map.fitBounds(points.length ? points : [[south, west], [north, east]], {
+          padding: [48, 48], maxZoom: 10, animate: false,
+        });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [map, history]);
   return history.records.filter(record =>
     Number.isFinite(record.latitude) && Number.isFinite(record.longitude)
