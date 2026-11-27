@@ -146,10 +146,12 @@ export default function DetectionHistoryExplorer({
       `history-community_report-${selectedRecordId}`
     );
 
-    element?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
+    if (typeof element?.scrollIntoView === "function") {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
   }, [state, result, selectedRecordId]);
 
   const invalid =
@@ -159,7 +161,42 @@ export default function DetectionHistoryExplorer({
     !Number.isFinite(Date.parse(utcDay(end))) ||
     start > end;
 
-  const records = result?.data ?? [];
+  const records = (() => {
+    const historicalRecords = result?.data ?? [];
+    const selectedReport = searchRequest?.report;
+
+    if (!selectedReport) return historicalRecords;
+
+    const alreadyIncluded = historicalRecords.some(
+      record =>
+        record.event_type === "community_report" &&
+        String(record.id) === String(selectedReport.id)
+    );
+
+    if (alreadyIncluded) return historicalRecords;
+
+    // Keep the staff-selected report visible even when it falls outside
+    // the historical API result limit or its public lifecycle filter.
+    return [
+      ...historicalRecords,
+      {
+        id: selectedReport.id,
+        event_type: "community_report",
+        latitude: Math.round(Number(selectedReport.latitude) * 100) / 100,
+        longitude: Math.round(Number(selectedReport.longitude) * 100) / 100,
+        event_at: selectedReport.observed_at,
+        submitted_at: selectedReport.created_at,
+        source: "Community",
+        confidence: null,
+        confidence_class: null,
+        review_status: selectedReport.review_status,
+        ended_at: null,
+        linked_report_id: null,
+        linked_detection_id: null,
+        location_source: "approximate",
+      },
+    ];
+  })();
 
   return (
     <section
@@ -316,10 +353,6 @@ export default function DetectionHistoryExplorer({
                     const isReport =
                       record.event_type === "community_report";
 
-                    const statusHistory = Array.isArray(record.status_history)
-                      ? record.status_history
-                      : [];
-
                     return (
                       <tr
                         id={`history-${record.event_type}-${record.id}`}
@@ -374,32 +407,11 @@ export default function DetectionHistoryExplorer({
                         </td>
 
                         <td>
-                          {isReport && statusHistory.length > 0 ? (
-                            <details>
-                              <summary>
-                                View timeline ({statusHistory.length})
-                              </summary>
-
-                              <ol>
-                                {statusHistory.map((entry, timelineIndex) => (
-                                  <li key={`${record.id}-${timelineIndex}`}>
-                                    <strong>
-                                      {formatStatus(entry.old_status)}
-                                      {" → "}
-                                      {formatStatus(entry.new_status)}
-                                    </strong>
-                                    <small>
-                                      {formatHistoryTime(entry.changed_at)}
-                                    </small>
-                                  </li>
-                                ))}
-                              </ol>
-                            </details>
-                          ) : isReport ? (
-                            "No status changes recorded"
-                          ) : (
-                            "—"
-                          )}
+                          {isReport
+                            ? record.ended_at
+                              ? `Ended ${formatHistoryTime(record.ended_at)}`
+                              : "Current status shown"
+                            : "—"}
 
                           {isReport &&
                             (record.linked_report_id ||

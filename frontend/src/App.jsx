@@ -584,6 +584,7 @@ function AppContent() {
               latitude,
               longitude,
               observedAt: report.observed_at,
+              report,
             });
 
             navigateTo("explore");

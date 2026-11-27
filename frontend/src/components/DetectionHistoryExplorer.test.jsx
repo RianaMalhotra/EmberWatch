@@ -164,6 +164,58 @@ describe("Sprint 5 historical fire records (#54)", () => {
     );
   });
 
+  it("keeps a staff-selected report visible when it is missing from truncated history results", async () => {
+    const selectedReport = {
+      id: 9876,
+      latitude: 50.1234,
+      longitude: -120.5678,
+      observed_at: "2025-07-02T12:00:00Z",
+      created_at: "2025-07-02T12:30:00Z",
+      review_status: "rejected",
+    };
+
+    fetchFireHistory.mockResolvedValue({
+      status: "success",
+      data: [
+        {
+          id: 12,
+          event_type: "satellite_detection",
+          latitude: 50.1,
+          longitude: -120.3,
+          event_at: "2025-07-02T13:00:00Z",
+          source: "NASA FIRMS",
+        },
+      ],
+      truncated: true,
+    });
+
+    render(
+      <DetectionHistoryExplorer
+        onExplore={() => {}}
+        searchRequest={{
+          reportId: selectedReport.id,
+          latitude: selectedReport.latitude,
+          longitude: selectedReport.longitude,
+          observedAt: selectedReport.observed_at,
+          report: selectedReport,
+        }}
+      />
+    );
+
+    const selectedRow = await screen.findByText("Community report");
+
+    expect(selectedRow).toBeInTheDocument();
+    expect(
+      document.getElementById("history-community_report-9876")
+    ).toBeInTheDocument();
+
+    expect(
+      document.getElementById("history-community_report-9876")
+    ).toHaveTextContent("Rejected");
+
+    expect(screen.getByText(/result limit was reached/)).toBeInTheDocument();
+  });
+  
   it("requires dates and keeps navigation functional", async () => {
     const user = userEvent.setup();
     const onExplore = vi.fn();
