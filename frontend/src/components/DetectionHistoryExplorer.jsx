@@ -213,6 +213,17 @@ export default function DetectionHistoryExplorer({
         are observations, not necessarily confirmed fires.
       </p>
 
+      <aside aria-label="Historical satellite archive coverage">
+        <h3>Satellite archive coverage (UTC)</h3>
+        <p>Imported archive: January 2023–December 2025. MODIS Standard
+          Processing: January 1–August 31, 2026. MODIS Near Real-Time:
+          September 1–November 27, 2026 (last verified November 27;
+          ongoing ingestion may extend this range).</p>
+        <p>These are documented archive periods, not guarantees of daily
+          or regional detection coverage. Near-real-time observations may
+          be revised by NASA. Community reports have separate coverage.</p>
+      </aside>
+
       <form
         onSubmit={event => {
           event.preventDefault();
@@ -282,6 +293,13 @@ export default function DetectionHistoryExplorer({
           </p>
         )}
 
+        {((start && start < "2023-01-01") ||
+          (end && end > "2026-11-27")) && (
+          <p role="status">Part of your search is outside the last verified
+            satellite archive period. Records may be incomplete; you can
+            still search for available observations and community reports.</p>
+        )}
+
         <div className="ew-analytics-actions">
           <button type="submit" disabled={invalid || state === "loading"}>
             {state === "loading" ? "Searching history…" : "Search history"}
@@ -337,16 +355,16 @@ export default function DetectionHistoryExplorer({
           <p role="status">
             {records.length} historical records returned.
             {result.truncated
-              ? " The result limit was reached: narrow your region or date range to see more."
+              ? " The result limit was reached: the map shows only the returned API records, not every matching observation. Narrow your region or date range to see more."
               : ""}
           </p>
 
-          {onShowOnMap && <div className="ew-analytics-actions"><button type="button" onClick={() => onShowOnMap({ query, records: result.data, truncated: result.truncated })}>Show results on map</button></div>}
+          {onShowOnMap && <div className="ew-analytics-actions"><button type="button" disabled={!result.data?.length} onClick={() => onShowOnMap({ query, records: result.data, truncated: result.truncated })}>Show results on map</button></div>}
 
           {records.length === 0 ? (
             <p>
               No historical records matched this region and date range.
-              This does not establish that no fires occurred.
+              Satellite overpasses, cloud cover, detection sensitivity and archive availability can affect results. No detections does not establish that no fires occurred.
             </p>
           ) : (
             <div className="ew-analytics-table-wrap">
