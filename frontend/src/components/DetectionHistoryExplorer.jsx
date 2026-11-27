@@ -253,9 +253,9 @@ export default function DetectionHistoryExplorer({
           </button>
         </div>
       </form>
-
+      
       {state === "idle" && (
-        <p role="status">
+        <p>
           Select a region and date range to search historical fire records.
         </p>
       )}

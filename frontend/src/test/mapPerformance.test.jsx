@@ -58,7 +58,14 @@ vi.mock("react-leaflet", async () => {
 });
 
 vi.mock("../services/riskApi", () => ({ fetchRiskAreas: vi.fn() }));
-vi.mock("../services/detectionApi", () => ({ fetchDetections: vi.fn() }));
+vi.mock("../services/detectionApi", () => ({
+  fetchDetections: vi.fn(),
+  fetchFireHistory: vi.fn().mockResolvedValue({
+    status: "success",
+    data: [],
+    truncated: false,
+  }),
+}));
 
 beforeEach(() => {
   // Place search (Open-Meteo geocoding) returns nothing in this test.
