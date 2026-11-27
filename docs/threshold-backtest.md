@@ -3,6 +3,18 @@
 **Chosen value:** `DEFAULT_MIN_DETECTION_CONFIDENCE = 20` in `backend/config.py` (provisional; the held-out and burned-area checks below found no evidence that it improves detection quality).
 It can be overridden with the `MIN_DETECTION_CONFIDENCE` environment variable.
 
+### How the threshold is used in EmberWatch
+
+In the current detection pipeline, this threshold is a **classification boundary**, not a blanket filter that removes observations:
+
+- Valid detections with confidence at or above the threshold are classified as `potential_wildfire`.
+- Valid detections below the threshold are retained and classified as `low_confidence`.
+- Invalid or unavailable observations are handled separately and are not assigned fabricated confidence values.
+
+The `/api/detections` endpoint can therefore return both `potential_wildfire` and `low_confidence` records. The threshold also affects the risk model's nearby-detection count: only stored detections meeting the configured threshold contribute to that factor.
+
+The backtests below evaluate how well confidence thresholds separate the study's proxy labels. They do **not** establish that the application removes false detections or that a threshold of 20 improves real-world wildfire detection accuracy.
+
 ## Data
 
 NASA FIRMS **MODIS Collection 6.1**, standard-processing country yearly summaries for **Canada**. Raw files are not committed; see `data-processing/README.md` to download them.
@@ -52,13 +64,18 @@ Precision **0.792**, recall **0.889**, false-positive rate **0.874**, Youden's J
 | 2024 | 2023+2025 | 20 | 0.815 | 0.908 | 0.890 |
 | 2025 | 2023+2024 | 20 | 0.792 | 0.889 | 0.874 |
 
-What this shows:
+### Interpretation
 
-- **The choice is stable.** Every fold picks 15 or 20.
-- **The 90% recall target does not reliably hold out of sample.** It held in two of the three held-out years; in 2025 recall fell to 88.9%.
-- **The filter has little effect.** In the held-out years it drops only slightly more of the one-off hotspots (11-13%) than of the real fires (8-11%), so precision barely moves. Threshold 20 is a provisional, low-impact setting.
+The held-out 2025 evaluation provides little evidence that the confidence threshold materially improves detection quality:
 
-These are **proxy-based estimates, not validated accuracy** (see Limitations).
+- At threshold 20, precision was approximately **0.792**, compared with **0.789** without the threshold.
+- This is an improvement of only about **0.3 percentage points**.
+- Recall was **0.889**, while the false-positive rate remained high at **0.874**.
+- The leave-one-year-out results also show that the selected threshold does not consistently achieve the intended 90% recall target. The selected threshold met the 90% recall target in two of the three held-out years, but fell short in 2025 (88.9%).
+
+The additional NBAC burned-area comparison gives a similar caution: threshold 20 removes a comparable proportion of detections inside and outside the buffered burned-area polygons. It does not demonstrate reliable separation between detections associated with burned areas and those outside them.
+
+These findings support treating 20 as a provisional operational classification threshold, not as a validated optimum. They do not establish that higher confidence thresholds are better for the application: increasing the threshold can also discard genuine fire observations.
 
 2023 trade-off across thresholds (share kept):
 
@@ -98,7 +115,7 @@ Instead of the database export, a cleaned FIRMS file from `firms_cleaning.py` (f
 
 Allow a few minutes per year: big fire years have very detailed polygons.
 
-**What "inside" and "outside" mean.** Inside is a much stronger sign of a real fire than the persistence proxy. Outside is **not** proof of a false alarm: small or unmapped fires and other heat sources (such as agricultural burning) also end up outside. The false-positive rate from this check is therefore overstated, and precision understated.
+**What "inside" and "outside" mean.** Inside is a stronger indication that a detection is associated with a burned area than the persistence proxy provides. Outside is **not** proof of a false alarm: small or unmapped fires and other heat sources (such as agricultural burning) also end up outside. The false-positive rate from this check is therefore overstated, and precision understated.
 
 **Results** (1 km buffer; `ml/results/nbac_<year>.csv`)
 
@@ -144,11 +161,11 @@ What this shows:
 ## Limitations
 
 - **Confidence alone is a weak filter.** Real fires and one-off hotspots are dropped at nearly the same rate as the threshold rises. The best separation (J = 0.13 at 80) would discard half of all real fires. Precision only rises from 0.81 to 0.88 across the full range.
-- **Persistence is a proxy, not field-verified truth.** Short-lived real fires count as "one-offs", and a false hotspot next to a real fire can be counted as real.
-- **No validated accuracy is claimed.** Without field-verified ground truth, every precision, recall and false-positive figure here, including the held-out ones, is measured against the persistence proxy. Treat them as estimates of how the filter behaves, not as the real-world accuracy of wildfire detection.
+- **No validated accuracy is claimed.** Without field-verified ground truth, precision, recall and false-positive figures are measured against proxy labels: the persistence-based labels or the NBAC burned-area comparison, depending on the evaluation. Treat them as estimates of how the filter behaves, not as the real-world accuracy of wildfire detection.
 - **Neither answer key is ground truth, but they agree on the main conclusion.** The cut-off at 20 changes little under both, so rely on that finding and not on the exact precision and recall values. Precision with burned-area labels is high (0.95-0.97) partly because almost every detection falls in a mapped burn.
 - **Burned-area labels have their own limits.** NBAC is a composite of several sources and its attributes include hotspot-based dates, so it may not be fully independent of the satellite detections. Check its metadata for how much of it is hotspot-based. Fires that burn across New Year are matched only to polygons of the detection's own calendar year.
 - **The split is small.** There are three seasons, so the main split has a single test season (2025) and the leave-one-year-out check has only three folds. Thresholds are scored in steps of 5. The held-out figures give a rough idea of stability, not a tight confidence interval.
+- **Proxy labels are not ground truth.** Detection persistence and overlap with burned-area polygons provide useful comparison signals, but neither proves that an individual satellite observation is a wildfire. Detections outside a burned-area polygon are not necessarily false detections.
 - **Next step:** combine confidence with other signals (repeat detection, FRP, land cover), or validate against official burned-area perimeters (e.g. NBAC).
 
 ## Reproduce

@@ -8,7 +8,7 @@
 
 ## Overview
 
-EmberWatch addresses the difficulty of interpreting wildfire observations and environmental risk information across different sources in one accessible interface. It is intended for students, researchers, and members of the public who want to explore and understand wildfire-related data—not for emergency responders making operational decisions. The deployed React/Leaflet dashboard, Flask API, and Supabase PostgreSQL/PostGIS backend bring together monitored Canadian locations, historical and recent NASA FIRMS fire detections, environmental observations, and explainable area-level wildfire risk. **Detection confidence** (certainty associated with a satellite hotspot) and **risk** (a weighted estimate for a geographic area) are different quantities.
+EmberWatch addresses the difficulty of interpreting wildfire observations and environmental risk information across different sources in one accessible interface. It is intended for students, researchers, and members of the public who want to explore and understand wildfire-related data—not for emergency responders making operational decisions. The deployed React/Leaflet dashboard, Flask API, and Supabase PostgreSQL/PostGIS backend bring together monitored Canadian locations, historical and recent NASA FIRMS fire detections, environmental observations, and explainable area-level wildfire risk. **Detection confidence** (the confidence value associated with an individual satellite observation) and **risk** (a weighted estimate for a geographic area) are different quantities.
 
 ## Sprint 6 integration status
 
@@ -65,6 +65,8 @@ Learn the distinction between an environmental risk score, satellite detection c
 
 Adjust simulated weather conditions and compare outcomes to explore how risk indicators respond. These experiments are educational simulations, not live forecasts.
 
+The Investigation Lab also supports playback of historical satellite observations. This is distinct from the proposed **historical early-warning alert simulation (user story #8)**, which remains **deferred and is not implemented**. Playback does not simulate or generate historical early-warning alerts. See [Acceptance traceability](docs/acceptance-traceability.md) for the story's status.
+
 ### AI Forecast — experimental weather outlook
 
 ![AI Forecast page showing the experimental machine-learning weather outlook](docs/ai-forecast.webp)
@@ -82,6 +84,25 @@ The `weighted-index-v1` model combines temperature (15%), relative humidity (20%
 | 70–100 | HIGH |
 
 Weather is sourced from **Open-Meteo**; elevation/slope from the Open-Meteo Elevation API; fire observations from **NASA FIRMS**. Stored observations include timestamps and provenance. **NDVI is not yet connected**, so assessments are ordinarily marked incomplete. Risk weights and thresholds are provisional, not statistically calibrated.
+
+### Detection confidence is not environmental risk
+
+These are separate measurements:
+
+- **Detection confidence** (`confidence`, 0–100) describes the confidence associated with an individual NASA FIRMS satellite observation. It is not a probability that a wildfire exists, confirmation of an active fire, or an environmental risk score.
+- **Environmental risk** (`risk_score`, 0–100, and `risk_level`) is a weighted estimate for a monitored geographic area. It combines available environmental factors with nearby historical satellite detections.
+
+The default detection confidence threshold is **20** (`DEFAULT_MIN_DETECTION_CONFIDENCE` in `backend/config.py`). It can be overridden with `MIN_DETECTION_CONFIDENCE`.
+
+In the detection pipeline, this threshold is a **classification boundary**, not a blanket filter:
+
+- Valid observations meeting the threshold are classified as `potential_wildfire`.
+- Valid observations below the threshold are retained and classified as `low_confidence`.
+- Invalid or unavailable observations are handled separately.
+
+The risk model does not use an individual observation's confidence as a scoring factor. Instead, its nearby-detection factor counts stored detections within 50 km that meet the configured confidence threshold.
+
+The threshold is provisional. The persistence-based and burned-area backtests found little evidence that a threshold of 20 improves detection quality. See [Threshold backtest](docs/threshold-backtest.md) for the methodology, results, reproducible commands, and limitations.
 
 See [Risk model, historical validation, and limitations](docs/risk-model.md), [Environmental data](docs/environmental-data.md), [Detection provenance](docs/detection-data-provenance.md), and [Threshold backtest](docs/threshold-backtest.md).
 
@@ -114,7 +135,7 @@ The diagram represents the implemented components, **not** a guarantee that sche
 | POST | `/api/risk-score` | Score supplied environmental inputs; optional location-based history lookup |
 | GET | `/api/detections?limit=200` | Classified detections, confidence, counts, and gaps |
 | GET | `/api/detections/history` | Historical detections with bounding-box/time filters; the advanced analytics UI supports UTC date and approximate region selection |
-
+| GET | `/api/fires/history` | Unified historical records from NASA FIRMS detections and eligible community reports, with area and date filtering |
 | POST | `/api/reports` | Submit an unverified community report |
 | GET | `/api/reports` | Public report feed |
 | GET | `/api/reports/verified` | Staff-reviewed report feed |
@@ -195,6 +216,15 @@ npm run build
 
 ```bash
 python ml/validate_risk_model.py
+```
+**Detection confidence threshold evaluation** (from the repository root):
+
+The committed result files allow the held-out evaluation to be reproduced without downloading the original FIRMS datasets:
+
+```bash
+python ml/evaluate_threshold_split.py
+python ml/evaluate_threshold_split.py --train 2023 2024 --test 2025
+python -m pytest tests/test_backtest_threshold.py tests/test_evaluate_threshold_split.py tests/test_evaluate_against_nbac.py tests/test_evaluate_against_nbac_maps.py tests/test_export_detections.py
 ```
 
 GitHub Actions runs backend, data-processing, and frontend checks on pull requests targeting `main`. See [GitHub Actions](https://github.com/RianaMalhotra/EmberWatch/actions) for current CI status.
