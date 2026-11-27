@@ -20,6 +20,11 @@ vi.mock("./services/riskApi", () => ({ fetchRiskAreas: vi.fn().mockResolvedValue
 vi.mock("./services/detectionApi", () => ({
   fetchDetections: vi.fn().mockResolvedValue({ detections: [], threshold: 20, counts: {} }),
   fetchDetectionHistory: vi.fn().mockResolvedValue({ detections: [] }),
+  fetchFireHistory: vi.fn().mockResolvedValue({
+    status: "success",
+    data: [],
+    truncated: false,
+  }),
 }));
 
 afterEach(() => {

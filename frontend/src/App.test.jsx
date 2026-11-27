@@ -58,6 +58,11 @@ const mockMap = vi.hoisted(() => ({ getContainer: () => document.body, getSize: 
 
 vi.mock("./services/detectionApi", () => ({
   fetchDetections: vi.fn().mockRejectedValue(new Error("not under test")),
+  fetchFireHistory: vi.fn().mockResolvedValue({
+    status: "success",
+    data: [],
+    truncated: false,
+  }),
 }));
 
 const mockArea = {
