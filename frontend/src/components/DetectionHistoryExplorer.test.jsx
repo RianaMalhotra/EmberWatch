@@ -78,7 +78,7 @@ describe("Sprint 5 historical fire records (#54)", () => {
     await search(user);
 
     expect(await screen.findByText("81%")).toBeInTheDocument();
-    expect(screen.getByText(/result limit was reached/)).toBeInTheDocument();
+    expect(screen.getByText(/Only the first set of results is shown on the map/)).toBeInTheDocument();
     expect(
       screen.getByText(/not the modeled environmental risk score/)
     ).toBeInTheDocument();
@@ -92,8 +92,12 @@ describe("Sprint 5 historical fire records (#54)", () => {
     render(<DetectionHistoryExplorer onShowOnMap={onShowOnMap} />);
     await search(user);
     await user.selectOptions(screen.getByLabelText("Region"), "west");
-    await user.click(await screen.findByRole("button", { name: "Show results on map" }));
-    expect(onShowOnMap).toHaveBeenCalledWith({ query: expect.objectContaining({ west: -141, east: -52, start: "2025-07-01T00:00:00.000Z" }), records: [record], truncated: true });
+    await waitFor(() => expect(onShowOnMap).toHaveBeenCalledWith({
+      query: expect.objectContaining({ west: -141, east: -52, start: "2025-07-01T00:00:00.000Z" }),
+      records: [record],
+      truncated: true,
+    }));
+    expect(screen.queryByRole("button", { name: "Show results on map" })).not.toBeInTheDocument();
   });
 
   it("shows a recoverable error without manufacturing observations", async () => {
@@ -151,7 +155,7 @@ describe("Sprint 5 historical fire records (#54)", () => {
     });
 
     expect(
-      await screen.findByText(/Results for Canada \(bounding box\)/)
+      await screen.findByText(/Results for All Canada/)
     ).toBeInTheDocument();
 
     expect(fetchFireHistory).toHaveBeenCalledTimes(1);
@@ -225,7 +229,7 @@ describe("Sprint 5 historical fire records (#54)", () => {
       document.getElementById("history-community_report-9876")
     ).toHaveTextContent("Rejected");
 
-    expect(screen.getByText(/result limit was reached/)).toBeInTheDocument();
+    expect(screen.getByText(/Only the first set of results is shown on the map/)).toBeInTheDocument();
   });
   
   it("clears historical results and resets the map through its callback", async () => {
