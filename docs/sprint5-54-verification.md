@@ -41,7 +41,7 @@ Verify that:
 - [ ] Results can include both `satellite_detection` and `community_report` records when both sources have matching data.
 - [ ] Results are ordered newest first.
 - [ ] Spatial and date filters restrict the returned records as expected.
-- [ ] Community report records include available review status and status history.
+- [ ] Community report records include their current review status and `ended_at` timestamp where available, without exposing internal moderation audit history.
 - [ ] Satellite records include available observation metadata, such as confidence, satellite, instrument, and FRP.
 - [ ] Missing source-specific metadata is returned as unavailable rather than fabricated.
 - [ ] Community report coordinates are rounded to two decimal places in the public response.
@@ -97,7 +97,7 @@ In the Historical Fire Records explorer, select an eligible record using **Use a
 For a community report:
 
 - [ ] The case study identifies the event as a community report.
-- [ ] The available review status and lifecycle transitions are displayed.
+- [ ] The current review status is displayed; internal moderation status transitions and staff identifiers are not displayed.
 - [ ] The recorded end time is displayed when available.
 - [ ] The location privacy explanation is visible.
 
@@ -115,7 +115,7 @@ The case study is an educational historical-event view. It does not simulate wil
 
 - [ ] Public historical records do not expose unverified, verified, or rejected community reports.
 - [ ] Staff report queue and moderation endpoints reject requests without valid staff authorization.
-- [ ] Staff-only report audit information is not exposed through public endpoints.
+- [ ] Staff-only report audit information (including status-transition history and staff identifiers) is not exposed through public endpoints.
 
 ## 7. Automated verification
 
