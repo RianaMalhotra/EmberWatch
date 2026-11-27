@@ -257,10 +257,10 @@ This section supplements the existing `main` acceptance snapshot above. It recor
 | Unified historical records | `GET /api/fires/history` combines NASA FIRMS satellite detections and eligible community reports. |
 | Area and date filtering | Historical records can be filtered by geographic bounds and observation date range. |
 | Data provenance | Records expose available source-specific metadata, including satellite confidence and community report status. |
-| Community report lifecycle | Historical records include status history and the `ended_at` timestamp where available. |
+| Community report lifecycle | Public historical records expose the current review status and `ended_at` timestamp where available; internal status-transition audit history remains staff-only. |
 | Out reports | Reports marked `out` remain available in historical records, even though they are excluded from the public active-fire map. |
 | Historical navigation | Staff can navigate from an Out report to its corresponding historical record. |
-| Investigation Lab | Eligible historical records can be opened as case studies displaying available event metadata and lifecycle information. |
+| Investigation Lab | Eligible historical records can be opened as case studies displaying available event metadata, current review status, and end time, without exposing staff-only audit history. |
 
 ### Relevant implementation files
 
