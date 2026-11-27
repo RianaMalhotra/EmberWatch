@@ -200,6 +200,8 @@ export default function DetectionHistoryExplorer({
     ];
   })();
 
+  const hasReports = records.some(record => record.event_type === "community_report");
+
   return (
     <section
       className="ew-analytics-panel ew-history"
@@ -368,9 +370,7 @@ export default function DetectionHistoryExplorer({
                     <th>Type</th>
                     <th>Source</th>
                     <th>Confidence</th>
-                    <th>Status</th>
-                    <th>End time</th>
-                    <th>Lifecycle</th>
+                    {hasReports && <><th>Status</th><th>End time</th><th>Lifecycle</th></>}
                     <th>Investigation</th>
                   </tr>
                 </thead>
@@ -421,7 +421,7 @@ export default function DetectionHistoryExplorer({
                           )}
                         </td>
 
-                        <td>
+                        {hasReports && <><td>
                           {isReport
                             ? formatStatus(record.review_status)
                             : "—"}
@@ -453,7 +453,7 @@ export default function DetectionHistoryExplorer({
                                   `Linked detection: ${record.linked_detection_id}`}
                               </small>
                             )}
-                        </td>
+                        </td></>}
 
                         <td>
                           <button
