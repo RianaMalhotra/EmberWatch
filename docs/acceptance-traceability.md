@@ -243,3 +243,53 @@ Story: [#13](https://github.com/RianaMalhotra/EmberWatch/issues/13)
 ## Keeping this file current
 
 When a pull request changes behaviour covered here, update the matching row (status, PR link and test) in the same pull request, and re-run the three test commands above. Change a status to ✅ only when the evidence column names a test or a recorded result.
+
+## Feature-branch evidence: Sprint 5 #54
+
+**Status:** Implemented on the feature branch; awaiting review and merge.
+
+This section supplements the existing `main` acceptance snapshot above. It records implementation evidence for Sprint 5 issue #54 and does not change the historical status of the `main` branch recorded earlier in this document.
+
+### Implemented functionality
+
+| Acceptance area | Feature-branch implementation |
+|---|---|
+| Unified historical records | `GET /api/fires/history` combines NASA FIRMS satellite detections and eligible community reports. |
+| Area and date filtering | Historical records can be filtered by geographic bounds and observation date range. |
+| Data provenance | Records expose available source-specific metadata, including satellite confidence and community report status. |
+| Community report lifecycle | Historical records include status history and the `ended_at` timestamp where available. |
+| Out reports | Reports marked `out` remain available in historical records, even though they are excluded from the public active-fire map. |
+| Historical navigation | Staff can navigate from an Out report to its corresponding historical record. |
+| Investigation Lab | Eligible historical records can be opened as case studies displaying available event metadata and lifecycle information. |
+
+### Relevant implementation files
+
+- `backend/services/fire_history.py` — unified historical records query and filtering.
+- `backend/app.py` — historical records API route.
+- `backend/report_moderation.py` — report lifecycle and end-time handling.
+- `frontend/src/services/detectionApi.js` — historical records API client.
+- `frontend/src/components/DetectionHistoryExplorer.jsx` — historical records explorer.
+- `frontend/src/components/InvestigationLab.jsx` — historical event case-study view.
+- `frontend/src/components/InvestigationLab.css` — case-study presentation.
+- `supabase/migrations/20261126000000_add_fire_report_ended_at.sql` — report end-time migration.
+
+### Automated verification evidence
+
+The following checks were completed during implementation:
+
+| Check | Recorded result |
+|---|---|
+| `pytest backend/tests -q` | 505 passed |
+| `npm run build` in `frontend/` | Passed; Vite reported a non-blocking bundle-size advisory because the generated JavaScript chunk exceeded 500 kB. |
+
+### Manual verification
+
+Reproducible API, Explore interface, staff navigation, access-control, and Investigation Lab verification steps are documented in [`sprint5-54-verification.md`](sprint5-54-verification.md).
+
+Manual verification results should be recorded in that guide after the checks are performed on the branch being reviewed.
+
+### Scope boundary
+
+Sprint 5 #54 provides historical event exploration and educational case studies. It does not implement wildfire-spread simulation.
+
+The integration of confirmed community reports into wildfire risk scoring remains separate work tracked under issue #57. The existing main-branch acceptance gaps concerning that integration are therefore not closed by this feature.

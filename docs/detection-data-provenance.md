@@ -69,3 +69,51 @@ FIRMS marks 682 stored rows as type 2 (671, *other static land source*, e.g. ind
 - This is a student prototype, not an emergency alert system.
 
 Tests: `tests/test_detection_ingestion_46.py` (timestamps, duplicates across files, re-loading, the unique constraint, and the validator), run in CI by the "Data Processing Tests" job.
+
+## Community report provenance (Sprint 5, #54)
+
+The unified historical fire records endpoint also includes eligible community-submitted fire reports stored in `public.fire_reports`.
+
+### Source and eligibility
+
+Community reports originate from public fire-report submissions and are reviewed through the staff moderation workflow.
+
+The historical records query includes reports with the following statuses:
+
+- `confirmed`
+- `out_of_control`
+- `being_held`
+- `under_control`
+- `out`
+
+Reports that are `unverified`, `verified`, or `rejected` are excluded from the public historical records query. This prevents unreviewed or rejected submissions from being presented as eligible historical events.
+
+### Provenance and lifecycle metadata
+
+Community report records retain their original report source and available event metadata, including:
+
+- Reported observation time and submission time.
+- Recorded geographic coordinates.
+- Current review or lifecycle status.
+- Status transition history, including the previous status, new status, and transition timestamp.
+- Linked detection or report identifiers, where available.
+- The time the report was marked `out`, stored in `ended_at`.
+
+The `ended_at` column was introduced by migration `20261126000000_add_fire_report_ended_at.sql`. It is populated when a report transitions to `out`. If a report subsequently transitions away from `out`, the end timestamp is cleared.
+
+### Location privacy
+
+Community report coordinates returned by the public historical records endpoint are rounded to two decimal places. This provides approximate locations rather than exposing the full stored coordinate precision.
+
+Spatial filtering is performed using the stored coordinates before the returned coordinates are rounded.
+
+### Interpretation and limitations
+
+Community reports and NASA FIRMS detections represent different kinds of evidence:
+
+- A community report represents information submitted by a member of the public and processed through the moderation workflow.
+- A NASA FIRMS detection represents a satellite-observed thermal anomaly. Its confidence describes the satellite observation, not independent confirmation of a wildfire.
+
+The two sources are presented together for historical exploration, but their metadata and confidence values are not interchangeable.
+
+Historical community reports are not automatically incorporated into the wildfire risk model. That integration is tracked separately under issue #57.
