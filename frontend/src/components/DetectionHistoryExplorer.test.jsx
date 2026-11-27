@@ -84,6 +84,18 @@ describe("Sprint 5 historical fire records (#54)", () => {
     ).toBeInTheDocument();
   });
 
+  it("passes only returned public records and submitted bounds to historical map", async () => {
+    const user = userEvent.setup();
+    const onShowOnMap = vi.fn();
+    const record = { id: 12, event_type: "satellite_detection", latitude: 50.1, longitude: -120.3, event_at: "2025-07-02T12:00:00Z" };
+    fetchFireHistory.mockResolvedValue({ status: "success", data: [record], truncated: true });
+    render(<DetectionHistoryExplorer onShowOnMap={onShowOnMap} />);
+    await search(user);
+    await user.selectOptions(screen.getByLabelText("Region"), "west");
+    await user.click(await screen.findByRole("button", { name: "Show results on map" }));
+    expect(onShowOnMap).toHaveBeenCalledWith({ query: expect.objectContaining({ west: -141, east: -52, start: "2025-07-01T00:00:00.000Z" }), records: [record], truncated: true });
+  });
+
   it("shows a recoverable error without manufacturing observations", async () => {
     const user = userEvent.setup();
 

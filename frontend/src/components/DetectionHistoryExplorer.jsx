@@ -49,6 +49,7 @@ function formatStatus(status) {
 
 export default function DetectionHistoryExplorer({
   onExplore,
+  onShowOnMap,
   searchRequest,
   onUseCaseStudy,
 }) {
@@ -325,6 +326,8 @@ export default function DetectionHistoryExplorer({
               ? " The result limit was reached: narrow your region or date range to see more."
               : ""}
           </p>
+
+          {onShowOnMap && <div className="ew-analytics-actions"><button type="button" onClick={() => onShowOnMap({ query, records: result.data, truncated: result.truncated })}>Show results on map</button></div>}
 
           {records.length === 0 ? (
             <p>
