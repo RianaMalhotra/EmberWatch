@@ -54,7 +54,7 @@ vi.mock("react-leaflet", async () => {
 });
 
 const mapFailure = vi.hoisted(() => ({ explode: false }));
-const mockMap = vi.hoisted(() => ({ fitBounds: vi.fn(), panTo: vi.fn(), getBounds: () => ({ contains: () => true }) }));
+const mockMap = vi.hoisted(() => ({ getContainer: () => document.body, getSize: () => ({x: 10, y: 10}), latLngToContainerPoint: vi.fn(() => ({x:5,y:5})), on: vi.fn(), off: vi.fn(), fitBounds: vi.fn(), panTo: vi.fn(), getBounds: () => ({ contains: () => true }) }));
 
 vi.mock("./services/detectionApi", () => ({
   fetchDetections: vi.fn().mockRejectedValue(new Error("not under test")),
@@ -858,5 +858,41 @@ describe("Weather observation time (#49)", () => {
     await user.click(await screen.findByRole("button", { name: "Select area at 43.6532, -79.3832" }));
     expect(screen.getByText("Weather observation time unavailable")).toBeInTheDocument();
     expect(screen.queryByText(/Weather observed/)).not.toBeInTheDocument();
+  });
+});
+
+describe("Detection heatmap integration (#58)", () => {
+  it("switches between markers and filtered density and cleans up the canvas", async () => {
+    const user = userEvent.setup();
+    const gradient = { addColorStop: vi.fn() };
+    const ctx = { createRadialGradient: vi.fn(() => gradient), fillRect: vi.fn(),
+      getImageData: vi.fn(() => ({data: new Uint8ClampedArray(400)})), putImageData: vi.fn() };
+    const canvasMock = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx);
+    try {
+      fetchRiskAreas.mockResolvedValue({source:"supabase",data:[mockArea]});
+      fetchDetections.mockResolvedValue({threshold:20,detections:[
+        {id:101,latitude:50.1,longitude:-120.3,timestamp:new Date(Date.now()-3600000).toISOString(),confidence:80,classification:"potential_wildfire",meets_threshold:true},
+        {id:102,latitude:55.2,longitude:-110.4,timestamp:new Date(Date.now()-172800000).toISOString(),confidence:80,classification:"potential_wildfire",meets_threshold:true}
+      ]});
+      render(<App />);
+      (await screen.findByRole("button",{name:"Explore"})).click();
+      await screen.findByRole("button",{name:"Fire at 50.1, -120.3"});
+      const toggle=screen.getByRole("checkbox",{name:/show detection heatmap/i});
+      await user.click(toggle);
+      expect(screen.queryByRole("button",{name:"Fire at 50.1, -120.3"})).not.toBeInTheDocument();
+      expect(screen.getByText("Satellite detection density")).toBeInTheDocument();
+      expect(document.querySelector("canvas[aria-hidden=true]")).not.toBeNull();
+      mockMap.latLngToContainerPoint.mockClear();
+      await user.click(screen.getByRole("button",{name:"Last 24 h"}));
+      expect(mockMap.latLngToContainerPoint).toHaveBeenCalledWith([50.1,-120.3]);
+      expect(mockMap.latLngToContainerPoint).not.toHaveBeenCalledWith([55.2,-110.4]);
+      mockMap.latLngToContainerPoint.mockClear();
+      await user.click(screen.getByRole("button",{name:"Historical"}));
+      expect(mockMap.latLngToContainerPoint).toHaveBeenCalledWith([55.2,-110.4]);
+      expect(mockMap.latLngToContainerPoint).not.toHaveBeenCalledWith([50.1,-120.3]);
+      await user.click(toggle);
+      expect(document.querySelector("canvas[aria-hidden=true]")).toBeNull();
+      expect(screen.getByRole("button",{name:"Fire at 55.2, -110.4"})).toBeInTheDocument();
+    } finally { canvasMock.mockRestore(); }
   });
 });

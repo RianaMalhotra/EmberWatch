@@ -96,3 +96,18 @@ Delete test rows afterwards: `delete from public.fire_reports where description 
 - **Rate limiting is per IP address.** People sharing a network (a campus, an office, mobile carrier NAT) share one limit, and an attacker with many real IP addresses can still send more. Forged `X-Forwarded-For` headers do not help: only proxy-added entries are used (see "Which IP is rate-limited"). `TRUSTED_PROXY_COUNT` must match the real number of proxies; too high would trust client-written entries again.
 - **Reports are not verified and are never sent to emergency services.** The form tells users to call 911 for emergencies.
 - **Reports are not shown on the map yet.** Displaying and reviewing them is #53.
+
+
+## Sprint 5 staff moderation (implemented by #104)
+
+The server-side moderation routes and authentication are defined in
+`backend/report_moderation.py`, not in separate staff services:
+
+- `GET /api/staff/reports` returns a complete staff-only queue, including unverified, rejected, and out reports with original descriptions. The response is not public data and must not be exposed to unauthenticated clients.
+- `PATCH /api/reports/{id}/status` accepts JSON such as `{"status":"verified"}` for an allowed transition; it checks the existing status, rejects invalid transitions with HTTP 409, and records a timestamped audit entry with the verified staff ID on changes.
+- `GET /api/reports/{id}/audit` returns the report's audit history to authorized staff.
+- `GET /api/reports` includes active community reports but hides rejected/out reports and redacts unverified descriptions and precise GPS coordinates.
+
+Access requires a valid Supabase Auth bearer token verified by the backend, with the authenticated user UUID included in the server-side `REPORTS_STAFF_USER_IDS` allowlist. The backend requires `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Never trust client-provided role headers or unverified token claims.
+
+For configuration, state transition rules, and manual verification instructions, see [Sprint 5 moderation and Auth](sprint5-moderation-auth.md). Review evidence for #53 is tracked in merged PR #104. Changes to the moderation lifecycle should be made against this implementation rather than creating competing routes.
