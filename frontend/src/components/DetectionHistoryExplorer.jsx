@@ -8,10 +8,10 @@ import {
 } from "../utils/detectionFormat";
 
 const REGION_LABELS = {
-  canada: "Canada (bounding box)",
-  west: "Western Canada (approximate)",
-  central: "Central Canada (approximate)",
-  east: "Eastern Canada (approximate)",
+  canada: "All Canada",
+  west: "Western Canada",
+  central: "Central Canada",
+  east: "Eastern Canada",
   custom: "Selected report vicinity",
 };
 
@@ -207,22 +207,16 @@ export default function DetectionHistoryExplorer({
     >
       <h2>Historical fire records</h2>
 
-      <p>
-        Search historical NASA FIRMS satellite detections and confirmed
-        community-reported fires by region and UTC date. Satellite hotspots
-        are observations, not necessarily confirmed fires.
-      </p>
-
-      <aside aria-label="Historical satellite archive coverage">
-        <h3>Satellite archive coverage (UTC)</h3>
-        <p>Imported archive: January 2023–December 2025. MODIS Standard
-          Processing: January 1–August 31, 2026. MODIS Near Real-Time:
-          September 1–November 27, 2026 (last verified November 27;
-          ongoing ingestion may extend this range).</p>
-        <p>These are documented archive periods, not guarantees of daily
-          or regional detection coverage. Near-real-time observations may
-          be revised by NASA. Community reports have separate coverage.</p>
-      </aside>
+      <p>Explore past satellite fire detections and confirmed community reports across Canada.</p>
+      <p><strong>Available records:</strong> January 2023 onwards (last verified November 27, 2026).
+        Satellite detections indicate possible fires, not confirmed fires.</p>
+      <details>
+        <summary>About this data</summary>
+        <p>NASA FIRMS archive: 2023–2025. Standard Processing: January–August 2026.
+          Near Real-Time: September 2026 onwards (last verified November 27).</p>
+        <p>Coverage varies by location and date. Recent observations may be revised.
+          Community reports have separate coverage. All dates use UTC.</p>
+      </details>
 
       <form
         onSubmit={event => {
@@ -256,15 +250,15 @@ export default function DetectionHistoryExplorer({
                 <option value="custom">Selected report vicinity</option>
               )}
 
-              <option value="canada">Canada (bounding box)</option>
-              <option value="west">Western Canada (approximate)</option>
-              <option value="central">Central Canada (approximate)</option>
-              <option value="east">Eastern Canada (approximate)</option>
+              <option value="canada">All Canada</option>
+              <option value="west">Western Canada</option>
+              <option value="central">Central Canada</option>
+              <option value="east">Eastern Canada</option>
             </select>
           </label>
 
           <label>
-            From (UTC date)
+            Start date (UTC)
             <input
               aria-label="History start date"
               type="date"
@@ -275,7 +269,7 @@ export default function DetectionHistoryExplorer({
           </label>
 
           <label>
-            Through (UTC date)
+            End date (UTC)
             <input
               aria-label="History end date"
               type="date"
@@ -295,9 +289,7 @@ export default function DetectionHistoryExplorer({
 
         {((start && start < "2023-01-01") ||
           (end && end > "2026-11-27")) && (
-          <p role="status">Part of your search is outside the last verified
-            satellite archive period. Records may be incomplete; you can
-            still search for available observations and community reports.</p>
+          <p role="status">Some dates are outside our verified archive. Results may be incomplete.</p>
         )}
 
         <div className="ew-analytics-actions">
@@ -355,7 +347,7 @@ export default function DetectionHistoryExplorer({
           <p role="status">
             {records.length} historical records returned.
             {result.truncated
-              ? " The result limit was reached: the map shows only the returned API records, not every matching observation. Narrow your region or date range to see more."
+              ? "  Only the first set of results is shown on the map. Choose a smaller region or date range to see more."
               : ""}
           </p>
 
@@ -364,7 +356,7 @@ export default function DetectionHistoryExplorer({
           {records.length === 0 ? (
             <p>
               No historical records matched this region and date range.
-              Satellite overpasses, cloud cover, detection sensitivity and archive availability can affect results. No detections does not establish that no fires occurred.
+              No detections does not necessarily mean there were no fires.
             </p>
           ) : (
             <div className="ew-analytics-table-wrap">
