@@ -26,7 +26,15 @@ Each input becomes a 0–100 "danger" sub-score (higher = more fire-prone). Sub-
 | Terrain | `slope_deg` | 0° | ≥ 30° | 0.05 |
 | Fire history | `nearby_detections` | 0 | ≥ 1000 (log scale) | 0.25 |
 
-The approach follows fire-danger indices such as Canada's Fire Weather Index (hot, dry, windy weather after little rain raises danger) and adds local fire history. **Fire history** is the number of NASA FIRMS detections (confidence ≥ the #19 threshold of 20) within **50 km**, counted from the Supabase `detections` table (2023–2025). On a log scale, 1 detection ≈ 10, 10 ≈ 35, 100 ≈ 67, 1000+ = 100.
+The approach is inspired by fire-danger indices such as Canada's Fire Weather Index: hot, dry, windy weather after little rain raises danger. It adds nearby satellite detection history as a separate contextual factor.
+
+**Fire history** is the number of rows in the Supabase `public.detections` table that meet both conditions:
+- Detection confidence is at least the configured `MIN_DETECTION_CONFIDENCE` threshold (default: 20; see `backend/config.py`).
+- The detection is within **50 km** of the area centre.
+
+The scoring query has no date restriction or fire-type filter. It counts qualifying records currently stored in the database; **2023–2025 describes the documented dataset currently loaded, not a hard-coded query date range**. The count is a historical activity proxy, not a measure of current fire danger or confirmation of active fires.
+
+The history sub-score uses a logarithmic scale: 1 detection ≈ 10, 10 ≈ 35, 100 ≈ 67, and 1,000 or more = 100.
 
 ## Missing inputs (#24, #28)
 
@@ -56,6 +64,8 @@ Results can be stored with `save_assessment()` in the `risk_assessments` table.
 | Kelowna, hot dry windy August day | 673 | 83.5 | HIGH |
 | Toronto, mild June day | 21 | 44.3 | MODERATE |
 | Ottawa, warm day, wind sensor missing | 22 | 59.1 | MODERATE (incomplete: `wind_speed_kmh`) |
+
+These are illustrative assessment results from a database snapshot, not fixed expected values or current live readings. Counts and scores can change as stored observations and environmental inputs change.
 
 ## Model version
 
@@ -95,12 +105,22 @@ Full loader details are in [environmental-data.md](environmental-data.md). Every
 
 ## Risk is not detection confidence
 
-These are two different things and are kept separate everywhere:
+These measures describe different things and must not be interpreted interchangeably.
 
-- **Detection confidence** (`/api/detections`, field `confidence` 0–100) is how sure the satellite algorithm is that one hotspot is a fire *right now*.
-- **Risk** (`/api/risk-areas`, `/api/risk-score`, fields `risk_score` and `risk_level`) is how fire-prone an *area* is given weather, terrain and history.
+- **Detection confidence** (`/api/detections`, field `confidence`, 0–100) describes the confidence associated with an individual NASA FIRMS satellite observation. It is not a probability that a wildfire exists, a guarantee that the observation is a fire, or a measure of environmental risk.
+- **Environmental risk** (`/api/risk-areas`, `/api/risk-score`, fields `risk_score` and `risk_level`) is a weighted estimate of how fire-prone a monitored area may be, based on available environmental factors and nearby detection history.
 
-Confidence only enters the risk model through the threshold that decides which past detections are counted in `nearby_detections`. The model ignores any `confidence` field it is given, and the two APIs never share these fields (tested in `backend/tests/test_risk_validation_57.py`).
+### How the detection threshold is used
+
+`MIN_DETECTION_CONFIDENCE` defaults to 20 and can be overridden through the environment. In the detection pipeline, it is a **classification threshold**:
+
+- Valid detections meeting the threshold are classified as `potential_wildfire`.
+- Valid detections below the threshold are retained and classified as `low_confidence`.
+- Invalid or unavailable observations are handled separately rather than being assigned fabricated confidence values.
+
+The threshold also affects the risk model's `nearby_detections` factor: only stored detections meeting the configured threshold contribute to that count.
+
+The risk model does not use an individual detection's confidence as a scoring factor. Passing a `confidence` field to `score_area()` does not change its result. These distinctions are covered by `backend/tests/test_risk_validation_57.py`.
 
 ## Validation (#57)
 
@@ -142,17 +162,17 @@ Full inputs per day: [ml/results/risk_validation.csv](../ml/results/risk_validat
 
 **What this shows**
 
-- **The ranking works.** The fire day scored higher than the same day a year earlier at **7/7** towns and higher than mid-January at **7/7**. Winter days were always LOW. So the score moves in the right direction: hot, dry, rain-free days rank above ordinary ones.
-- **The levels are too cautious.** Only **1 of 7 fire days was rated HIGH** (Kelowna); the other 6 were MODERATE, including Lytton at 39.4 °C, the day the town burned (68.2, just under the HIGH line of 70). With the 70-point HIGH boundary, these weather-only scores rarely reach HIGH. In the live app fire history (25 % of the weight) is included, which raises scores at fire-prone towns, but this check suggests the HIGH boundary or the weights should be lowered.
-- **Some margins are small.** Yellowknife (+3.5) and Slave Lake (+6.7) barely beat their control days. Noon weather in Yellowknife that day was mild (17.9 °C, 49 % RH); the evacuation was driven by fires spreading toward the city over several days, which a single day's weather cannot capture. Slave Lake's fire day was driven by wind (32.6 km/h), but the control day was warmer and drier.
-- **Wind is underweighted for these events.** Most fire days had light noon wind (6–18 km/h) in this data, yet extreme fire spread is often wind-driven in the afternoon. Noon values and a ~9–25 km grid cell miss gusts and local conditions.
+- **The selected fire days scored higher than their selected controls.** All seven fire-day scores exceeded the same-calendar-day score from the previous year (7/7) and the 15 January comparison (7/7). This is an encouraging sanity check, not evidence of general predictive performance.
+- **Most selected fire days were not rated HIGH.** Only 1 of 7 received a HIGH rating; the other six were MODERATE. Lytton scored 68.2 on the day it burned, just below the HIGH boundary of 70. This illustrates how the current thresholds behave on these examples, but does not establish that the boundary should be changed.
+- **Some differences were small.** Yellowknife scored only 3.5 points above its previous-year comparison, and Slave Lake scored 6.7 points above its comparison. A single day's weather cannot represent the full conditions contributing to a wildfire.
+- **The inputs have important temporal and spatial limits.** Noon weather and a roughly 9–25 km grid cell do not capture afternoon peaks, local gusts, overnight conditions, or multi-day drought.
 
-**Next step:** lower the HIGH boundary or refit the weights on a larger set of fire and non-fire days (see limitations), and record the new values under a new `model_version`.
+These results do not justify changing the weights or HIGH boundary on their own. Any adjustment should be evaluated against a substantially larger and representative set of fire and non-fire observations, with appropriate held-out testing.
 
 ## Limitations and next steps
 
-- Weights and ranges are expert-set, not learned. Mild conditions can still reach MODERATE (e.g. Toronto above), so the level boundaries and weights should be tuned.
-- **The historical check found the levels too cautious** (1/7 fire days HIGH, see results above), even though the ranking was right 7/7.
+- Weights and ranges are expert-set, not learned. Mild conditions can still reach MODERATE (for example, the Toronto illustration above), so the level boundaries and weights require further evaluation.
+- **The historical check is a small sanity check, not evidence of calibrated risk levels.** Only 1 of 7 selected fire days scored HIGH. This is insufficient evidence to establish an appropriate HIGH boundary or to recommend a specific adjustment.
 - **Validation is a small sanity check, not an evaluation.** Seven hand-picked famous fires with one control day each cannot measure accuracy, false-alarm rate or calibration. A real evaluation needs many fire and non-fire days (for example, every FIRMS fire start vs. random days and places) and ideally burned-area maps.
 - **Selection bias:** the events are fires big enough to make the news, which usually happened in extreme weather, so they are the easiest cases for the model.
 - Weights should be fitted to data (for example, logistic regression on past weather vs. where FIRMS fires started) once there is enough labelled data.
