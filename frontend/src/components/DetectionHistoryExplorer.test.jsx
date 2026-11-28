@@ -231,7 +231,7 @@ describe("Sprint 5 historical fire records (#54)", () => {
 
     expect(screen.getByText(/Only the first set of results is shown on the map/)).toBeInTheDocument();
   });
-  
+
   it("clears historical results and resets the map through its callback", async () => {
     const user = userEvent.setup();
     const onClear = vi.fn();
