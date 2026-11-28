@@ -1,8 +1,19 @@
-import { useEffect, useState } from "react";
-import { fetchDetectionHistory } from "../services/detectionApi";
-import { formatConfidence, formatCoordinates, formatDetectionTime } from "../utils/detectionFormat";
 
-const REGION_LABELS = { canada: "Canada (bounding box)", west: "Western Canada (approximate)", central: "Central Canada (approximate)", east: "Eastern Canada (approximate)" };
+import { useEffect, useRef, useState } from "react";
+import { fetchFireHistory } from "../services/detectionApi";
+import {
+  formatConfidence,
+  formatCoordinates,
+  formatDetectionTime,
+} from "../utils/detectionFormat";
+
+const REGION_LABELS = {
+  canada: "All Canada",
+  west: "Western Canada",
+  central: "Central Canada",
+  east: "Eastern Canada",
+  custom: "Selected report vicinity",
+};
 
 const REGIONS = {
   canada: { south: 42, north: 83, west: -141, east: -52 },
@@ -11,12 +22,40 @@ const REGIONS = {
   east: { south: 42, north: 60, west: -80, east: -52 },
 };
 
-// The historical endpoint requires explicit UTC instants; dates are not inferred by the server.
+// The historical endpoint requires explicit UTC instants.
+// The end instant is exclusive.
 function utcDay(day) {
   return `${day}T00:00:00.000Z`;
 }
 
-export default function DetectionHistoryExplorer({ onExplore }) {
+function formatHistoryTime(value) {
+  if (!value) return "—";
+  return formatDetectionTime(value, "UTC");
+}
+
+function formatEventType(eventType) {
+  return eventType === "community_report"
+    ? "Community report"
+    : "Satellite detection";
+}
+
+function formatStatus(status) {
+  if (!status) return "—";
+
+  return status
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+export default function DetectionHistoryExplorer({
+  onExplore,
+  onShowOnMap,
+  onClear,
+  searchRequest,
+  onUseCaseStudy,
+}) {
+  const showMapRef = useRef(onShowOnMap);
+  useEffect(() => { showMapRef.current = onShowOnMap; }, [onShowOnMap]);
   const [region, setRegion] = useState("canada");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -25,59 +64,422 @@ export default function DetectionHistoryExplorer({ onExplore }) {
   const [error, setError] = useState("");
   const [query, setQuery] = useState(null);
   const [revision, setRevision] = useState(0);
+  const [customBounds, setCustomBounds] = useState(null);
+  const [selectedRecordId, setSelectedRecordId] = useState(null);
 
   useEffect(() => {
     if (!query) return;
+
     let active = true;
+
     setState("loading");
     setResult(null);
     setError("");
-    fetchDetectionHistory({ south: query.south, north: query.north, west: query.west, east: query.east, start: query.start, end: query.end, limit: query.limit })
+
+    fetchFireHistory({
+      south: query.south,
+      north: query.north,
+      west: query.west,
+      east: query.east,
+      start: query.start,
+      end: query.end,
+      limit: query.limit,
+    })
       .then(data => {
         if (!active) return;
         setResult(data);
         setState("ready");
+        showMapRef.current?.({ query, records: data.data ?? [], truncated: data.truncated });
       })
       .catch(err => {
         if (!active) return;
-        setError(err.message || "Historical observations could not be loaded.");
+        setError(err.message || "Historical fire records could not be loaded.");
         setState("error");
       });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [query, revision]);
 
-  const invalid = !start || !end || !Number.isFinite(Date.parse(utcDay(start)))
-    || !Number.isFinite(Date.parse(utcDay(end))) || start > end;
-  return <section className="ew-analytics-panel ew-history" aria-label="Satellite detection history">
-    <h2>Satellite detection history</h2>
-    <p>Query previously ingested NASA FIRMS observations by broad region and UTC date. Historical heat observations are not confirmed fires or current wildfire alerts.</p>
-    <form onSubmit={event => { event.preventDefault(); if (!invalid) { setQuery({ ...REGIONS[region], region, start: utcDay(start), end: new Date(Date.parse(utcDay(end)) + 86400000).toISOString(), limit: 200 }); setRevision(n => n + 1); } }}>
-      <div className="ew-analytics-controls">
-        <label>Region
-          <select value={region} onChange={event => setRegion(event.target.value)}>
-            <option value="canada">Canada (bounding box)</option>
-            <option value="west">Western Canada (approximate)</option>
-            <option value="central">Central Canada (approximate)</option>
-            <option value="east">Eastern Canada (approximate)</option>
-          </select>
-        </label>
-        <label>From (UTC date)<input aria-label="History start date" type="date" value={start} onChange={event => setStart(event.target.value)} required /></label>
-        <label>Through (UTC date)<input aria-label="History end date" type="date" value={end} min={start || undefined} onChange={event => setEnd(event.target.value)} required /></label>
-      </div>
-      {start && end && start > end && <p role="alert">The end date must be on or after the start date.</p>}
-      <div className="ew-analytics-actions"><button type="submit" disabled={invalid || state === "loading"}>{state === "loading" ? "Searching history…" : "Search history"}</button><button type="button" onClick={onExplore}>Open current map</button></div>
-    </form>
-    {state === "idle" && <p role="status">Select a region and date range to search stored observations.</p>}
-    {state === "loading" && <p role="status">Loading historical satellite detections…</p>}
-    {state === "error" && <p role="alert">History unavailable: {error} Existing map and risk information remain accessible.</p>}
-    {state === "ready" && result && <>
-      <p>Results for {REGION_LABELS[query.region]} · {query.start.slice(0, 10)} through {new Date(Date.parse(query.end) - 86400000).toISOString().slice(0, 10)} (UTC).</p>
-      <p role="status">{result.detections.length} historical observations returned for this query.{result.truncated ? " The result limit was reached: narrow your region or date range to see more." : ""}</p>
-      {result.detections.length === 0 ? <p>No stored observations matched this region and date range. This does not establish that no fires occurred.</p> :
-        <div className="ew-analytics-table-wrap"><table><thead><tr><th>Observed</th><th>Location</th><th>Confidence</th><th>Classification</th></tr></thead><tbody>
-          {result.detections.map((d, i) => <tr key={d.id ?? i}><td>{formatDetectionTime(d.timestamp, "UTC")}</td><td>{formatCoordinates(d.latitude, d.longitude)}</td><td>{formatConfidence(d.confidence)}</td><td>{d.classification === "low_confidence" ? "Low-confidence hotspot" : "Potential hotspot"}</td></tr>)}
-        </tbody></table></div>}
-      <p>Detection confidence refers to satellite observations. It is not the modeled environmental risk score for an area.</p>
-    </>}
-  </section>;
+  useEffect(() => {
+    if (!searchRequest) return;
+
+    const latitude = Number(searchRequest.latitude);
+    const longitude = Number(searchRequest.longitude);
+    const observed = new Date(searchRequest.observedAt);
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      Number.isNaN(observed.getTime())
+    ) {
+      return;
+    }
+
+    const day = observed.toISOString().slice(0, 10);
+    const bounds = {
+      south: Math.max(-90, latitude - 0.25),
+      north: Math.min(90, latitude + 0.25),
+      west: Math.max(-180, longitude - 0.25),
+      east: Math.min(180, longitude + 0.25),
+    };
+
+    setCustomBounds(bounds);
+    setRegion("custom");
+    setStart(day);
+    setEnd(day);
+    setSelectedRecordId(String(searchRequest.reportId));
+
+    setQuery({
+      ...bounds,
+      region: "custom",
+      start: utcDay(day),
+      end: new Date(
+        Date.parse(utcDay(day)) + 86400000
+      ).toISOString(),
+      limit: 200,
+    });
+
+    setRevision(n => n + 1);
+  }, [searchRequest]);
+
+  useEffect(() => {
+    if (state !== "ready" || !selectedRecordId) return;
+
+    const element = document.getElementById(
+      `history-community_report-${selectedRecordId}`
+    );
+
+    if (typeof element?.scrollIntoView === "function") {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [state, result, selectedRecordId]);
+
+  const invalid =
+    !start ||
+    !end ||
+    !Number.isFinite(Date.parse(utcDay(start))) ||
+    !Number.isFinite(Date.parse(utcDay(end))) ||
+    start > end;
+
+  const records = (() => {
+    const historicalRecords = result?.data ?? [];
+    const selectedReport = searchRequest?.report;
+
+    if (!selectedReport) return historicalRecords;
+
+    const alreadyIncluded = historicalRecords.some(
+      record =>
+        record.event_type === "community_report" &&
+        String(record.id) === String(selectedReport.id)
+    );
+
+    if (alreadyIncluded) return historicalRecords;
+
+    // Keep the staff-selected report visible even when it falls outside
+    // the historical API result limit or its public lifecycle filter.
+    return [
+      ...historicalRecords,
+      {
+        id: selectedReport.id,
+        event_type: "community_report",
+        latitude: Math.round(Number(selectedReport.latitude) * 100) / 100,
+        longitude: Math.round(Number(selectedReport.longitude) * 100) / 100,
+        event_at: selectedReport.observed_at,
+        submitted_at: selectedReport.created_at,
+        source: "Community",
+        confidence: null,
+        confidence_class: null,
+        review_status: selectedReport.review_status,
+        ended_at: null,
+        linked_report_id: null,
+        linked_detection_id: null,
+        location_source: "approximate",
+      },
+    ];
+  })();
+
+  const hasReports = records.some(record => record.event_type === "community_report");
+
+  return (
+    <section
+      className="ew-analytics-panel ew-history"
+      aria-label="Historical fire records"
+    >
+      <h2>Historical fire records</h2>
+
+      <p>Explore past satellite fire detections and confirmed community reports across Canada.</p>
+      <p><strong>Available records:</strong> January 2023 onwards (last verified November 27, 2026).
+        Satellite detections indicate possible fires, not confirmed fires.</p>
+      <details>
+        <summary>About this data</summary>
+        <p>NASA FIRMS archive: 2023–2025. Standard Processing: January–August 2026.
+          Near Real-Time: September 2026 onwards (last verified November 27).</p>
+        <p>Coverage varies by location and date. Recent observations may be revised.
+          Community reports have separate coverage. All dates use UTC.</p>
+      </details>
+
+      <form
+        onSubmit={event => {
+          event.preventDefault();
+
+          if (!invalid) {
+            setQuery({
+              ...(region === "custom" && customBounds
+                  ? customBounds
+                  : REGIONS[region]),
+              region,
+              start: utcDay(start),
+              end: new Date(
+                Date.parse(utcDay(end)) + 86400000
+              ).toISOString(),
+              limit: 200,
+            });
+
+            setRevision(n => n + 1);
+          }
+        }}
+      >
+        <div className="ew-analytics-controls">
+          <label>
+            Region
+            <select
+              value={region}
+              onChange={event => setRegion(event.target.value)}
+            >
+              {region === "custom" && (
+                <option value="custom">Selected report vicinity</option>
+              )}
+
+              <option value="canada">All Canada</option>
+              <option value="west">Western Canada</option>
+              <option value="central">Central Canada</option>
+              <option value="east">Eastern Canada</option>
+            </select>
+          </label>
+
+          <label>
+            Start date (UTC)
+            <input
+              aria-label="History start date"
+              type="date"
+              value={start}
+              onChange={event => setStart(event.target.value)}
+              required
+            />
+          </label>
+
+          <label>
+            End date (UTC)
+            <input
+              aria-label="History end date"
+              type="date"
+              value={end}
+              min={start || undefined}
+              onChange={event => setEnd(event.target.value)}
+              required
+            />
+          </label>
+        </div>
+
+        {start && end && start > end && (
+          <p role="alert">
+            The end date must be on or after the start date.
+          </p>
+        )}
+
+        {((start && start < "2023-01-01") ||
+          (end && end > "2026-11-27")) && (
+          <p role="status">Some dates are outside our verified archive. Results may be incomplete.</p>
+        )}
+
+        <div className="ew-analytics-actions">
+          <button type="submit" disabled={invalid || state === "loading"}>
+            {state === "loading" ? "Searching history…" : "Search history"}
+          </button>
+
+          <button type="button" onClick={() => {
+            setQuery(null);
+            setResult(null);
+            setState("idle");
+            setError("");
+            setRegion("canada");
+            setStart("");
+            setEnd("");
+            setCustomBounds(null);
+            setSelectedRecordId(null);
+            onClear?.();
+          }}>Clear history</button>
+
+          <button type="button" onClick={onExplore}>
+            Open current map
+          </button>
+        </div>
+      </form>
+      
+      {state === "idle" && (
+        <p>
+          Select a region and date range to search historical fire records.
+        </p>
+      )}
+
+      {state === "loading" && (
+        <p role="status">Loading historical fire records…</p>
+      )}
+
+      {state === "error" && (
+        <p role="alert">
+          History unavailable: {error} Existing map and risk information
+          remain accessible.
+        </p>
+      )}
+
+      {state === "ready" && result && (
+        <>
+          <p>
+            Results for {REGION_LABELS[query.region]} ·{" "}
+            {query.start.slice(0, 10)} through{" "}
+            {new Date(
+              Date.parse(query.end) - 86400000
+            ).toISOString().slice(0, 10)}{" "}
+            (UTC).
+          </p>
+
+          <p role="status">
+            {records.length} historical records returned.
+            {result.truncated
+              ? "  Only the first set of results is shown on the map. Choose a smaller region or date range to see more."
+              : ""}
+          </p>
+
+
+          {records.length === 0 ? (
+            <p>
+              No historical records matched this region and date range.
+              No detections does not necessarily mean there were no fires.
+            </p>
+          ) : (
+            <div className="ew-analytics-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Observed</th>
+                    <th>Location</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Confidence</th>
+                    {hasReports && <><th>Status</th><th>End time</th><th>Lifecycle</th></>}
+                    <th>Investigation</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {records.map((record, index) => {
+                    const isReport =
+                      record.event_type === "community_report";
+
+                    return (
+                      <tr
+                        id={`history-${record.event_type}-${record.id}`}
+                        key={`${record.event_type}-${record.id ?? index}`}
+                        className={
+                          isReport && String(record.id) === selectedRecordId
+                            ? "ew-history-selected"
+                            : undefined
+                        }
+                      >
+                        <td>{formatHistoryTime(record.event_at)}</td>
+
+                        <td>
+                          {formatCoordinates(
+                            record.latitude,
+                            record.longitude
+                          )}
+                          {isReport && (
+                            <small>Approximate location</small>
+                          )}
+                        </td>
+
+                        <td>{formatEventType(record.event_type)}</td>
+
+                        <td>
+                          {record.source || (
+                            isReport ? "Community" : "NASA FIRMS"
+                          )}
+                        </td>
+
+                        <td>
+                          {record.confidence != null
+                            ? formatConfidence(record.confidence)
+                            : "—"}
+                          {record.confidence_class && (
+                            <small>
+                              {formatStatus(record.confidence_class)}
+                            </small>
+                          )}
+                        </td>
+
+                        {hasReports && <><td>
+                          {isReport
+                            ? formatStatus(record.review_status)
+                            : "—"}
+                        </td>
+
+                        <td>
+                          {isReport
+                            ? formatHistoryTime(record.ended_at)
+                            : "—"}
+                        </td>
+
+                        <td>
+                          {isReport
+                            ? record.ended_at
+                              ? `Ended ${formatHistoryTime(record.ended_at)}`
+                              : "Current status shown"
+                            : "—"}
+
+                          {isReport &&
+                            (record.linked_report_id ||
+                              record.linked_detection_id) && (
+                              <small>
+                                {record.linked_report_id &&
+                                  `Linked report: ${record.linked_report_id}`}
+                                {record.linked_report_id &&
+                                  record.linked_detection_id &&
+                                  " · "}
+                                {record.linked_detection_id &&
+                                  `Linked detection: ${record.linked_detection_id}`}
+                              </small>
+                            )}
+                        </td></>}
+
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => onUseCaseStudy?.(record)}
+                          >
+                            Use as case study →
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p>
+            Satellite confidence describes the observation, not the modeled
+            environmental risk score. Community report locations are
+            approximate to protect reporter privacy.
+          </p>
+        </>
+      )}
+    </section>
+  );
 }

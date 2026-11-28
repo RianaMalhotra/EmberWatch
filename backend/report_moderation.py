@@ -105,7 +105,19 @@ def moderate_report(report_id):
                 return jsonify({"status": "success", "data": {"id": report_id, "review_status": status, "unchanged": True}}), 200
             if status not in ALLOWED_TRANSITIONS.get(previous, ()):
                 return jsonify({"status": "error", "message": "Invalid status transition"}), 409
-            conn.execute("update public.fire_reports set review_status=%s where id=%s", (status, report_id))
+            conn.execute(
+                """
+                UPDATE public.fire_reports
+                SET review_status = %s,
+                    ended_at = CASE
+                        WHEN %s = 'out' THEN COALESCE(ended_at, NOW())
+                        WHEN review_status = 'out' THEN NULL
+                        ELSE ended_at
+                    END
+                WHERE id = %s
+                """,
+                (status, status, report_id),
+            )
             conn.execute(
                 "insert into public.fire_report_audit(report_id,old_status,new_status,staff_id) values (%s,%s,%s,%s)",
                 (report_id, previous, status, staff_id),

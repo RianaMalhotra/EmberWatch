@@ -100,3 +100,138 @@
 @media(max-width:1100px){.ew-lab .ew-lab-tabs button{padding:14px;gap:9px}.ew-lab .ew-lab-tab-icon{width:42px;height:42px;font-size:26px}.ew-lab .ew-lab-tabs strong{font-size:14px}.ew-lab .ew-lab-tab-arrow{display:none}}
 @media(max-width:850px){.ew-lab .ew-lab-hero{grid-template-columns:1fr}.ew-lab .ew-lab-hero-art{display:none}.ew-lab .ew-lab-tabs{grid-template-columns:repeat(2,1fr)}.ew-lab .ew-lab-steps{grid-template-columns:1fr}}
 @media(max-width:520px){.ew-lab .ew-lab-hero{min-height:unset;padding:28px 22px}.ew-lab .ew-lab-hero h1{font-size:clamp(42px,11vw,60px)}.ew-lab .ew-lab-tabs button{min-height:77px}.ew-lab .ew-lab-tab-icon{width:38px;height:38px}.ew-lab .ew-lab-sliders{grid-template-columns:1fr}.ew-lab .ew-lab-playback-map{height:340px}}
+
+
+/* Historical case study */
+.ew-lab-case-study {
+  width: 100%;
+}
+
+.ew-lab-case-study h3 {
+  margin: 30px 0 14px;
+  color: #ffd0a8;
+  font: 800 25px "Barlow Condensed", sans-serif;
+}
+
+.ew-lab-case-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.ew-lab-case-grid > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 85px;
+  padding: 16px;
+  border: 1px solid #80513c;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #3b2b2c, #272229);
+}
+
+.ew-lab-case-grid span {
+  color: #e9ad83;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.ew-lab-case-grid strong {
+  color: #fff0e5;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.ew-lab-case-history {
+  display: grid;
+  gap: 0;
+  margin: 20px 0 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.ew-lab-case-history li {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 15px 18px 15px 25px;
+  border-left: 2px solid #bd7650;
+  background: linear-gradient(90deg, #57352d55, transparent);
+}
+
+.ew-lab-case-history li::before {
+  position: absolute;
+  top: 19px;
+  left: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffb77e;
+  content: "";
+}
+
+.ew-lab-case-history strong {
+  color: #ffe0c5;
+  font-size: 14px;
+}
+
+.ew-lab-case-history small {
+  color: #c9a994;
+  font-size: 12px;
+}
+
+.ew-lab-case-study .ew-lab-cta {
+  margin-top: 18px;
+}
+
+@media (max-width: 700px) {
+  .ew-lab-case-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .ew-lab-case-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Case study layout refinements */
+
+/* Give all five investigation tabs their own column */
+.ew-lab .ew-lab-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* Separate the case study from the footer */
+.ew-lab .ew-lab-case-study {
+  margin-bottom: 24px;
+}
+
+/* Let case study descriptions use the full panel width */
+.ew-lab .ew-lab-case-study > p {
+  max-width: none;
+}
+
+/* Let the satellite explanation span the full panel too */
+.ew-lab .ew-lab-case-study .ew-lab-caution {
+  max-width: none;
+}
+
+/* Keep the tab layout comfortable on smaller screens */
+@media (max-width: 850px) {
+  .ew-lab .ew-lab-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Ensure clear separation between case study and footer */
+.ew-lab .ew-lab-case-study + .ew-lab-footer {
+  margin-top: 36px !important;
+}

@@ -135,7 +135,8 @@ def test_moderation_updates_and_writes_audit(client):
     assert response.get_json()["data"]["review_status"] == "confirmed"
     assert len(conn.queries) == 3
     assert "for update" in conn.queries[0][0].lower()
-    assert conn.queries[1][1] == ("confirmed", 42)
+    assert conn.queries[1][1] == ("confirmed", "confirmed", 42)
+    assert "ended_at" in conn.queries[1][0].lower()
     assert conn.queries[2][1] == (42, "unverified", "confirmed", "staff-uuid")
 
 def test_moderation_missing_report_is_404(client):

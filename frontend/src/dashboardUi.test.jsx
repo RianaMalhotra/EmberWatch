@@ -10,7 +10,14 @@ import { detectionSummary } from "./utils/detectionFormat";
 // Usability polish for phones, keyboards and screen readers.
 
 vi.mock("./services/riskApi", () => ({ fetchRiskAreas: vi.fn() }));
-vi.mock("./services/detectionApi", () => ({ fetchDetections: vi.fn() }));
+vi.mock("./services/detectionApi", () => ({
+  fetchDetections: vi.fn(),
+  fetchFireHistory: vi.fn().mockResolvedValue({
+    status: "success",
+    data: [],
+    truncated: false,
+  }),
+}));
 
 const mockMap = vi.hoisted(() => ({
   fitBounds: vi.fn(),

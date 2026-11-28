@@ -17,7 +17,15 @@ vi.mock("react-leaflet", async () => {
   };
 });
 vi.mock("./services/riskApi", () => ({ fetchRiskAreas: vi.fn().mockResolvedValue({ source: "supabase", data: [] }) }));
-vi.mock("./services/detectionApi", () => ({ fetchDetections: vi.fn(), fetchDetectionHistory: vi.fn().mockResolvedValue({ detections: [] }) }));
+vi.mock("./services/detectionApi", () => ({
+  fetchDetections: vi.fn(),
+  fetchDetectionHistory: vi.fn().mockResolvedValue({ detections: [] }),
+  fetchFireHistory: vi.fn().mockResolvedValue({
+    status: "success",
+    data: [],
+    truncated: false,
+  }),
+}));
 
 afterEach(() => { cleanup(); window.history.replaceState(null, "", "/"); });
 

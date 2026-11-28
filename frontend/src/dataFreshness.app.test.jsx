@@ -7,7 +7,14 @@ import { fetchDetections } from "./services/detectionApi";
 // The dashboard says how old its data is, so old data is not taken as live.
 
 vi.mock("./services/riskApi", () => ({ fetchRiskAreas: vi.fn() }));
-vi.mock("./services/detectionApi", () => ({ fetchDetections: vi.fn() }));
+vi.mock("./services/detectionApi", () => ({
+  fetchDetections: vi.fn(),
+  fetchFireHistory: vi.fn().mockResolvedValue({
+    status: "success",
+    data: [],
+    truncated: false,
+  }),
+}));
 vi.mock("react-leaflet", async () => {
   const React = await import("react");
   return {
