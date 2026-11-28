@@ -39,6 +39,48 @@ import { MapZoomObserver } from "./components/DetectionClusters";
 import DetectionLayer from "./components/DetectionLayer";
 import DetectionHistoryExplorer from "./components/DetectionHistoryExplorer";
 
+function HistoricalMapLayer({ history }) {
+  const map = useMap();
+  useEffect(() => {
+    const { south, west, north, east } = history.query;
+    const points = history.records
+      .filter(record => Number.isFinite(record.latitude) && Number.isFinite(record.longitude))
+      .map(record => [record.latitude, record.longitude]);
+    const frame = requestAnimationFrame(() => {
+      map.invalidateSize({ pan: false });
+      map.stop();
+      if (points.length === 1) {
+        map.setView(points[0], 10, { animate: false });
+      } else {
+        map.fitBounds(points.length ? points : [[south, west], [north, east]], {
+          padding: [48, 48], maxZoom: 10, animate: false,
+        });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [map, history]);
+  return history.records.filter(record =>
+    Number.isFinite(record.latitude) && Number.isFinite(record.longitude)
+  ).map(record => {
+    const report = record.event_type === "community_report";
+    const color = report ? "#c084fc" : "#38bdf8";
+    return <CircleMarker key={`${record.event_type}-${record.id}`}
+      center={[record.latitude, record.longitude]} radius={7}
+      pathOptions={{ color, fillColor: color, fillOpacity: 0.8, weight: 2 }}>
+      <Tooltip>{report ? "Historical community report" : "Historical satellite observation"}</Tooltip>
+      <Popup>
+        <strong>{report ? "Historical community report" : "Historical satellite observation"}</strong>
+        <p>Observed: {formatDetectionTime(record.event_at, "UTC")}</p>
+        <p>Source: {record.source || "Unavailable"}</p>
+        <p>Location: {formatCoordinates(record.latitude, record.longitude)}{report ? " (approximate)" : ""}</p>
+        {!report && <p>Observation confidence: {record.confidence == null ? "Unavailable" : formatConfidence(record.confidence)}</p>}
+        {report && <><p>Status: {record.review_status?.replaceAll("_", " ") || "Unavailable"}</p><p>End time: {record.ended_at ? formatDetectionTime(record.ended_at, "UTC") : "Unavailable"}</p></>}
+        <small>Historical evidence, not current fire danger or an emergency alert.</small>
+      </Popup>
+    </CircleMarker>;
+  });
+}
+
 function DetectionHeatmap({ detections }) {
   const map = useMap();
   useEffect(() => {
@@ -212,6 +254,7 @@ function AppContent() {
   const [detectionError, setDetectionError] = useState(null);
   const [publicReports, setPublicReports] = useState([]);
   const [historySearchRequest, setHistorySearchRequest] = useState(null);
+  const [historicalMap, setHistoricalMap] = useState(null);
   const [selectedCaseStudy, setSelectedCaseStudy] = useState(null);
   const [reportError, setReportError] = useState(null);
   const [reportAttempt, setReportAttempt] = useState(0);
@@ -584,6 +627,7 @@ function AppContent() {
               latitude,
               longitude,
               observedAt: report.observed_at,
+              report,
             });
 
             navigateTo("explore");
@@ -660,7 +704,7 @@ function AppContent() {
           >
             <RefreshMapLayout active={page === "explore"} hasSelection={Boolean(searchedPlace || selectedArea)} />
             <MapZoomObserver onZoom={setMapZoom} zoomTarget={clusterZoomTarget} />
-            <FocusSelected area={searchedPlace ?? selectedArea} />
+            {!historicalMap && <FocusSelected area={searchedPlace ?? selectedArea} />}
             {basemap === "standard" ? (
               <TileLayer
                 key="standard-basemap"
@@ -689,6 +733,7 @@ function AppContent() {
 
 
 
+            {historicalMap ? <HistoricalMapLayer history={historicalMap} /> : <>
             {publicReports.filter((report) => Number.isFinite(report.latitude) && Number.isFinite(report.longitude) && !["rejected", "out"].includes(report.review_status)).map((report) => (
               <CircleMarker key={`public-report-${report.id}`} center={[report.latitude, report.longitude]} radius={8} pathOptions={PUBLIC_REPORT_STYLE}>
                 <Tooltip>Public report — {report.review_status === "unverified" ? "Unverified" : report.review_status.replaceAll("_", " ")}</Tooltip>
@@ -742,8 +787,9 @@ function AppContent() {
               onZoomToCluster={zoomToCluster}
             />
           )}
+          </>}
         </MapContainer></div>
-        <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div>{mapLayer !== "risk" && <div className="ew-basemap-picker"><span className="ew-basemap-label">Fire detections</span><div className="ew-layer-switcher" role="group" aria-label="Fire detections by age">{DETECTION_AGE_OPTIONS.map(([value, label]) => <button type="button" key={value} aria-pressed={detectionAge === value} onClick={() => setDetectionAge(value)}>{label}</button>)}</div>{detectionResult && detectionAge === "recent" && shownDetections.length === 0 && <span className="ew-basemap-label" role="status">No satellite detections in the last {RECENT_HOURS} hours.</span>}</div>}{mapLayer !== "risk" && <label className="ew-zone-toggle"><input type="checkbox" checked={showHeatmap} onChange={(event) => setShowHeatmap(event.target.checked)} /> Show detection heatmap</label>}<label className="ew-zone-toggle">
+        {!historicalMap && <div className={`ew-map-controls ${mapControlsOpen ? "ew-map-controls-open" : "ew-map-controls-collapsed"}`}><button type="button" className="ew-map-controls-toggle" aria-label={mapControlsOpen ? "Close map layers and legend" : "Open map layers and legend"} title={mapControlsOpen ? "Close map controls" : "Map layers and legend"} aria-expanded={mapControlsOpen} aria-controls="ew-map-controls-content" onClick={() => setMapControlsOpen((open) => !open)}><span aria-hidden="true" className="ew-map-controls-icon">☷</span>{mapControlsOpen && <span className="ew-map-controls-label">Map layers & legend</span>}<span aria-hidden="true" className="ew-map-controls-indicator">{mapControlsOpen ? "×" : ""}</span></button>{mapControlsOpen && <div id="ew-map-controls-content" className="ew-map-controls-content"><div className="ew-basemap-picker"><span className="ew-basemap-label">Map appearance</span><div className="ew-layer-switcher" role="group" aria-label="Map appearance">{[["standard", "Standard"], ["hybrid", "Satellite"]].map(([value, label]) => <button type="button" key={value} aria-pressed={basemap === value} onClick={() => setBasemap(value)}>{label}</button>)}</div></div><div className="ew-layer-switcher" role="group" aria-label="Map layers">{[["both", "Both"], ["risk", "Risk"], ["detections", "Detections"]].map(([value, label]) => <button type="button" key={value} aria-pressed={mapLayer === value} onClick={() => setMapLayer(value)}>{label}</button>)}</div>{mapLayer !== "risk" && <div className="ew-basemap-picker"><span className="ew-basemap-label">Fire detections</span><div className="ew-layer-switcher" role="group" aria-label="Fire detections by age">{DETECTION_AGE_OPTIONS.map(([value, label]) => <button type="button" key={value} aria-pressed={detectionAge === value} onClick={() => setDetectionAge(value)}>{label}</button>)}</div>{detectionResult && detectionAge === "recent" && shownDetections.length === 0 && <span className="ew-basemap-label" role="status">No satellite detections in the last {RECENT_HOURS} hours.</span>}</div>}{mapLayer !== "risk" && <label className="ew-zone-toggle"><input type="checkbox" checked={showHeatmap} onChange={(event) => setShowHeatmap(event.target.checked)} /> Show detection heatmap</label>}<label className="ew-zone-toggle">
           <input
             type="checkbox"
             checked={showZones}
@@ -753,8 +799,9 @@ function AppContent() {
         </label>
         <details className="ew-legend-disclosure" open={legendOpen}><summary onClick={(event) => { event.preventDefault(); setLegendOpen((open) => !open); }}>Map legend</summary><RiskLegend />{mapLayer !== "risk" && showHeatmap && <div className="ew-heat-legend"><strong>Satellite detection density</strong><div aria-hidden="true" className="ew-heat-scale" /><div className="ew-heat-labels"><span>Low</span><span>High</span></div><small>Relative density of displayed observations, not fire severity or predicted spread.</small></div>}</details>
         <details className="ew-map-help"><summary>Map information</summary><p aria-label="Risk zone legend">Shaded risk zones represent the 50 km modeled footprint, not predicted fire spread.</p><p aria-label="Detection marker legend">Flame icons mark satellite detections: bright flame = meets confidence threshold; faded flame = low confidence. Detection confidence reflects the observation, not the environmental wildfire risk score.</p><p>Shaded 50 km circles represent modeled area risk, not predicted fire spread. Dashed outlines indicate incomplete inputs. Bright flame icons meet the satellite confidence threshold; faded flame icons do not. Detection confidence is not the same as wildfire risk.</p></details>
-        </div>}</div></div>
-        <div className="ew-map-side-window" aria-label="Location search and details">
+        </div>}</div>}</div>
+        {historicalMap && <aside className="ew-map-side-window" aria-label="Historical map legend"><div className="ew-side-panel"><div className="ew-panel-top"><div className="ew-locations-heading"><h2 style={{ color: "#ffcea5" }}>Historical map</h2></div><p>{historicalMap.records.length} records</p><p>{historicalMap.query.start.slice(0, 10)} to {new Date(Date.parse(historicalMap.query.end) - 86400000).toISOString().slice(0, 10)} (UTC)</p><details open><summary>Map legend</summary><p><span aria-hidden="true" style={{color:"#38bdf8"}}>●</span> Satellite detections</p><p><span aria-hidden="true" style={{color:"#c084fc"}}>●</span> Community reports</p><p>Past observations, not current fire risk.</p>{historicalMap.truncated && <p>Results limited. Narrow your search to see more.</p>}</details><div className="ew-analytics-actions"><button type="button" onClick={() => setHistoricalMap(null)}>Return to current map</button></div></div></div></aside>}
+        <div style={historicalMap ? { display: "none" } : undefined} className="ew-map-side-window" aria-label="Location search and details">
         <aside className={`ew-side-panel ${selectedArea || selectedDetection || searchedPlace ? "ew-has-selection" : ""} ${detailsExpanded ? "ew-sheet-expanded" : ""}`}>
           <div className="ew-panel-top"><button type="button" className="ew-search-collapse" aria-expanded={searchExpanded} onClick={() => setSearchExpanded((v) => !v)}>{searchExpanded ? "− Hide search" : "⌕ Search places"}</button><div className={searchExpanded ? "ew-search-body" : "ew-search-body ew-search-body-hidden"}>
           <div className="ew-locations-heading"><h2>Find a place</h2><span className="ew-section-meta">Canada</span></div>
@@ -872,11 +919,20 @@ function AppContent() {
         <section className="ew-history-section">
         <DetectionHistoryExplorer
           searchRequest={historySearchRequest}
+          onClear={() => {
+            setHistoricalMap(null);
+            setHistorySearchRequest(null);
+          }}
+          onShowOnMap={(history) => {
+            setHistoricalMap(history);
+            requestAnimationFrame(() => document.querySelector(".ew-map-frame")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+          }}
           onUseCaseStudy={(record) => {
             setSelectedCaseStudy(record);
             navigateTo("lab");
           }}
           onExplore={() => {
+            setHistoricalMap(null);
             document.querySelector(".ew-map-frame")?.scrollIntoView({
               behavior: "smooth",
               block: "start",

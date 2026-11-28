@@ -1,4 +1,3 @@
-
 """Unified historical fire records from FIRMS detections and confirmed reports."""
 from services.detection_history import history_params
 
@@ -21,7 +20,6 @@ HISTORICAL_FIRES_SQL = """
             d.frp,
             NULL::text AS review_status,
             NULL::timestamptz AS ended_at,
-            '[]'::jsonb AS status_history,
             NULL::bigint AS linked_report_id,
             NULL::bigint AS linked_detection_id,
             NULL::text AS location_source
@@ -33,7 +31,7 @@ HISTORICAL_FIRES_SQL = """
 
         UNION ALL
 
-        -- Confirmed community reports and their subsequent lifecycle states
+        -- Confirmed community reports and their public lifecycle fields
         SELECT
             r.id,
             'community_report'::text AS event_type,
@@ -49,21 +47,6 @@ HISTORICAL_FIRES_SQL = """
             NULL::double precision AS frp,
             r.review_status,
             r.ended_at,
-            COALESCE(
-                (
-                    SELECT jsonb_agg(
-                        jsonb_build_object(
-                            'old_status', a.old_status,
-                            'new_status', a.new_status,
-                            'changed_at', a.changed_at
-                        )
-                        ORDER BY a.changed_at
-                    )
-                    FROM public.fire_report_audit a
-                    WHERE a.report_id = r.id
-                ),
-                '[]'::jsonb
-            ) AS status_history,
             r.linked_report_id,
             r.linked_detection_id,
             r.location_source
@@ -91,8 +74,7 @@ RECORD_COLUMNS = (
     "id", "event_type", "latitude", "longitude", "event_at",
     "submitted_at", "source", "confidence", "confidence_class",
     "instrument", "satellite", "frp", "review_status", "ended_at",
-    "status_history", "linked_report_id", "linked_detection_id",
-    "location_source",
+    "linked_report_id", "linked_detection_id", "location_source",
 )
 
 

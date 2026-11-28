@@ -95,7 +95,7 @@ Community report records retain their original report source and available event
 - Reported observation time and submission time.
 - Recorded geographic coordinates.
 - Current review or lifecycle status.
-- Status transition history, including the previous status, new status, and transition timestamp.
+- Public historical records expose the current review status and `ended_at` timestamp where available. Internal status-transition audit records, including previous and new statuses, transition timestamps, and staff identifiers, are restricted to authorized staff and are not returned by `GET /api/fires/history`.
 - Linked detection or report identifiers, where available.
 - The time the report was marked `out`, stored in `ended_at`.
 

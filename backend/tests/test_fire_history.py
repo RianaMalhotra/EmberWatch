@@ -27,7 +27,7 @@ SATELLITE_ROW = (
     datetime(2025, 7, 1, 18, 30, tzinfo=timezone.utc),
     datetime(2025, 7, 1, 18, 35, tzinfo=timezone.utc),
     "NASA FIRMS", 80.0, "high", "MODIS", "Terra", 12.5,
-    None, None, [], None, None, None,
+    None, None, None, None, None,
 )
 
 REPORT_ROW = (
@@ -37,13 +37,6 @@ REPORT_ROW = (
     "public_report", None, None, None, None, None,
     "out",
     datetime(2025, 7, 3, 12, 0, tzinfo=timezone.utc),
-    [
-        {
-            "old_status": "confirmed",
-            "new_status": "out",
-            "changed_at": "2025-07-03T12:00:00Z",
-        }
-    ],
     None, 7, "map",
 )
 
@@ -91,8 +84,10 @@ def test_history_query_combines_satellite_and_report_records():
     assert result["data"][1]["event_type"] == "community_report"
     assert result["data"][1]["review_status"] == "out"
     assert result["data"][1]["ended_at"] is not None
-    assert result["data"][1]["status_history"][0]["new_status"] == "out"
-
+    assert "status_history" not in result["data"][1]
+    assert "old_status" not in result["data"][1]
+    assert "new_status" not in result["data"][1]
+    assert "staff_id" not in result["data"][1]
     # Community-report coordinates must be approximate.
     assert result["data"][1]["latitude"] == 50.12
     assert result["data"][1]["longitude"] == -120.46
@@ -111,7 +106,8 @@ def test_history_query_uses_parameterized_filters_and_both_sources():
     assert sql == HISTORICAL_FIRES_SQL
     assert "public.detections" in sql
     assert "public.fire_reports" in sql
-    assert "public.fire_report_audit" in sql
+    assert "public.fire_report_audit" not in sql
+    assert "status_history" not in sql
     assert "UNION ALL" in sql
     assert "'confirmed'" in sql
     assert "'out'" in sql

@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchFireHistory } from "../services/detectionApi";
 import {
   formatConfidence,
@@ -8,10 +8,10 @@ import {
 } from "../utils/detectionFormat";
 
 const REGION_LABELS = {
-  canada: "Canada (bounding box)",
-  west: "Western Canada (approximate)",
-  central: "Central Canada (approximate)",
-  east: "Eastern Canada (approximate)",
+  canada: "All Canada",
+  west: "Western Canada",
+  central: "Central Canada",
+  east: "Eastern Canada",
   custom: "Selected report vicinity",
 };
 
@@ -49,9 +49,13 @@ function formatStatus(status) {
 
 export default function DetectionHistoryExplorer({
   onExplore,
+  onShowOnMap,
+  onClear,
   searchRequest,
   onUseCaseStudy,
 }) {
+  const showMapRef = useRef(onShowOnMap);
+  useEffect(() => { showMapRef.current = onShowOnMap; }, [onShowOnMap]);
   const [region, setRegion] = useState("canada");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -85,6 +89,7 @@ export default function DetectionHistoryExplorer({
         if (!active) return;
         setResult(data);
         setState("ready");
+        showMapRef.current?.({ query, records: data.data ?? [], truncated: data.truncated });
       })
       .catch(err => {
         if (!active) return;
@@ -146,10 +151,12 @@ export default function DetectionHistoryExplorer({
       `history-community_report-${selectedRecordId}`
     );
 
-    element?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
+    if (typeof element?.scrollIntoView === "function") {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
   }, [state, result, selectedRecordId]);
 
   const invalid =
@@ -159,7 +166,44 @@ export default function DetectionHistoryExplorer({
     !Number.isFinite(Date.parse(utcDay(end))) ||
     start > end;
 
-  const records = result?.data ?? [];
+  const records = (() => {
+    const historicalRecords = result?.data ?? [];
+    const selectedReport = searchRequest?.report;
+
+    if (!selectedReport) return historicalRecords;
+
+    const alreadyIncluded = historicalRecords.some(
+      record =>
+        record.event_type === "community_report" &&
+        String(record.id) === String(selectedReport.id)
+    );
+
+    if (alreadyIncluded) return historicalRecords;
+
+    // Keep the staff-selected report visible even when it falls outside
+    // the historical API result limit or its public lifecycle filter.
+    return [
+      ...historicalRecords,
+      {
+        id: selectedReport.id,
+        event_type: "community_report",
+        latitude: Math.round(Number(selectedReport.latitude) * 100) / 100,
+        longitude: Math.round(Number(selectedReport.longitude) * 100) / 100,
+        event_at: selectedReport.observed_at,
+        submitted_at: selectedReport.created_at,
+        source: "Community",
+        confidence: null,
+        confidence_class: null,
+        review_status: selectedReport.review_status,
+        ended_at: null,
+        linked_report_id: null,
+        linked_detection_id: null,
+        location_source: "approximate",
+      },
+    ];
+  })();
+
+  const hasReports = records.some(record => record.event_type === "community_report");
 
   return (
     <section
@@ -168,11 +212,16 @@ export default function DetectionHistoryExplorer({
     >
       <h2>Historical fire records</h2>
 
-      <p>
-        Search historical NASA FIRMS satellite detections and confirmed
-        community-reported fires by region and UTC date. Satellite hotspots
-        are observations, not necessarily confirmed fires.
-      </p>
+      <p>Explore past satellite fire detections and confirmed community reports across Canada.</p>
+      <p><strong>Available records:</strong> January 2023 onwards (last verified November 27, 2026).
+        Satellite detections indicate possible fires, not confirmed fires.</p>
+      <details>
+        <summary>About this data</summary>
+        <p>NASA FIRMS archive: 2023–2025. Standard Processing: January–August 2026.
+          Near Real-Time: September 2026 onwards (last verified November 27).</p>
+        <p>Coverage varies by location and date. Recent observations may be revised.
+          Community reports have separate coverage. All dates use UTC.</p>
+      </details>
 
       <form
         onSubmit={event => {
@@ -206,15 +255,15 @@ export default function DetectionHistoryExplorer({
                 <option value="custom">Selected report vicinity</option>
               )}
 
-              <option value="canada">Canada (bounding box)</option>
-              <option value="west">Western Canada (approximate)</option>
-              <option value="central">Central Canada (approximate)</option>
-              <option value="east">Eastern Canada (approximate)</option>
+              <option value="canada">All Canada</option>
+              <option value="west">Western Canada</option>
+              <option value="central">Central Canada</option>
+              <option value="east">Eastern Canada</option>
             </select>
           </label>
 
           <label>
-            From (UTC date)
+            Start date (UTC)
             <input
               aria-label="History start date"
               type="date"
@@ -225,7 +274,7 @@ export default function DetectionHistoryExplorer({
           </label>
 
           <label>
-            Through (UTC date)
+            End date (UTC)
             <input
               aria-label="History end date"
               type="date"
@@ -243,10 +292,28 @@ export default function DetectionHistoryExplorer({
           </p>
         )}
 
+        {((start && start < "2023-01-01") ||
+          (end && end > "2026-11-27")) && (
+          <p role="status">Some dates are outside our verified archive. Results may be incomplete.</p>
+        )}
+
         <div className="ew-analytics-actions">
           <button type="submit" disabled={invalid || state === "loading"}>
             {state === "loading" ? "Searching history…" : "Search history"}
           </button>
+
+          <button type="button" onClick={() => {
+            setQuery(null);
+            setResult(null);
+            setState("idle");
+            setError("");
+            setRegion("canada");
+            setStart("");
+            setEnd("");
+            setCustomBounds(null);
+            setSelectedRecordId(null);
+            onClear?.();
+          }}>Clear history</button>
 
           <button type="button" onClick={onExplore}>
             Open current map
@@ -285,14 +352,15 @@ export default function DetectionHistoryExplorer({
           <p role="status">
             {records.length} historical records returned.
             {result.truncated
-              ? " The result limit was reached: narrow your region or date range to see more."
+              ? "  Only the first set of results is shown on the map. Choose a smaller region or date range to see more."
               : ""}
           </p>
+
 
           {records.length === 0 ? (
             <p>
               No historical records matched this region and date range.
-              This does not establish that no fires occurred.
+              No detections does not necessarily mean there were no fires.
             </p>
           ) : (
             <div className="ew-analytics-table-wrap">
@@ -304,9 +372,7 @@ export default function DetectionHistoryExplorer({
                     <th>Type</th>
                     <th>Source</th>
                     <th>Confidence</th>
-                    <th>Status</th>
-                    <th>End time</th>
-                    <th>Lifecycle</th>
+                    {hasReports && <><th>Status</th><th>End time</th><th>Lifecycle</th></>}
                     <th>Investigation</th>
                   </tr>
                 </thead>
@@ -315,10 +381,6 @@ export default function DetectionHistoryExplorer({
                   {records.map((record, index) => {
                     const isReport =
                       record.event_type === "community_report";
-
-                    const statusHistory = Array.isArray(record.status_history)
-                      ? record.status_history
-                      : [];
 
                     return (
                       <tr
@@ -361,7 +423,7 @@ export default function DetectionHistoryExplorer({
                           )}
                         </td>
 
-                        <td>
+                        {hasReports && <><td>
                           {isReport
                             ? formatStatus(record.review_status)
                             : "—"}
@@ -374,32 +436,11 @@ export default function DetectionHistoryExplorer({
                         </td>
 
                         <td>
-                          {isReport && statusHistory.length > 0 ? (
-                            <details>
-                              <summary>
-                                View timeline ({statusHistory.length})
-                              </summary>
-
-                              <ol>
-                                {statusHistory.map((entry, timelineIndex) => (
-                                  <li key={`${record.id}-${timelineIndex}`}>
-                                    <strong>
-                                      {formatStatus(entry.old_status)}
-                                      {" → "}
-                                      {formatStatus(entry.new_status)}
-                                    </strong>
-                                    <small>
-                                      {formatHistoryTime(entry.changed_at)}
-                                    </small>
-                                  </li>
-                                ))}
-                              </ol>
-                            </details>
-                          ) : isReport ? (
-                            "No status changes recorded"
-                          ) : (
-                            "—"
-                          )}
+                          {isReport
+                            ? record.ended_at
+                              ? `Ended ${formatHistoryTime(record.ended_at)}`
+                              : "Current status shown"
+                            : "—"}
 
                           {isReport &&
                             (record.linked_report_id ||
@@ -414,7 +455,7 @@ export default function DetectionHistoryExplorer({
                                   `Linked detection: ${record.linked_detection_id}`}
                               </small>
                             )}
-                        </td>
+                        </td></>}
 
                         <td>
                           <button

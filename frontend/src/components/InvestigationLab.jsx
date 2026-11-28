@@ -128,29 +128,13 @@ export default function InvestigationLab({
                     : "This record originates from a community report."}
                 </p>
 
-                {Array.isArray(caseStudy.status_history) &&
-                caseStudy.status_history.length > 0 ? (
-                  <ol className="ew-lab-case-history">
-                    {caseStudy.status_history.map((entry, index) => (
-                      <li key={entry.id ?? index}>
-                        <strong>
-                          {labelStatus(
-                            entry.old_status ?? entry.from_status ?? "Initial"
-                          )}
-                          {" → "}
-                          {labelStatus(
-                            entry.new_status ?? entry.to_status
-                          )}
-                        </strong>
-                        <small>
-                          {date(entry.changed_at ?? entry.created_at)}
-                        </small>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p>No status history is available for this record.</p>
-                )}
+                <p>
+                  {caseStudy.ended_at
+                    ? `This report was recorded as ended on ${date(caseStudy.ended_at)}.`
+                    : `The current recorded review status is ${labelStatus(
+                        caseStudy.review_status
+                      )}.`}
+                </p>
               </>
             ) : (
               <>

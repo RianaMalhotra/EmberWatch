@@ -77,7 +77,6 @@ Each record includes the following fields where applicable:
 | `satellite`, `instrument`, `frp` | Satellite observation metadata, when available |
 | `review_status` | Community report review/lifecycle status |
 | `ended_at` | Time the report was marked `out`, when available |
-| `status_history` | Timestamped status transitions for community reports |
 | `linked_report_id`, `linked_detection_id` | Existing duplicate/link relationships |
 | `location_source` | Origin of the recorded location, when available |
 
@@ -85,7 +84,7 @@ Fields that do not apply to an event type may be null. Missing metadata is not i
 
 Only community reports with statuses `confirmed`, `out_of_control`, `being_held`, `under_control`, or `out` are included. Unverified, verified, and rejected reports are excluded from this public historical query.
 
-Community report coordinates are rounded to two decimal places in the returned response for location privacy. Filtering is performed against the stored coordinates.
+Community report coordinates are rounded to two decimal places in the returned response for location privacy. Filtering is performed against the stored coordinates. The public response includes current review status and `ended_at` where available, but excludes internal moderation audit history, status-transition details, and staff identifiers.
 
 ### Errors
 
@@ -95,6 +94,6 @@ Community report coordinates are rounded to two decimal places in the returned r
 
 ### Relationship to the Investigation Lab
 
-The Historical Fire Records explorer lets users select an eligible event and open it in the Investigation Lab as a case study. The case study presents available source metadata and, for community reports, the recorded lifecycle history.
+The Historical Fire Records explorer lets users select an eligible event and open it in the Investigation Lab as a case study. The case study presents available source metadata and, for community reports, the current review status and recorded end time when available. Internal moderation audit history is not exposed through the public history API.
 
 This is an educational historical-event view. It does not simulate wildfire spread or predict how an individual fire would develop.
