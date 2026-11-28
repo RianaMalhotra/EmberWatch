@@ -2000,3 +2000,60 @@
 @media(max-width:480px){
  .ew-explore-page:not(.ew-page-hidden) .ew-map-first>.ew-map-column>.ew-map-controls.ew-map-controls-open {width:min(255px,calc(100% - 70px))!important;max-height:48dvh!important;}
 }
+
+/* End-user usability: visible focus and keyboard selection */
+.ew-app :focus-visible, .ash-shell :focus-visible, .rf-panel :focus-visible { outline: 3px solid #ffd08c; outline-offset: 3px; }
+.ew-place-suggestions [aria-selected="true"] { background:#67402e; color:#fff; outline:2px solid #ffd08c; outline-offset:-2px; }
+.ash-shell { max-width:calc(100vw - 24px); }
+.ash-shell .ash-guide-launcher { display:block; margin:0 0 8px auto; padding:10px 14px; border:1px solid #e7a06d; border-radius:10px; background:#362521; color:#fff0e4; font:inherit; cursor:pointer; }
+@media(max-width:600px){ .ash-shell .ash-panel { max-width:calc(100vw - 24px); max-height:75dvh; } .ash-shell .ash-guide-launcher { max-width:calc(100vw - 32px); white-space:normal; } }
+@media(prefers-reduced-motion:reduce){ .ew-app *, .ash-shell *, .rf-panel * { animation-duration:0.01ms!important; transition-duration:0.01ms!important; scroll-behavior:auto!important; } }
+
+.ew-skip-link{position:absolute;top:8px;left:8px;z-index:9999;padding:12px;background:#fff0e4;color:#241e22;border-radius:6px;transform:translateY(-200%)}
+.ew-skip-link:focus{transform:none}
+.ew-main :focus-visible,.ew-top-nav :focus-visible{outline:3px solid #ffd08c;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.ew-main *, .ew-top-nav *{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Consistent secondary controls and compact mobile map actions */
+.ew-clear-selection,.ew-search-count button{border:1px solid #c38b62;border-radius:8px;background:#362521;color:#fff0e4;padding:9px 12px;font:inherit;cursor:pointer}
+.ew-clear-selection:hover,.ew-search-count button:hover{background:#57382b}
+.ew-clear-selection{margin-bottom:8px}
+@media(max-width:600px){.ew-map-controls-toggle,.ew-search-collapse,.ew-clear-selection,.ash-guide-launcher{min-height:44px}.ew-map-controls-content{overscroll-behavior:contain}.ew-side-panel{min-width:0}.ew-analytics-table-wrap{max-width:100%;overflow-x:auto}.ash-shell .ash-panel{width:min(360px,calc(100vw - 24px));max-height:70dvh}}
+
+/* Compact first-use guidance, consistent with the existing map palette. */
+.ew-quick-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0;color:#f9e7d8}
+.ew-quick-guide>div{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:12px 14px;border:1px solid #78503c;border-radius:10px;background:#292123}
+.ew-quick-guide strong{font-size:14px}.ew-quick-guide span,.ew-search-hint{font-size:13px;line-height:1.5;color:#e1c9b7}
+.ew-quick-guide button{margin-top:auto;border:1px solid #c38b62;border-radius:7px;background:#362521;color:#fff0e4;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer}
+.ew-quick-guide button:hover{background:#57382b}.ew-search-hint{margin:4px 0 8px}
+@media(max-width:700px){.ew-quick-guide{grid-template-columns:1fr;gap:6px}.ew-quick-guide>div{padding:10px;display:grid;grid-template-columns:1fr auto;align-items:center}.ew-quick-guide span{grid-column:1}.ew-quick-guide button{grid-column:2;grid-row:1 / span 2;min-height:44px;margin:0}}
+@media(max-width:360px){.ew-quick-guide>div{display:flex}.ew-quick-guide button{width:100%}}
+
+.ew-quick-guide-disclosure>summary{cursor:pointer;padding:10px 12px;color:inherit;font-weight:600;min-height:44px;box-sizing:border-box}
+.ew-quick-guide-disclosure>summary:focus-visible,.ew-quick-guide button:focus-visible{outline:3px solid #ffb36c;outline-offset:3px}
+.ew-quick-guide button{min-height:44px}
+@media(prefers-reduced-motion:reduce){.ew-quick-guide *, .ew-quick-guide-disclosure{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* #115 reviewer P1: keep controls in flow and give evidence room to wrap. */
+.ew-explore-page:not(.ew-page-hidden) .ew-workspace.ew-map-first {grid-template-columns:minmax(0,1fr) minmax(340px,40%)!important;}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-side-window {overflow-x:hidden;box-sizing:border-box;}
+.ew-explore-page:not(.ew-page-hidden) .ew-map-first .ew-side-panel {min-width:0!important;box-sizing:border-box;overflow-wrap:anywhere;}
+.ew-map-first .ew-side-panel :is(.ew-detail-panel,.ew-collapsed-details,.ew-expanded-details,.ew-factor-list,.ew-factor-row,.ew-metric) {min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;white-space:normal;}
+.ew-map-first .ew-side-panel .ew-factor-row {flex-wrap:wrap;}
+.ew-main {padding-bottom:100px!important;}
+@media(max-width:800px){
+ .ew-explore-page:not(.ew-page-hidden) .ew-workspace.ew-map-first {grid-template-columns:minmax(0,1fr)!important;}
+ .ew-header {position:relative!important;height:auto!important;min-height:0!important;flex-wrap:wrap;}
+ .ew-top-nav {position:static!important;order:3;flex:1 0 100%;width:100%;box-sizing:border-box;}
+ .ew-top-nav button {min-width:0;padding:10px 4px;}
+ .ew-explore-page:not(.ew-page-hidden) .ew-map-side-window {width:100%;max-height:none;}
+ .ash-shell:not(:has(.ash-panel)) .ash-launcher {min-width:44px;min-height:44px;}
+ .ash-shell:not(:has(.ash-panel)) .ash-launcher>span:last-child {display:none;}
+}
+
+/* Single mobile navigation: primary pages move into the existing More menu. */
+.ew-mobile-primary-nav {display:none;}
+@media(max-width:800px){.ew-header .ew-top-nav {display:none!important;} .ew-mobile-primary-nav {display:grid;gap:4px;} .ew-mobile-primary-nav button[aria-current="page"] {font-weight:700;border-color:#e7a06d;} .ew-header .ew-navigation {max-width:calc(100vw - 24px);max-height:75dvh;overflow-y:auto;} }
+
+/* P2: readable feature descriptions and platform stat captions. */
+.ew-home-inferno .ew-feature-tiles button>span:nth-child(2),.ew-home-inferno .ew-home-intelligence>div :is(span,small,p){font-size:14px;line-height:1.5;color:#e1cfc2;overflow-wrap:anywhere}

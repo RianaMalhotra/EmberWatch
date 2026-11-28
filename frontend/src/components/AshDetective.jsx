@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../services/apiConfig";
 import AshMascot from "./AshMascot";
 import { summarizeDay, level } from "../utils/weatherClassifier";
 
-const starterQuestions = ["What is the four-day forecast?", "How does tomorrow compare?", "What's the risk in Kelowna?", "How current is the data?"];
+const starterQuestions = ["How do I use this website?", "What is the four-day forecast?", "How does tomorrow compare?", "What's the risk in Kelowna?", "How current is the data?"];
 const welcome = { role: "assistant", text: "Ash Detective, on the case. 🕵️ Ask about EmberWatch, its stakeholders, how to use the website, monitored areas, or the weather outlook." };
 const forecastQuestion = (q) => /forecast|outlook|tomorrow|next (?:few |four |4 )?days|weather pattern|similarity|temperature|humidity|precipitation|wind/.test(q.toLowerCase());
 async function loadForecast(area) {
@@ -63,6 +63,9 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
   const [messages, setMessages] = useState([welcome]);
   const [busy, setBusy] = useState(false);
   const endRef = useRef(null);
+  const launcherRef = useRef(null);
+  const inputRef = useRef(null);
+  useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
   const historyRef = useRef([]);
   const lastAreaRef = useRef(null);
   const conversationVersionRef = useRef(0);
@@ -85,7 +88,9 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
     if (contextualArea) lastAreaRef.current = contextualArea;
     setMessages((old) => [...old, { role: "user", text: question }]);
     setBusy(true);
-    let answer = projectGuide(question) ?? "";
+    const explicitRiskPlace = /\b(?:fire\s+risk|wildfire\s+risk|risk)\s+(?:in|for|at|of)\s+([^?!.]+)[?!.]*$/i.exec(question);
+    const unknownRiskPlace = explicitRiskPlace && !mentionedArea && !/^(?:this|that|the|same)\s+(?:area|place|location|city)$/i.test(explicitRiskPlace[1].trim());
+    let answer = projectGuide(question) ?? (unknownRiskPlace ? `I don’t have a loaded monitored-area risk assessment for ${explicitRiskPlace[1].trim()}. Search for the location on Explore to inspect available observations. No risk score or current fire status can be inferred.` : "");
     if (answer) { historyRef.current = [...prior, { role: "user", content: question }, { role: "assistant", content: answer }].slice(-12); setMessages(old => [...old, { role: "assistant", text: answer }]); setBusy(false); return; }
     let forecast = null;
     let forecastError = "";
@@ -127,16 +132,21 @@ export default function AshDetective({ areas = [], detections = [], selectedArea
     setMessages((old) => [...old, { role: "assistant", text: answer }]);
     setBusy(false);
   }
+  useEffect(() => {
+    const guide = () => { setOpen(true); if (!busy) ask("How do I use this website?"); };
+    window.addEventListener("emberwatch:guide", guide);
+    return () => window.removeEventListener("emberwatch:guide", guide);
+  });
   return (
     <div className="ash-shell">
-      {open && <section className="ash-panel" aria-label="Ash Detective assistant">
-        <header className="ash-head"><div className="ash-avatar"><AshMascot size={38} /></div><div><strong>Ash Detective</strong><span>Wildfire case notes · educational</span></div><button type="button" className="ash-new-chat" onClick={clearChat} aria-label="Start new conversation" title="New conversation">New chat</button><button type="button" className="ash-close" aria-label="Close Ash Detective" onClick={() => setOpen(false)}>×</button></header>
+      {open && <section className="ash-panel" aria-label="Ash Detective assistant" onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); launcherRef.current?.focus(); } }}>
+        <header className="ash-head"><div className="ash-avatar"><AshMascot size={38} /></div><div><strong>Ash Detective</strong><span>Wildfire case notes · educational</span></div><button type="button" className="ash-new-chat" onClick={clearChat} aria-label="Start new conversation" title="New conversation">New chat</button><button type="button" className="ash-close" aria-label="Close Ash Detective" onClick={() => { setOpen(false); launcherRef.current?.focus(); }}>×</button></header>
         <div className="ash-messages" role="log" aria-live="polite">{messages.map((m, i) => <div className={`ash-message ash-${m.role}`} key={i}>{m.text}</div>)}{busy && <div className="ash-message ash-assistant">Investigating…</div>}<div ref={endRef} /></div>
         {messages.length === 1 && <div className="ash-suggestions">{contextualQuestions.map((q) => <button type="button" key={q} onClick={() => ask(q)}>{q}</button>)}</div>}
-        <form className="ash-compose" onSubmit={(e) => { e.preventDefault(); ask(draft); }}><input aria-label="Ask Ash Detective" placeholder="Ask me anything about the map…" value={draft} maxLength={500} onChange={(e) => setDraft(e.target.value)} /><button type="submit" disabled={!draft.trim() || busy} aria-label="Send message">➤</button></form>
+        <form className="ash-compose" onSubmit={(e) => { e.preventDefault(); ask(draft); }}><input ref={inputRef} aria-label="Ask Ash Detective" placeholder="Ask me anything about the map…" value={draft} maxLength={500} onChange={(e) => setDraft(e.target.value)} /><button type="submit" disabled={!draft.trim() || busy} aria-label="Send message">➤</button></form>
         <p className="ash-caution">May be incomplete or outdated · Not emergency advice</p>
       </section>}
-      <button type="button" className="ash-launcher" aria-label={open ? "Close Ash Detective" : "Chat with Ash Detective"} aria-expanded={open} onClick={() => setOpen((v) => !v)}><span aria-hidden="true"><AshMascot size={29} /></span><span>{open ? "Close case" : "Ask Ash"}</span></button>
+      <button type="button" ref={launcherRef} className="ash-launcher" aria-label={open ? "Close Ash Detective" : "Chat with Ash Detective"} aria-expanded={open} onClick={() => setOpen((v) => !v)}><span aria-hidden="true"><AshMascot size={29} /></span><span>{open ? "Close case" : "Ask Ash"}</span></button>
     </div>
   );
 }

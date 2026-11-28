@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import {
   MAX_DESCRIPTION,
@@ -54,6 +54,7 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
   const [ap, setAp] = useState(null);
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [submitError, setSubmitError] = useState(null);
   const [receipt, setReceipt] = useState(null);
 
@@ -87,12 +88,13 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
   }
 
   async function submit() {
-    if (submitting || !enabled) return; // no duplicates from double clicks; nothing sent in preview
+    if (submittingRef.current || !enabled) return; // no duplicates from double clicks; nothing sent in preview
     const problems = reportProblems(form);
     if (problems.length > 0) {
       setSubmitError(problems.join(" "));
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -103,6 +105,7 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
     } catch (err) {
       setSubmitError(err.message); // answers are kept so the user can retry
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -202,7 +205,8 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
           <label htmlFor="report-desc"><strong>Anything else?</strong> <span className="rf-hint">(optional)</span></label>
           <textarea id="report-desc" className="rf-text" maxLength={MAX_DESCRIPTION} rows={3}
             placeholder="e.g. Grey smoke behind the trees near the highway"
-            value={description} onChange={(e) => setDescription(e.target.value)} />
+            value={description} aria-describedby="report-desc-count" onChange={(e) => setDescription(e.target.value)} />
+          <p id="report-desc-count" className="rf-hint">{description.length} / {MAX_DESCRIPTION} characters</p>
 
           <div className="rf-footer">
             <button type="button" className="rf-btn rf-outline" onClick={() => setStep("location")}>Back</button>
@@ -225,6 +229,7 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
           {submitError && <p role="alert" className="rf-error">{submitError}</p>}
           <div className="rf-footer">
             <button type="button" className="rf-btn rf-outline" onClick={() => setStep("details")} disabled={submitting}>Back</button>
+            <button type="button" className="rf-btn rf-outline" onClick={onClose} disabled={submitting}>Cancel</button>
             <button type="button" className="rf-btn rf-fire" onClick={submit} disabled={submitting || !enabled}>
               {!enabled ? "Sending not available yet" : submitting ? "Sending…" : "Submit report"}
             </button>
@@ -235,7 +240,7 @@ export default function ReportFire({ onClose, onSubmitted, enabled = REPORTS_ENA
       {step === "done" && (
         <>
           <h2>Report received</h2>
-          <p>Thank you. Your report was received and is <strong>awaiting review</strong> by staff.</p>
+          <p role="status">Thank you. Your report was received and is <strong>awaiting review</strong> by staff.</p>
           <p>It has <strong>not</strong> been sent to emergency services. If there is immediate danger, call 911.</p>
           {receipt?.id && <p className="rf-hint">Report ID: {receipt.id}</p>}
           <div className="rf-footer"><button type="button" className="rf-btn rf-primary" onClick={onClose}>Back to map</button></div>

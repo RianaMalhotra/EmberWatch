@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ReportFire from "./ReportFire";
 import { submitReport } from "../services/reportApi";
@@ -102,6 +102,20 @@ describe("Report a Fire (#51)", () => {
     expect(screen.getByText("awaiting review")).toBeInTheDocument();
     expect(screen.queryByText(/on the map/i)).not.toBeInTheDocument(); // map display is not built yet
     expect(screen.getByText("Report ID: 42")).toBeInTheDocument();
+  });
+
+  it("prevents duplicate submits while the first request is pending, without a real API", async () => {
+    submitReport.mockImplementation(() => new Promise(() => {}));
+    const user = userEvent.setup();
+    render(<ReportFire onClose={() => {}} enabled />);
+    await fillToReview(user);
+
+    const send = screen.getByRole("button", { name: "Submit report" });
+    fireEvent.click(send);
+    fireEvent.click(send);
+
+    expect(submitReport).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
   });
 
   it("keeps the answers and shows an error if saving fails", async () => {
